@@ -3779,10 +3779,18 @@ function createStepButton(
   const offsetDefinition =
     activeStepOffsetDefinition();
 
-  const offsetPerformance =
+  let offsetPerformance =
     step?.[
       state.selectedLayer
     ];
+
+  const offsetLayerOccupiedByOtherSound =
+    Boolean(
+      offsetDefinition &&
+      offsetPerformance?.soundId &&
+      offsetPerformance.soundId !==
+        state.selectedSoundId
+    );
 
   const canEditOffset =
     Boolean(
@@ -3819,6 +3827,19 @@ function createStepButton(
 
       button.classList.add(
         "offset-active"
+      );
+    } else if (
+      offsetLayerOccupiedByOtherSound
+    ) {
+      offsetValue.textContent =
+        "▪";
+
+      offsetValue.classList.add(
+        "occupied-by-other-sound"
+      );
+
+      button.classList.add(
+        "offset-occupied"
       );
     } else {
       offsetValue.textContent =
@@ -3890,9 +3911,16 @@ function createStepButton(
   button.addEventListener(
     "pointerdown",
     event => {
+      if (!offsetDefinition) {
+        return;
+      }
+
+      /*
+       * Clipboard保持中は従来どおりpasteを優先する。
+       */
       if (
-        !canEditOffset ||
-        !offsetDefinition
+        hasEditClipboard() &&
+        editClipboardOriginIsStep()
       ) {
         return;
       }
@@ -3900,17 +3928,79 @@ function createStepButton(
       offsetGestureMoved =
         false;
 
+      let placedOnPointerDown =
+        false;
+
+      if (
+        offsetPerformance?.soundId !==
+          state.selectedSoundId
+      ) {
+        /*
+         * Offset編集では、空STEPも同Layerの別Soundも
+         * pointerdown時点で現在Soundへ置き換える。
+         * placeSelectedSound() 側で履歴保存も行われるため、
+         * そのまま続くスイープを同じUndo単位へまとめる。
+         */
+        if (
+          !placeSelectedSound(
+            stepIndex
+          )
+        ) {
+          return;
+        }
+
+        placedOnPointerDown =
+          true;
+
+        offsetPerformance =
+          currentStep(
+            stepIndex
+          )?.[
+            state.selectedLayer
+          ] ?? null;
+
+        if (!offsetPerformance) {
+          return;
+        }
+
+        selectedStepIndex =
+          stepIndex;
+
+        button.classList.remove(
+          "offset-occupied"
+        );
+
+        button.classList.add(
+          "offset-active"
+        );
+
+        offsetValue?.classList.remove(
+          "occupied-by-other-sound"
+        );
+
+        if (offsetValue) {
+          renderStepOffsetValue(
+            offsetValue,
+            offsetDefinition,
+            offsetPerformance[
+              offsetDefinition.id
+            ],
+            offsetPerformance
+          );
+        }
+      }
+
       offsetDrag = {
         startY:
           event.clientY,
         startValue:
           Number(
-            offsetPerformance[
+            offsetPerformance?.[
               offsetDefinition.id
             ]
           ) || 0,
         saved:
-          false
+          placedOnPointerDown
       };
 
       button.setPointerCapture?.(
@@ -3987,6 +4077,15 @@ function createStepButton(
 
     offsetDrag =
       null;
+
+    /*
+     * スイープ時はclick側が再描画を抑止するため、
+     * pointerupで現在状態を確定表示する。
+     */
+    if (offsetGestureMoved) {
+      renderSequence();
+      renderEditor();
+    }
   };
 
   button.addEventListener(

@@ -2542,7 +2542,7 @@ select,
 
 /* Direct-edit cells need vertical swipe without scrolling the page. */
 .mokton-direct-value-pad,
-#sequence-grid .mokton-step.offset-active {
+#sequence-grid .mokton-step.offset-view {
   touch-action: none;
 }
 
@@ -4415,4 +4415,12 @@ body {
   font-variant-ligatures: none !important;
   -webkit-font-variant-ligatures: none !important;
   font-feature-settings: "liga" 0, "clig" 0, "calt" 0 !important;
+}
+
+
+/* Offset edit: same-layer slot already contains another sound. */
+#sequence-grid .mokton-step-offset-value.occupied-by-other-sound {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
 }
