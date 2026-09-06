@@ -36,7 +36,8 @@ const PROJECT_MIGRATION_KEY =
   "sprooto-project-migration-idb-v1";
 
 const PROJECT_SCHEMA_VERSION = 1;
-const AUTOSAVE_DELAY = 500;
+const AUTOSAVE_DELAY = 250;
+const EMERGENCY_RECOVERY_KEY = "mono82-emergency-recovery-v1";
 
 /*
  * Stage 36:
@@ -659,6 +660,47 @@ async function saveRecoveryNow() {
 
   return true;
 }
+
+function writeEmergencyRecovery() {
+  const id = getCurrentProjectId();
+  if (!id || !recoveryDirty) return false;
+
+  try {
+    localStorage.setItem(
+      EMERGENCY_RECOVERY_KEY,
+      JSON.stringify({
+        id,
+        updatedAt: new Date().toISOString(),
+        settings: currentProjectSettings(),
+        data: createProjectSnapshot()
+      })
+    );
+    return true;
+  } catch (error) {
+    console.warn("mono82 emergency recovery unavailable:", error);
+    return false;
+  }
+}
+
+function readEmergencyRecovery(id) {
+  try {
+    const raw = localStorage.getItem(EMERGENCY_RECOVERY_KEY);
+    if (!raw) return null;
+    const record = JSON.parse(raw);
+    if (!record || record.id !== id || !projectDataIsValid(record.data)) {
+      return null;
+    }
+    return record;
+  } catch {
+    return null;
+  }
+}
+
+function recordTime(record) {
+  const time = Date.parse(record?.updatedAt ?? "");
+  return Number.isFinite(time) ? time : 0;
+}
+
 export function hasUnsavedChanges() { return dirty; }
 export async function saveCurrentProject() {
   try {
@@ -839,12 +881,48 @@ export async function restoreAutosave() {
     if (currentId) {
       const currentRecord = await readProjectRecord(currentId);
       const recovery = await readRecoveryRecord(currentId);
-      if (recovery && projectDataIsValid(recovery.data) && restoreProjectSnapshot(recovery.data)) {
-        restoreProjectSettings(recovery.settings);
-        dirty = Boolean(currentRecord && recovery.updatedAt !== currentRecord.updatedAt);
-        return true;
+      const emergency = readEmergencyRecovery(currentId);
+
+      const candidates = [
+        currentRecord && projectDataIsValid(currentRecord.data)
+          ? { kind: "project", record: currentRecord }
+          : null,
+        recovery && projectDataIsValid(recovery.data)
+          ? { kind: "recovery", record: recovery }
+          : null,
+        emergency && projectDataIsValid(emergency.data)
+          ? { kind: "emergency", record: emergency }
+          : null
+      ]
+        .filter(Boolean)
+        .sort((a, b) => recordTime(b.record) - recordTime(a.record));
+
+      const newest = candidates[0];
+
+      if (newest) {
+        const restored = restoreProjectSnapshot(newest.record.data);
+        if (restored) {
+          restoreProjectSettings(newest.record.settings);
+
+          /*
+           * Rewrite the restored snapshot immediately. This permanently
+           * migrates legacy numeric chord indexes to stable chord names.
+           */
+          const normalizedData = createProjectSnapshot();
+          const normalizedRecovery = {
+            id: currentId,
+            updatedAt: newest.record.updatedAt ?? new Date().toISOString(),
+            settings: newest.record.settings ?? currentProjectSettings(),
+            data: normalizedData
+          };
+          await writeRecoveryRecord(normalizedRecovery);
+          localStorage.removeItem(EMERGENCY_RECOVERY_KEY);
+
+          dirty = newest.kind !== "project";
+          recoveryDirty = false;
+          return true;
+        }
       }
-      if (currentRecord && restoreProjectRecord(currentRecord)) { dirty = false; return true; }
     }
 
     const migrationId =
@@ -1249,8 +1327,19 @@ export function initializeAutosave() {
           autosaveTimer
         );
 
+        /* Synchronous last-chance snapshot for iOS app termination. */
+        writeEmergencyRecovery();
         void saveAutosave();
       }
+    }
+  );
+
+  window.addEventListener(
+    "pagehide",
+    () => {
+      clearTimeout(autosaveTimer);
+      writeEmergencyRecovery();
+      void saveAutosave();
     }
   );
 }

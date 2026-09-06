@@ -49,10 +49,10 @@ export const MELODIC_STEP_DEFAULTS = Object.freeze({
   note: 0,
 
   /*
-   * Chordの最終データ形式はまだ確定前。
-   * Stage 1では勝手に構造を決めずnullで保持する。
+   * Chord is stored as a stable name (e.g. "maj7"), not a list index.
+   * This keeps saved projects stable even if the chord list is reordered.
    */
-  chord: null,
+  chord: "off",
 
   gain: 100,
   pan: 0,
