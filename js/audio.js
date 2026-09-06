@@ -2489,26 +2489,26 @@ function filterFrequencyFromValue(
 
   if (normalized > 0) {
     /*
-     * 正値はLow-pass。
-     * +1付近はほぼ開放、+50で強く閉じる。
+     * FIL upper side = High-pass / LOW CUT.
+     * +1 is almost open; +50 removes the low range strongly.
      */
     const t =
       normalized / 50;
 
     return {
-      type: "lowpass",
+      type: "highpass",
       frequency:
-        18000 *
+        20 *
         Math.pow(
-          90 / 18000,
+          7000 / 20,
           t
         )
     };
   }
 
   /*
-   * 負値はHigh-pass。
-   * -1付近はほぼ開放、-50で強く削る。
+   * FIL lower side = Low-pass / HIGH CUT.
+   * -1 is almost open; -50 removes the high range strongly.
    */
   const t =
     Math.abs(
@@ -2516,11 +2516,11 @@ function filterFrequencyFromValue(
     ) / 50;
 
   return {
-    type: "highpass",
+    type: "lowpass",
     frequency:
-      20 *
+      18000 *
       Math.pow(
-        7000 / 20,
+        90 / 18000,
         t
       )
   };

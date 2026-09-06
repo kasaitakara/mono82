@@ -667,7 +667,7 @@ const SOUND_PARAMETER_SCHEMA = Object.freeze({
 
     {
       id: "filterCutoff",
-      label: "cut",
+      label: "fil",
       min: -50,
       max: 50,
       step: 1
@@ -725,7 +725,7 @@ const SOUND_PARAMETER_SCHEMA = Object.freeze({
 
     {
       id: "filterCutoff",
-      label: "cut",
+      label: "fil",
       min: -50,
       max: 50,
       step: 1
@@ -789,6 +789,30 @@ function formatParameterValue(
   if (
     !Number.isFinite(number)
   ) {
+    return "0";
+  }
+
+  /*
+   * FIL is a centered, bidirectional filter control.
+   * Positive values move the sound upward via HPF / LOW CUT,
+   * negative values move it downward via LPF / HIGH CUT.
+   * Show direction instead of an ambiguous +/- sign.
+   */
+  if (
+    definition?.id ===
+      "filterCutoff"
+  ) {
+    const rounded =
+      Math.round(number);
+
+    if (rounded > 0) {
+      return `↑${rounded}`;
+    }
+
+    if (rounded < 0) {
+      return `↓${Math.abs(rounded)}`;
+    }
+
     return "0";
   }
 
@@ -3082,8 +3106,8 @@ function shortTargetLabel(
 
   const map = {
     pitch: "pit",
-    filter: "cut",
-    cutoff: "cut",
+    filter: "fil",
+    cutoff: "fil",
     gain: "lvl",
     pan: "pan",
     fmdepth: "fmd",

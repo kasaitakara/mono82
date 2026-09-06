@@ -4372,3 +4372,34 @@ body {
   align-items: center !important;
   justify-content: center !important;
 }
+
+/* =========================================================
+   mono82: compact text glyph unification
+   Keep short parameter tokens rasterized on the same box.
+   ========================================================= */
+
+.mokton-direct-value-label,
+.mokton-lfo-cell-label,
+.mokton-lfo-cell-value,
+.mokton-lfo-inline-value .mokton-direct-value-label,
+.mokton-lfo-inline-value .mokton-direct-value-number {
+  font-family: var(--font-main) !important;
+  font-size: var(--mokton-ui-font-size) !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-variant: normal !important;
+  -webkit-font-smoothing: none;
+  text-rendering: geometricPrecision;
+}
+
+.mokton-direct-value-label,
+.mokton-lfo-cell-label,
+.mokton-lfo-cell-value {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
