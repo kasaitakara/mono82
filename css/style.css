@@ -4622,3 +4622,48 @@ body {
 .mokton-clip-button {
   touch-action: manipulation;
 }
+
+
+/* =========================================================
+   STEP clipboard marker + iOS gesture hardening v6
+   ========================================================= */
+
+/*
+ * The marker now uses the native hidden attribute as the source of truth.
+ * This avoids conflicts with the many historical STEP state selectors.
+ */
+#sequence-grid .mokton-step-clipboard-marker {
+  display: block !important;
+  position: absolute !important;
+  left: 1px !important;
+  right: auto !important;
+  top: 1px !important;
+  bottom: auto !important;
+  width: 4px !important;
+  height: 4px !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--text) !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  z-index: 20 !important;
+}
+
+#sequence-grid .mokton-step-clipboard-marker[hidden] {
+  display: none !important;
+}
+
+/*
+ * Prevent iOS Safari from treating double-tap + drag on the sequencer as
+ * text selection / touch-callout (the magnifying loupe interaction).
+ */
+#sequence-grid,
+#sequence-grid *,
+#sequence-grid button {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+#sequence-grid .mokton-step {
+  touch-action: none !important;
+}

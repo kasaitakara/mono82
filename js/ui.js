@@ -203,12 +203,30 @@ function setClipboardPreviewRange(
           step.dataset.stepIndex
         );
 
+      const inPreview =
+        Number.isInteger(index) &&
+        index >= from &&
+        index <= to;
+
       step.classList.toggle(
         "clipboard-preview",
-        Number.isInteger(index) &&
-          index >= from &&
-          index <= to
+        inPreview
       );
+
+      const marker =
+        step.querySelector(
+          ".mokton-step-clipboard-marker"
+        );
+
+      if (marker) {
+        marker.hidden =
+          !(
+            inPreview ||
+            step.classList.contains(
+              "clipboard-source"
+            )
+          );
+      }
     });
 }
 
@@ -221,6 +239,18 @@ function clearClipboardPreview() {
       step.classList.remove(
         "clipboard-preview"
       );
+
+      const marker =
+        step.querySelector(
+          ".mokton-step-clipboard-marker"
+        );
+
+      if (marker) {
+        marker.hidden =
+          !step.classList.contains(
+            "clipboard-source"
+          );
+      }
     });
 }
 
@@ -4150,6 +4180,14 @@ function createStepButton(
     "aria-hidden",
     "true"
   );
+
+  /*
+   * Do not rely only on accumulated CSS class rules for visibility.
+   * The marker is explicitly shown for the copied source range and
+   * temporarily shown by setClipboardPreviewRange() while sweeping.
+   */
+  clipboardMarker.hidden =
+    !clipboardSourceActive;
 
   button.append(
     clipboardMarker
