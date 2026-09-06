@@ -4756,3 +4756,17 @@ body {
 .pattern-section .section-toolbar > .mokton-pattern-clip-button {
   flex: 0 0 28px !important;
 }
+
+
+/* =========================================================
+   Hierarchical clipboard v7
+   Pattern Edit is permanently anchored at the far left.
+   Clipboard remains an overlay in column 7; Loop stays right.
+   ========================================================= */
+
+.pattern-section #pattern-edit-button,
+.pattern-section .pattern-edit-button {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  flex: 0 0 28px !important;
+}
