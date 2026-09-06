@@ -1293,6 +1293,19 @@ return true;
 }
 
 export function initializeAutosave() {
+  /*
+   * Sequencer edits are recorded through saveHistory()/undo()/redo().
+   * historychange is therefore the common edit signal for STEP/chord/
+   * sound/pattern changes. Schedule Recovery here so those edits survive
+   * app termination and restart.
+   */
+  window.addEventListener(
+    "historychange",
+    () => {
+      scheduleAutosave();
+    }
+  );
+
   [
   "change",
   "input"
