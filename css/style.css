@@ -4445,3 +4445,49 @@ body {
 #pattern-loop-button[aria-pressed="true"] .mono82-icon polygon {
   fill: var(--bg) !important;
 }
+
+
+/* =========================================================
+   mono82: Song playback selection + Pattern Edit entry
+   ========================================================= */
+.pattern-section .section-toolbar {
+  gap: 7px !important;
+}
+
+.pattern-edit-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  min-width: 28px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.mono82-pattern-edit-icon {
+  display: grid;
+  grid-template-columns: repeat(4, 3px);
+  grid-template-rows: repeat(2, 3px);
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+}
+
+.mono82-pattern-edit-icon i {
+  display: block;
+  width: 3px;
+  height: 3px;
+  margin: 0;
+  padding: 0;
+  background: currentColor;
+}
+
+.pattern-edit-button:active {
+  color: var(--text);
+}

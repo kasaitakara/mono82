@@ -84,6 +84,11 @@ const patternLoopButton =
     "pattern-loop-button"
   );
 
+const patternEditButton =
+  document.getElementById(
+    "pattern-edit-button"
+  );
+
 const sequenceBackButton =
   currentSourceDisplay;
 
@@ -166,6 +171,8 @@ function setAppView(
     state.playingPatternIndex !==
       null &&
     state.playingPatternIndex !==
+      state.selectedPatternIndex &&
+    state.queuedPatternIndex !==
       state.selectedPatternIndex
   ) {
     queuePattern(
@@ -4373,6 +4380,23 @@ patternLoopButton?.addEventListener(
   }
 );
 
+patternEditButton?.addEventListener(
+  "click",
+  () => {
+    selectedStepIndex =
+      null;
+
+    setAppView(
+      "sequence"
+    );
+
+    renderCurrentSourceDisplay();
+    renderSequence();
+    renderPatternManager();
+    renderEditor();
+  }
+);
+
 
 let patternRangeAnchorIndex =
   null;
@@ -4909,6 +4933,20 @@ function createPatternButton(
         ) {
           patternRangeAnchorIndex =
             patternIndex;
+
+          selectPattern(
+            patternIndex
+          );
+
+          if (
+            state.isPlaying &&
+            state.playingPatternIndex !==
+              patternIndex
+          ) {
+            queuePattern(
+              patternIndex
+            );
+          }
         }
 
         const target =
@@ -5064,17 +5102,24 @@ function createPatternButton(
         return;
       }
 
-      selectedStepIndex =
-        null;
-
-      setAppView(
-        "sequence"
-      );
+      /*
+       * Song view tap = playback target selection.
+       * During playback, switch at the next Pattern boundary;
+       * after the jump, normal song.order progression continues
+       * from the newly selected Pattern.
+       */
+      if (
+        state.isPlaying &&
+        state.playingPatternIndex !==
+          patternIndex
+      ) {
+        queuePattern(
+          patternIndex
+        );
+      }
 
       renderCurrentSourceDisplay();
-      renderSequence();
       renderPatternManager();
-      renderEditor();
     };
 
   button.addEventListener(
