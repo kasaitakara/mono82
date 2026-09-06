@@ -156,6 +156,27 @@ let selectedStepIndex =
 let clipboardSourceRange =
   null;
 
+/*
+ * A completed double-tap / sweep rebuilds the STEP DOM immediately.
+ * On iOS, the trailing synthetic click can then land on the newly-created
+ * STEP and be mistaken for a paste. Keep this guard outside each STEP
+ * element so it survives renderSequence().
+ */
+let suppressSequenceClickUntil =
+  0;
+
+function suppressTrailingSequenceClick() {
+  suppressSequenceClickUntil =
+    performance.now() + 450;
+}
+
+function sequenceClickIsSuppressed() {
+  return (
+    performance.now() <
+    suppressSequenceClickUntil
+  );
+}
+
 function setClipboardPreviewRange(
   startIndex,
   endIndex
@@ -4409,6 +4430,12 @@ function createStepButton(
       clipGestureCompleted =
         true;
 
+      /*
+       * Prevent the trailing synthetic click from turning the just-created
+       * clipboard into an immediate paste/clear after renderSequence().
+       */
+      suppressTrailingSequenceClick();
+
       clearClipboardPreview();
 
       if (
@@ -4478,6 +4505,16 @@ function createStepButton(
   button.addEventListener(
     "click",
     event => {
+      if (
+        sequenceClickIsSuppressed()
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+        clipGestureCompleted =
+          false;
+        return;
+      }
+
       if (clipGestureCompleted) {
         clipGestureCompleted =
           false;
