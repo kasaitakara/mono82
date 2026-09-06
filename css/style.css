@@ -4770,3 +4770,116 @@ body {
   margin-right: auto !important;
   flex: 0 0 28px !important;
 }
+
+
+/* =========================================================
+   Song Pattern mini sequence preview
+   32 STEP = 8 columns x 4 rows, matching Pattern Edit.
+   ========================================================= */
+
+.mokton-pattern-button {
+  position: relative;
+  display: grid;
+  grid-template-rows: 9px minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.mokton-pattern-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  height: 9px;
+  padding: 1px 2px 0;
+  line-height: 1;
+}
+
+.mokton-pattern-id {
+  line-height: 1;
+}
+
+.mokton-pattern-repeat {
+  line-height: 1;
+}
+
+.mokton-pattern-preview {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+}
+
+.mokton-pattern-preview-step {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.mokton-pattern-preview-melodic,
+.mokton-pattern-preview-rhythm {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  background: transparent;
+}
+
+.mokton-pattern-preview-melodic.active {
+  align-self: center;
+  width: 100%;
+  height: 55%;
+  background: var(--text);
+}
+
+.mokton-pattern-preview-rhythm.active {
+  align-self: center;
+  justify-self: center;
+  width: 62%;
+  height: 62%;
+  background: var(--text);
+}
+
+/*
+ * Playback is not an inversion: the current mini STEP itself is
+ * painted with the app accent color so it reads as a moving light.
+ */
+.mokton-pattern-preview-step.playing {
+  background: var(--accent);
+}
+
+.mokton-pattern-preview-step.playing
+.mokton-pattern-preview-melodic.active,
+.mokton-pattern-preview-step.playing
+.mokton-pattern-preview-rhythm.active {
+  background: var(--bg);
+}
+
+/*
+ * Keep the miniature readable even when the Pattern button itself is
+ * the selected Song target and therefore has an accent background.
+ */
+.mokton-pattern-button.selected
+.mokton-pattern-preview {
+  background: var(--bg);
+}
+
+.mokton-pattern-button.selected
+.mokton-pattern-preview-step {
+  background: var(--bg);
+}
+
+.mokton-pattern-button.selected
+.mokton-pattern-preview-step.playing {
+  background: var(--accent);
+}

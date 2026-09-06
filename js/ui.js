@@ -5362,9 +5362,94 @@ function createPatternButton(
 
   updateRepeat();
 
-  button.append(
+  const preview =
+    document.createElement(
+      "span"
+    );
+
+  preview.className =
+    "mokton-pattern-preview";
+
+  const sequence =
+    Array.isArray(pattern?.sequence)
+      ? pattern.sequence
+      : [];
+
+  for (
+    let stepIndex = 0;
+    stepIndex < STEP_COUNT;
+    stepIndex += 1
+  ) {
+    const step =
+      sequence[stepIndex];
+
+    const miniStep =
+      document.createElement(
+        "span"
+      );
+
+    miniStep.className =
+      "mokton-pattern-preview-step";
+
+    miniStep.dataset.stepIndex =
+      String(stepIndex);
+
+    const melodic =
+      document.createElement(
+        "span"
+      );
+
+    melodic.className =
+      "mokton-pattern-preview-melodic";
+
+    melodic.classList.toggle(
+      "active",
+      Boolean(
+        step?.melodic?.soundId
+      )
+    );
+
+    const rhythm =
+      document.createElement(
+        "span"
+      );
+
+    rhythm.className =
+      "mokton-pattern-preview-rhythm";
+
+    rhythm.classList.toggle(
+      "active",
+      Boolean(
+        step?.rhythm?.soundId
+      )
+    );
+
+    miniStep.append(
+      melodic,
+      rhythm
+    );
+
+    preview.appendChild(
+      miniStep
+    );
+  }
+
+  const header =
+    document.createElement(
+      "span"
+    );
+
+  header.className =
+    "mokton-pattern-header";
+
+  header.append(
     id,
     repeat
+  );
+
+  button.append(
+    header,
+    preview
   );
 
   const clipMarker = document.createElement("span");
@@ -5924,6 +6009,22 @@ function paintPlayingStep(
         ) % STEP_COUNT
       : null;
 
+  /*
+   * Song overview uses the exact same scheduled visual step as
+   * Pattern Edit, so the accent travels through the 8x4 mini preview.
+   */
+  patternGrid
+    ?.querySelectorAll(
+      ".mokton-pattern-preview-step.playing"
+    )
+    .forEach(
+      element => {
+        element.classList.remove(
+          "playing"
+        );
+      }
+    );
+
   if (
     visualPlayingStepIndex ===
     null
@@ -5936,16 +6037,31 @@ function paintPlayingStep(
       `.mokton-step[data-step-index="${visualPlayingStepIndex}"]`
     );
 
-  if (!element) {
-    return;
+  if (element) {
+    element.classList.add(
+      "playing"
+    );
+
+    previousPlayingStep =
+      element;
   }
 
-  element.classList.add(
-    "playing"
-  );
+  if (
+    state.isPlaying &&
+    Number.isInteger(
+      state.playingPatternIndex
+    )
+  ) {
+    const miniStep =
+      patternGrid?.querySelector(
+        `.mokton-pattern-button[data-pattern-index="${state.playingPatternIndex}"] ` +
+        `.mokton-pattern-preview-step[data-step-index="${visualPlayingStepIndex}"]`
+      );
 
-  previousPlayingStep =
-    element;
+    miniStep?.classList.add(
+      "playing"
+    );
+  }
 }
 
 function armPlayingStepTimer() {
