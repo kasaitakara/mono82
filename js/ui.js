@@ -196,20 +196,18 @@ function keepOnlyClipboardSource(kind) {
 function refreshClipboardUiEverywhere() {
   /*
    * A new clip invalidates the previous logical clipboard globally.
-   * Re-render all surfaces that can expose a clipboard icon/marker so
-   * stale controls disappear immediately even before leaving the view.
+   * Refresh only functions that actually exist in this UI module.
    */
-  renderPatternClipboardUi?.();
-  renderSequenceTools?.();
-  renderOffsetClipboardUi?.();
+  renderPatternClipboardUi();
+  renderSequenceTools();
 
   /*
-   * Source marker classes live inside these rendered surfaces.
-   * Re-rendering the current view is enough to clear stale markers.
+   * Source markers are rebuilt with the current clipboard category.
+   * appView uses "sequence" / "pattern" — never "edit".
    */
   if (appView === "pattern") {
     renderPatternManager();
-  } else if (appView === "edit") {
+  } else if (appView === "sequence") {
     renderSequence();
   }
 }
