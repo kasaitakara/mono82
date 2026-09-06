@@ -128,12 +128,20 @@ export function clamp(value, min, max) {
 /*
  * Compatibility helper for audio.js while chord UI/data is redesigned.
  */
-export function resolveChordNoteOffsets(chordIndex) {
-  const index = clamp(
-    Math.round(Number(chordIndex) || 0),
-    0,
-    CHORD_DEFINITIONS.length - 1
-  );
+export function resolveChordNoteOffsets(chordValue) {
+  let index = 0;
+
+  if (typeof chordValue === "string") {
+    const namedIndex = CHORD_NAMES.indexOf(chordValue);
+    index = namedIndex >= 0 ? namedIndex : 0;
+  } else {
+    index = clamp(
+      Math.round(Number(chordValue) || 0),
+      0,
+      CHORD_DEFINITIONS.length - 1
+    );
+  }
+
   return [...CHORD_DEFINITIONS[index]];
 }
 
@@ -719,7 +727,26 @@ export function setStepLayer(stepIndex, layer, data) {
 }
 
 export function clearStepLayer(stepIndex, layer) {
-  return setStepLayer(stepIndex, layer, null);
+  const step = currentStep(stepIndex);
+  if (!step || !["melodic", "rhythm"].includes(layer)) {
+    return false;
+  }
+
+  const layerData = step[layer];
+  if (!layerData) {
+    return false;
+  }
+
+  saveHistory();
+
+  /*
+   * OFF is only an audible-placement state.
+   * Keep STEP performance data so tapping the same STEP back ON restores
+   * chord / pan / nudge / strum / etc. exactly as it was before OFF.
+   */
+  layerData.soundId = null;
+
+  return true;
 }
 
 export function clearStep(stepIndex) {
@@ -737,7 +764,20 @@ export function placeSelectedSound(stepIndex) {
 
   saveHistory();
 
-  if (state.selectedLayer === "melodic") {
+  const layer = state.selectedLayer;
+  const existing = step[layer];
+
+  /*
+   * Re-enabling an OFF STEP preserves its hidden performance data.
+   * Replacing an actively occupied STEP with another Sound still starts
+   * from clean defaults, matching the existing replacement behavior.
+   */
+  if (existing && existing.soundId == null) {
+    existing.soundId = state.selectedSoundId;
+    return true;
+  }
+
+  if (layer === "melodic") {
     step.melodic = createMelodicStep(state.selectedSoundId);
   } else {
     step.rhythm = createRhythmStep(state.selectedSoundId);
@@ -984,7 +1024,33 @@ function normalizePattern(pattern, fallbackId) {
 
   pattern.sequence = Array.from(
     { length: STEP_COUNT },
-    (_, index) => normalizeSequenceStep(oldSequence[index])
+    (_, index) => {
+      const step = normalizeSequenceStep(oldSequence[index]);
+
+      /*
+       * Chord is persisted by stable name, not list index.
+       * Old numeric projects are migrated on load so later changes to
+       * CHORD_NAMES ordering cannot silently turn maj7 into another chord.
+       */
+      if (step.melodic) {
+        const chord = step.melodic.chord;
+
+        if (typeof chord !== "string") {
+          const chordIndex = clamp(
+            Math.round(Number(chord) || 0),
+            0,
+            CHORD_NAMES.length - 1
+          );
+
+          step.melodic.chord =
+            CHORD_NAMES[chordIndex] ?? "off";
+        } else if (!CHORD_NAMES.includes(chord)) {
+          step.melodic.chord = "off";
+        }
+      }
+
+      return step;
+    }
   );
 
   return pattern;

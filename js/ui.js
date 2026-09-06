@@ -1563,23 +1563,37 @@ function stepNoteName(
 }
 
 
+function stepChordIndex(
+  value
+) {
+  if (typeof value === "string") {
+    const index =
+      STEP_CHORD_NAMES.indexOf(
+        value
+      );
+
+    return index >= 0
+      ? index
+      : 0;
+  }
+
+  return Math.max(
+    0,
+    Math.min(
+      STEP_CHORD_NAMES.length - 1,
+      Math.round(
+        Number(value) || 0
+      )
+    )
+  );
+}
+
 function stepChordName(
   value
 ) {
-  const index =
-    Math.max(
-      0,
-      Math.min(
-        STEP_CHORD_NAMES.length - 1,
-        Math.round(
-          Number(value) || 0
-        )
-      )
-    );
-
   return (
     STEP_CHORD_NAMES[
-      index
+      stepChordIndex(value)
     ] ?? "off"
   );
 }
@@ -2826,11 +2840,21 @@ function dragValueWithCenterSnap(
       definition.step
     ) || 1;
 
+  /*
+   * Chord has many discrete choices, so give each item a larger physical
+   * travel distance than ordinary offsets. This makes exact selection less
+   * twitchy on a phone while keeping the rest of the UI unchanged.
+   */
+  const pixelsPerStep =
+    definition.id === "chord"
+      ? 12
+      : 7;
+
   const continuousValue =
     Number(startValue) +
     (
       Number(deltaPixels) /
-      7
+      pixelsPerStep
     ) *
       step;
 
@@ -2843,7 +2867,7 @@ function dragValueWithCenterSnap(
       Number(startValue) +
         Math.round(
           Number(deltaPixels) /
-          7
+          pixelsPerStep
         ) *
           step,
       definition
@@ -4008,11 +4032,17 @@ function createStepButton(
         startY:
           event.clientY,
         startValue:
-          Number(
-            offsetPerformance?.[
-              offsetDefinition.id
-            ]
-          ) || 0,
+          offsetDefinition.id === "chord"
+            ? stepChordIndex(
+                offsetPerformance?.chord
+              )
+            : (
+                Number(
+                  offsetPerformance?.[
+                    offsetDefinition.id
+                  ]
+                ) || 0
+              ),
         saved:
           placedOnPointerDown
       };
@@ -4065,7 +4095,12 @@ function createStepButton(
       offsetPerformance[
         offsetDefinition.id
       ] =
-        next;
+        offsetDefinition.id === "chord"
+          ? (
+              STEP_CHORD_NAMES[next] ??
+              "off"
+            )
+          : next;
 
       if (offsetValue) {
         renderStepOffsetValue(
