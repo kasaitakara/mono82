@@ -3908,6 +3908,14 @@ function createStepButton(
   let offsetGestureMoved =
     false;
 
+  /*
+   * Offset編集でpointerdown時に空STEP／別Soundから
+   * 現在Soundを配置したかをclickまで保持する。
+   * 1タップ目で配置した直後に、そのclickでOFFへ戻るのを防ぐ。
+   */
+  let offsetPlacedOnPointerDown =
+    false;
+
   button.addEventListener(
     "pointerdown",
     event => {
@@ -3926,6 +3934,9 @@ function createStepButton(
       }
 
       offsetGestureMoved =
+        false;
+
+      offsetPlacedOnPointerDown =
         false;
 
       let placedOnPointerDown =
@@ -3950,6 +3961,9 @@ function createStepButton(
         }
 
         placedOnPointerDown =
+          true;
+
+        offsetPlacedOnPointerDown =
           true;
 
         offsetPerformance =
@@ -4135,13 +4149,37 @@ function createStepButton(
         if (offsetGestureMoved) {
           offsetGestureMoved =
             false;
+          offsetPlacedOnPointerDown =
+            false;
           return;
         }
 
         selectedStepIndex =
           stepIndex;
 
+        /*
+         * 空STEP／別Soundはpointerdownですでに現在Soundへ
+         * 配置・置換済み。ここでtoggleすると即OFFへ戻るため、
+         * その1タップ目だけはON状態を維持する。
+         *
+         * もともと現在Soundが置かれていたSTEPの単純タップは
+         * Offset編集画面内でも通常どおりON/OFFできる。
+         */
+        if (offsetPlacedOnPointerDown) {
+          offsetPlacedOnPointerDown =
+            false;
+
+          renderSequence();
+          renderEditor();
+          return;
+        }
+
+        toggleSelectedLayerAtStep(
+          stepIndex
+        );
+
         renderSequence();
+        renderEditor();
 
         return;
       }
