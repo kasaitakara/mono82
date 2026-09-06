@@ -4570,3 +4570,55 @@ body {
 .mokton-sequence-tools .mokton-clip-button {
   order: -1;
 }
+
+
+/* =========================================================
+   STEP clipboard marker refinement v2
+   ========================================================= */
+
+/* Never use STEP pseudo-elements for clipboard range/source marks. */
+#sequence-grid .mokton-step.clipboard-source::before,
+#sequence-grid .mokton-step.clipboard-preview::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Preview no longer changes the STEP number/design. */
+#sequence-grid
+.mokton-step.clipboard-preview
+.mokton-step-number {
+  background: transparent !important;
+  color: var(--text) !important;
+}
+
+/* Dedicated tiny outline square: always the same physical position. */
+#sequence-grid .mokton-step-clipboard-marker {
+  display: none;
+  position: absolute;
+  left: 1px !important;
+  right: auto !important;
+  top: 1px !important;
+  bottom: auto !important;
+  width: 4px;
+  height: 4px;
+  box-sizing: border-box;
+  border: 1px solid var(--text);
+  background: transparent;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Same marker is shown live during the sweep and retained after copy. */
+#sequence-grid
+.mokton-step.clipboard-preview
+.mokton-step-clipboard-marker,
+#sequence-grid
+.mokton-step.clipboard-source
+.mokton-step-clipboard-marker {
+  display: block;
+}
+
+/* The transient clear control should react as a direct touch target. */
+.mokton-clip-button {
+  touch-action: manipulation;
+}

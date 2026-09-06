@@ -2600,21 +2600,48 @@ function renderSequenceTools() {
     hasEditClipboard() &&
     editClipboardOriginIsStep()
   ) {
+    let clipCleared =
+      false;
+
+    const clearStepClipboardUi = () => {
+      if (clipCleared) {
+        return;
+      }
+
+      clipCleared =
+        true;
+
+      clearEditClipboard();
+      clipboardSourceRange =
+        null;
+      clearClipboardPreview();
+      renderSequenceTools();
+      renderSequence();
+    };
+
     const clipButton =
       createMiniButton(
         "clip",
-        () => {
-          clearEditClipboard();
-          clipboardSourceRange =
-            null;
-          renderSequenceTools();
-          renderSequence();
-        },
+        clearStepClipboardUi,
         {
           active: false,
           title: "clear step clipboard"
         }
       );
+
+    /*
+     * On iOS a first tap on this transient control could be consumed before
+     * the synthetic click. Commit the clear on pointerup instead. The guard
+     * above keeps the subsequent click harmless.
+     */
+    clipButton.addEventListener(
+      "pointerup",
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+        clearStepClipboardUi();
+      }
+    );
 
     clipButton.classList.add(
       "mokton-clip-button"
@@ -3795,10 +3822,20 @@ function pasteWholeStep(stepIndex) {
   selectedStepIndex =
     stepIndex;
 
+  /*
+   * mono82 is now optimized for one-shot STEP paste:
+   * a successful paste consumes the clipboard immediately.
+   * Manual icon clear remains available before pasting.
+   */
+  clearEditClipboard();
+  clipboardSourceRange = null;
+  clearClipboardPreview();
+
   window.dispatchEvent(
     new Event("projectchange")
   );
 
+  renderSequenceTools();
   renderSequence();
   renderEditor();
 
@@ -4073,6 +4110,28 @@ function createStepButton(
 
   button.append(
     visual
+  );
+
+  /*
+   * Dedicated STEP clipboard-range marker.
+   * Do not reuse ::before/::after because those pseudo-elements are also
+   * used by selection/playback rules elsewhere in the accumulated CSS.
+   */
+  const clipboardMarker =
+    document.createElement(
+      "span"
+    );
+
+  clipboardMarker.className =
+    "mokton-step-clipboard-marker";
+
+  clipboardMarker.setAttribute(
+    "aria-hidden",
+    "true"
+  );
+
+  button.append(
+    clipboardMarker
   );
 
   let offsetDrag =
