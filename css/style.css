@@ -1205,15 +1205,8 @@ input[type="range"]
     var(--accent);
 }
 
-.mokton-pattern-button.loop-range-active
-.mokton-pattern-id::before {
-  content: "[";
-}
-
-.mokton-pattern-button.loop-range-active
-.mokton-pattern-id::after {
-  content: "]";
-}
+/* Range/loop membership is already shown by Pattern inversion.
+   No extra brackets around the Pattern number. */
 
 /* Stage 11: compact calculator editor */
 .mokton-editor-compact { gap: 7px; }
