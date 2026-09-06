@@ -4491,3 +4491,20 @@ body {
 .pattern-edit-button:active {
   color: var(--text);
 }
+
+
+/* Stage 8: STEP clipboard icon / range gesture */
+.mokton-clip-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mono82-clipboard-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.mokton-step {
+  touch-action: none;
+}

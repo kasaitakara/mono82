@@ -19,7 +19,8 @@ import {
   undo,
   performance,
   copyStepToEditClipboard,
-  pasteStepFromEditClipboard,
+  copyStepRangeToEditClipboard,
+  pasteStepClipboardAt,
   hasEditClipboard,
   editClipboardOriginIsStep,
   clearEditClipboard,
@@ -485,6 +486,22 @@ function createMono82Icon(
       topGuide.setAttribute(
         "stroke-dasharray",
         "2 2"
+      );
+      break;
+    }
+
+    case "clipboard": {
+      const back = addPath(
+        "M5 4h11v11H5z",
+        { strokeWidth: 1.5 }
+      );
+      back.setAttribute(
+        "stroke-dasharray",
+        "2 2"
+      );
+      addPath(
+        "M9 8h11v11H9z",
+        { strokeWidth: 1.8 }
       );
       break;
     }
@@ -2545,6 +2562,13 @@ function renderSequenceTools() {
       "mokton-clip-button"
     );
 
+    clipButton.replaceChildren(
+      createMono82Icon(
+        "clipboard",
+        "mono82-clipboard-icon"
+      )
+    );
+
     tools.appendChild(
       clipButton
     );
@@ -3685,7 +3709,7 @@ function pasteWholeStep(stepIndex) {
   }
 
   if (
-    !pasteStepFromEditClipboard(
+    !pasteStepClipboardAt(
       stepIndex
     )
   ) {
@@ -3700,6 +3724,30 @@ function pasteWholeStep(stepIndex) {
 
   return true;
 }
+
+function copyWholeStepRange(
+  startIndex,
+  endIndex
+) {
+  if (
+    !copyStepRangeToEditClipboard(
+      startIndex,
+      endIndex
+    )
+  ) {
+    return false;
+  }
+
+  selectedStepIndex =
+    endIndex;
+
+  renderSequenceTools();
+  renderSequence();
+  renderEditor();
+
+  return true;
+}
+
 
 
 function createStepButton(
@@ -3935,9 +3983,41 @@ function createStepButton(
   let offsetPlacedOnPointerDown =
     false;
 
+  let clipGesture = null;
+  let clipGestureCompleted = false;
+
   button.addEventListener(
     "pointerdown",
     event => {
+      if (
+        !offsetDefinition &&
+        !hasEditClipboard() &&
+        singleTapTimer
+      ) {
+        clearTimeout(
+          singleTapTimer
+        );
+
+        singleTapTimer =
+          null;
+
+        clipGesture = {
+          startIndex: stepIndex,
+          endIndex: stepIndex,
+          pointerId: event.pointerId
+        };
+
+        clipGestureCompleted =
+          false;
+
+        button.setPointerCapture?.(
+          event.pointerId
+        );
+
+        event.preventDefault();
+        return;
+      }
+
       if (!offsetDefinition) {
         return;
       }
@@ -4051,6 +4131,35 @@ function createStepButton(
   button.addEventListener(
     "pointermove",
     event => {
+      if (clipGesture) {
+        const target =
+          document.elementFromPoint(
+            event.clientX,
+            event.clientY
+          )?.closest?.(
+            ".mokton-step"
+          );
+
+        const targetIndex =
+          Number(
+            target?.dataset?.stepIndex
+          );
+
+        if (
+          Number.isInteger(
+            targetIndex
+          ) &&
+          targetIndex >= 0 &&
+          targetIndex < STEP_COUNT
+        ) {
+          clipGesture.endIndex =
+            targetIndex;
+        }
+
+        event.preventDefault();
+        return;
+      }
+
       if (
         !offsetDrag ||
         !offsetDefinition
@@ -4111,6 +4220,37 @@ function createStepButton(
   const finishOffsetDrag = (
     event
   ) => {
+    if (clipGesture) {
+      button.releasePointerCapture?.(
+        event.pointerId
+      );
+
+      const {
+        startIndex,
+        endIndex
+      } = clipGesture;
+
+      clipGesture = null;
+      clipGestureCompleted =
+        true;
+
+      if (
+        startIndex === endIndex
+      ) {
+        copyWholeStep(
+          startIndex
+        );
+      } else {
+        copyWholeStepRange(
+          startIndex,
+          endIndex
+        );
+      }
+
+      event.preventDefault();
+      return;
+    }
+
     if (!offsetDrag) {
       return;
     }
@@ -4148,6 +4288,12 @@ function createStepButton(
   button.addEventListener(
     "click",
     event => {
+      if (clipGestureCompleted) {
+        clipGestureCompleted =
+          false;
+        return;
+      }
+
       /*
        * Clipboard保持中は1タップ＝paste。
        * 通常時はdouble tap判定待ちのため、
