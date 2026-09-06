@@ -167,12 +167,12 @@ let suppressSequenceClickUntil =
 
 function suppressTrailingSequenceClick() {
   suppressSequenceClickUntil =
-    performance.now() + 450;
+    globalThis.performance.now() + 450;
 }
 
 function sequenceClickIsSuppressed() {
   return (
-    performance.now() <
+    globalThis.performance.now() <
     suppressSequenceClickUntil
   );
 }
