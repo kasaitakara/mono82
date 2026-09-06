@@ -851,6 +851,14 @@ export function copyStepToEditClipboard(stepIndex) {
   const step = currentStep(stepIndex);
   if (!step) return false;
 
+  /*
+   * mono82 has one logical clipboard.
+   * Creating a STEP clip invalidates Pattern / Layer clips.
+   */
+  patternClipboard = null;
+  layerClipboards.melodic = null;
+  layerClipboards.rhythm = null;
+
   editClipboard = {
     type: "step",
     step: structuredClone(step)
@@ -894,6 +902,10 @@ export function copyStepRangeToEditClipboard(startIndex, endIndex) {
   const sequence = currentSequence();
   const start = clamp(Math.min(startIndex, endIndex), 0, STEP_COUNT - 1);
   const end = clamp(Math.max(startIndex, endIndex), 0, STEP_COUNT - 1);
+
+  patternClipboard = null;
+  layerClipboards.melodic = null;
+  layerClipboards.rhythm = null;
 
   editClipboard = {
     type: "step-range",
@@ -958,6 +970,11 @@ export function copyPatternRangeToClipboard(patternIndexes) {
     .filter(index => Number.isInteger(index) && patterns[index])
     .map(index => structuredClone(patterns[index]));
   if (!items.length) return false;
+
+  editClipboard = null;
+  layerClipboards.melodic = null;
+  layerClipboards.rhythm = null;
+
   patternClipboard = { items };
   return true;
 }
@@ -988,6 +1005,16 @@ export function copyLayerRangeToClipboard(layer, startIndex, endIndex) {
   const sequence = currentSequence();
   const start = clamp(Math.min(startIndex, endIndex), 0, STEP_COUNT - 1);
   const end = clamp(Math.max(startIndex, endIndex), 0, STEP_COUNT - 1);
+
+  /*
+   * A new Offset clip replaces every previous clip,
+   * including the opposite melodic/rhythm layer.
+   */
+  editClipboard = null;
+  patternClipboard = null;
+  layerClipboards.melodic = null;
+  layerClipboards.rhythm = null;
+
   layerClipboards[layer] = {
     items: structuredClone(sequence.slice(start, end + 1).map(step => step?.[layer] ?? null))
   };

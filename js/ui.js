@@ -171,6 +171,29 @@ let lastPatternTap = { index: null, time: 0 };
 let lastOffsetTap = { index: null, layer: null, time: 0, original: null };
 
 /*
+ * Only one logical clipboard may exist at a time.
+ * Data invalidation is enforced in sequencer.js; this mirrors it for
+ * source-marker UI state so an old mini marker never reappears later.
+ */
+function keepOnlyClipboardSource(kind) {
+  if (kind !== "step") {
+    clipboardSourceRange = null;
+  }
+
+  if (kind !== "pattern") {
+    patternClipboardSourceRange = null;
+  }
+
+  if (kind !== "layer-melodic") {
+    layerClipboardSourceRanges.melodic = null;
+  }
+
+  if (kind !== "layer-rhythm") {
+    layerClipboardSourceRanges.rhythm = null;
+  }
+}
+
+/*
  * A completed double-tap / sweep rebuilds the STEP DOM immediately.
  * On iOS, the trailing synthetic click can then land on the newly-created
  * STEP and be mistaken for a paste. Keep this guard outside each STEP
@@ -3877,6 +3900,8 @@ function copyWholeStep(stepIndex) {
   selectedStepIndex =
     stepIndex;
 
+  keepOnlyClipboardSource("step");
+
   clipboardSourceRange = {
     patternIndex:
       state.selectedPatternIndex,
@@ -3947,6 +3972,8 @@ function copyWholeStepRange(
 
   selectedStepIndex =
     endIndex;
+
+  keepOnlyClipboardSource("step");
 
   clipboardSourceRange = {
     patternIndex:
@@ -4549,6 +4576,7 @@ function createStepButton(
       if (layerOnly) {
         const layer = state.selectedLayer;
         copyLayerRangeToClipboard(layer, startIndex, endIndex);
+        keepOnlyClipboardSource(`layer-${layer}`);
         layerClipboardSourceRanges[layer] = {
           patternIndex: state.selectedPatternIndex,
           startIndex: Math.min(startIndex, endIndex),
@@ -5233,31 +5261,16 @@ function renderPatternClipboardUi() {
 
   /*
    * Song toolbar:
-   * place Clipboard in the fixed slot immediately
-   * to the left of Loop (column 7 of the 8-column
-   * pattern block), without shifting Pattern Edit.
+   * keep Pattern Edit at the far left, then push the
+   * Clipboard + Loop pair to the far right.
+   * Clipboard is therefore the fixed slot immediately
+   * left of Loop (column 7 of the 8-column pattern grid).
    */
   if (patternLoopButton) {
-    const loopRect =
-      patternLoopButton.getBoundingClientRect();
-    const toolbarRect =
-      toolbar.getBoundingClientRect();
-
-    button.style.position =
-      "absolute";
-    button.style.left =
-      `${loopRect.left -
-        toolbarRect.left -
-        loopRect.width}px`;
-    button.style.top =
-      `${loopRect.top -
-        toolbarRect.top}px`;
-    button.style.width =
-      `${loopRect.width}px`;
-    button.style.height =
-      `${loopRect.height}px`;
-
-    toolbar.append(button);
+    toolbar.insertBefore(
+      button,
+      patternLoopButton
+    );
   } else {
     toolbar.append(button);
   }
@@ -5684,6 +5697,7 @@ function createPatternButton(
         patternClipGesture = null;
         const indexes = patternClipboardIndexes(startIndex, endIndex);
         copyPatternRangeToClipboard(indexes);
+        keepOnlyClipboardSource("pattern");
         patternClipboardSourceRange = { startIndex, endIndex };
         renderPatternManager();
         event.preventDefault();
