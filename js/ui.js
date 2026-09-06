@@ -5155,16 +5155,92 @@ function refreshPatternRangeVisuals() {
 }
 
 function renderPatternClipboardUi() {
-  const toolbar = document.querySelector(".pattern-section .section-toolbar");
-  if (!toolbar) return;
-  toolbar.querySelector(".mokton-pattern-clip-button")?.remove();
-  if (appView !== "pattern" || !hasPatternClipboard()) return;
-  const button = createMiniButton("clip", () => {
-    clearPatternClipboard(); patternClipboardSourceRange = null; renderPatternManager();
-  }, { title: "clear pattern clipboard" });
-  button.classList.add("mokton-clip-button", "mokton-pattern-clip-button");
-  button.replaceChildren(createMono82Icon("clipboard", "mono82-clipboard-icon"));
-  toolbar.insertBefore(button, patternEditButton || toolbar.firstChild);
+  const toolbar = document.querySelector(
+    ".pattern-section .section-toolbar"
+  );
+
+  if (!toolbar) {
+    return;
+  }
+
+  toolbar
+    .querySelector(
+      ".mokton-pattern-clip-button"
+    )
+    ?.remove();
+
+  if (
+    appView !== "pattern" ||
+    !hasPatternClipboard()
+  ) {
+    return;
+  }
+
+  let clipCleared =
+    false;
+
+  const clearPatternClipboardUi =
+    () => {
+      if (clipCleared) {
+        return;
+      }
+
+      clipCleared =
+        true;
+
+      clearPatternClipboard();
+      patternClipboardSourceRange =
+        null;
+
+      renderPatternManager();
+    };
+
+  const button =
+    createMiniButton(
+      "clip",
+      clearPatternClipboardUi,
+      {
+        title:
+          "clear pattern clipboard"
+      }
+    );
+
+  button.classList.add(
+    "mokton-clip-button",
+    "mokton-pattern-clip-button"
+  );
+
+  button.replaceChildren(
+    createMono82Icon(
+      "clipboard",
+      "mono82-clipboard-icon"
+    )
+  );
+
+  /*
+   * Match STEP clipboard behavior on iPhone:
+   * commit the clear on pointerup, then ignore
+   * the synthetic click fired afterwards.
+   */
+  button.addEventListener(
+    "pointerup",
+    event => {
+      event.preventDefault();
+      event.stopPropagation();
+      clearPatternClipboardUi();
+    }
+  );
+
+  /*
+   * Song toolbar order:
+   * ... Pattern Edit | Clipboard | Loop ...
+   * The Pattern Edit entry therefore never shifts.
+   */
+  toolbar.insertBefore(
+    button,
+    patternLoopButton ||
+      toolbar.firstChild
+  );
 }
 
 function patternClipboardIndexes(startIndex, endIndex) {
