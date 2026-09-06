@@ -153,36 +153,24 @@ function setAppView(
       : "pattern";
 
   /*
-   * SEQUENCE is an isolated Pattern-editing view.
-   * Entering it always makes the selected Pattern the loop target.
-   * Returning to PATTERN restores normal song-order playback.
+   * View changes must not change the user's loop choice.
+   * Pattern Edit and Song share the same persistent loop state/range.
+   * When loop is already ON, entering Pattern Edit follows the selected
+   * Pattern during playback; when loop is OFF, normal song playback is
+   * left untouched.
    */
   if (
-    appView === "sequence"
+    appView === "sequence" &&
+    state.patternLoopEnabled &&
+    state.isPlaying &&
+    state.playingPatternIndex !==
+      null &&
+    state.playingPatternIndex !==
+      state.selectedPatternIndex
   ) {
-    state.patternLoopEnabled =
-      true;
-
-    state.patternLoopRange =
-      null;
-
-    if (
-      state.isPlaying &&
-      state.playingPatternIndex !==
-        null &&
-      state.playingPatternIndex !==
-        state.selectedPatternIndex
-    ) {
-      queuePattern(
-        state.selectedPatternIndex
-      );
-    }
-  } else {
-    state.patternLoopEnabled =
-      false;
-
-    state.patternLoopRange =
-      null;
+    queuePattern(
+      state.selectedPatternIndex
+    );
   }
 
   document.body.dataset.moktonView =

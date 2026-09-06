@@ -2542,7 +2542,7 @@ select,
 
 /* Direct-edit cells need vertical swipe without scrolling the page. */
 .mokton-direct-value-pad,
-#sequence-grid .mokton-step.offset-view {
+#sequence-grid .mokton-step.offset-active {
   touch-action: none;
 }
 
@@ -4062,17 +4062,26 @@ body {
   fill: var(--accent) !important;
 }
 
-/* Loop stays text color even when ON; selection background remains disabled. */
-#pattern-loop-button,
-#pattern-loop-button.active,
-#pattern-loop-button[aria-pressed="true"] {
+/* Loop OFF = normal. ON = invert foreground/background for an unmistakable state. */
+#pattern-loop-button {
   color: var(--text) !important;
   background: transparent !important;
 }
 
+#pattern-loop-button.active,
+#pattern-loop-button[aria-pressed="true"] {
+  color: var(--bg) !important;
+  background: var(--text) !important;
+}
+
 #pattern-loop-button.active .mono82-icon path,
 #pattern-loop-button[aria-pressed="true"] .mono82-icon path {
-  stroke: var(--text) !important;
+  stroke: var(--bg) !important;
+}
+
+#pattern-loop-button.active .mono82-icon polygon,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon polygon {
+  fill: var(--bg) !important;
 }
 
 
@@ -4418,9 +4427,21 @@ body {
 }
 
 
-/* Offset edit: same-layer slot already contains another sound. */
-#sequence-grid .mokton-step-offset-value.occupied-by-other-sound {
-  font-size: 9px !important;
-  font-weight: 700 !important;
-  line-height: 1 !important;
+/* =========================================================
+   mono82 Loop persistent active-state final override
+   ========================================================= */
+#pattern-loop-button.active,
+#pattern-loop-button[aria-pressed="true"] {
+  color: var(--bg) !important;
+  background: var(--text) !important;
+}
+
+#pattern-loop-button.active .mono82-icon path,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon path {
+  stroke: var(--bg) !important;
+}
+
+#pattern-loop-button.active .mono82-icon polygon,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon polygon {
+  fill: var(--bg) !important;
 }
