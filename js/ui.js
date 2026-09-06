@@ -5232,15 +5232,35 @@ function renderPatternClipboardUi() {
   );
 
   /*
-   * Song toolbar order:
-   * ... Pattern Edit | Clipboard | Loop ...
-   * The Pattern Edit entry therefore never shifts.
+   * Song toolbar:
+   * place Clipboard in the fixed slot immediately
+   * to the left of Loop (column 7 of the 8-column
+   * pattern block), without shifting Pattern Edit.
    */
-  toolbar.insertBefore(
-    button,
-    patternLoopButton ||
-      toolbar.firstChild
-  );
+  if (patternLoopButton) {
+    const loopRect =
+      patternLoopButton.getBoundingClientRect();
+    const toolbarRect =
+      toolbar.getBoundingClientRect();
+
+    button.style.position =
+      "absolute";
+    button.style.left =
+      `${loopRect.left -
+        toolbarRect.left -
+        loopRect.width}px`;
+    button.style.top =
+      `${loopRect.top -
+        toolbarRect.top}px`;
+    button.style.width =
+      `${loopRect.width}px`;
+    button.style.height =
+      `${loopRect.height}px`;
+
+    toolbar.append(button);
+  } else {
+    toolbar.append(button);
+  }
 }
 
 function patternClipboardIndexes(startIndex, endIndex) {

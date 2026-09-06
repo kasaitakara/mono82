@@ -4693,3 +4693,13 @@ body {
   -webkit-touch-callout: none !important;
 }
 .mokton-pattern-button { touch-action: none !important; }
+
+
+/* Song clipboard: fixed slot immediately left of Loop. */
+.pattern-section .section-toolbar {
+  position: relative;
+}
+
+.pattern-section .mokton-pattern-clip-button {
+  z-index: 10;
+}
