@@ -5394,39 +5394,16 @@ function createPatternButton(
     miniStep.dataset.stepIndex =
       String(stepIndex);
 
-    const melodic =
-      document.createElement(
-        "span"
-      );
-
-    melodic.className =
-      "mokton-pattern-preview-melodic";
-
-    melodic.classList.toggle(
-      "active",
+    /*
+     * Song preview deliberately ignores Layer/Sound identity.
+     * Any content in either layer = one foreground square.
+     */
+    miniStep.classList.toggle(
+      "occupied",
       Boolean(
-        step?.melodic?.soundId
-      )
-    );
-
-    const rhythm =
-      document.createElement(
-        "span"
-      );
-
-    rhythm.className =
-      "mokton-pattern-preview-rhythm";
-
-    rhythm.classList.toggle(
-      "active",
-      Boolean(
+        step?.melodic?.soundId ||
         step?.rhythm?.soundId
       )
-    );
-
-    miniStep.append(
-      melodic,
-      rhythm
     );
 
     preview.appendChild(
