@@ -1113,7 +1113,12 @@ export function saveHistorySnapshot(snapshot) {
 }
 
 export function saveHistory() {
-  return saveHistorySnapshot(createSnapshot());
+  /*
+   * Undo / Redo is edit history, not transport history.
+   * Keep playback/runtime state out of the stack so restoring an edit
+   * can never rewind isPlaying / playbackTickIndex / playingStepIndex.
+   */
+  return saveHistorySnapshot(createProjectSnapshot());
 }
 
 export function saveTrackHistory() {
@@ -1135,14 +1140,37 @@ export function discardLatestUndoEntry() {
   return true;
 }
 
+function restoreHistorySnapshot(snapshot) {
+  if (!snapshot) return false;
+
+  const normalized = normalizeProjectSnapshot(snapshot);
+
+  soundBank = normalized.soundBank;
+
+  patterns.splice(
+    0,
+    patterns.length,
+    ...normalized.patterns
+  );
+
+  Object.assign(song, normalized.song);
+
+  /*
+   * Deliberately do NOT restore state here.
+   * Transport/runtime state belongs to the live session and must continue
+   * through Undo / Redo without stopping or jumping playback.
+   */
+  return true;
+}
+
 export function undo() {
   if (!undoStack.length) return false;
 
-  const current = createSnapshot();
+  const current = createProjectSnapshot();
   const previous = undoStack.pop();
 
   redoStack.push(current);
-  restoreSnapshot(previous);
+  restoreHistorySnapshot(previous);
 
   window.dispatchEvent(new Event("historychange"));
   return true;
@@ -1151,11 +1179,11 @@ export function undo() {
 export function redo() {
   if (!redoStack.length) return false;
 
-  const current = createSnapshot();
+  const current = createProjectSnapshot();
   const next = redoStack.pop();
 
   undoStack.push(current);
-  restoreSnapshot(next);
+  restoreHistorySnapshot(next);
 
   window.dispatchEvent(new Event("historychange"));
   return true;
