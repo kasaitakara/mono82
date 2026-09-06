@@ -4508,3 +4508,65 @@ body {
 .mokton-step {
   touch-action: none;
 }
+
+
+/* =========================================================
+   STEP clipboard UI refinement
+   ========================================================= */
+
+/*
+ * Clipboard mode must not alter the normal STEP underline/design.
+ * Earlier clipboard-ready rules reused ::after and displaced the STEP
+ * underline, so disable that legacy state completely.
+ */
+#sequence-grid .mokton-step.clipboard-ready::before,
+#sequence-grid .mokton-step.clipboard-ready::after {
+  content: none !important;
+  display: none !important;
+}
+
+/*
+ * While double-tap + sweep is in progress, show the current copy range
+ * without restructuring the STEP. The number alone is inverted temporarily.
+ */
+#sequence-grid
+.mokton-step.clipboard-preview
+.mokton-step-number {
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+/*
+ * Once copied, only the actual source STEP(s) get a tiny monochrome marker.
+ * The normal underline, melodic/rhythm marks and playback indicator remain
+ * untouched.
+ */
+#sequence-grid .mokton-step.clipboard-source::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 3px;
+  height: 3px;
+  background: var(--text) !important;
+  pointer-events: none;
+}
+
+/*
+ * Clipboard clear button exists only while a clipboard exists, so it does
+ * not need an active/inverted state.
+ */
+.mokton-clip-button,
+.mokton-clip-button.active {
+  background: transparent !important;
+  color: var(--text) !important;
+}
+
+/*
+ * The clipboard button is inserted before the normal left-shift control.
+ * No permanent toolbar items move when clipboard mode is entered.
+ */
+.mokton-sequence-tools .mokton-clip-button {
+  order: -1;
+}

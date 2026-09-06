@@ -147,6 +147,62 @@ const songEditorViewToggle =
 let selectedStepIndex =
   null;
 
+/*
+ * STEP clipboard UI state.
+ * Clipboard data itself lives in sequencer.js; this only remembers where
+ * the current clipboard was copied from so the source can be marked without
+ * changing the normal STEP design.
+ */
+let clipboardSourceRange =
+  null;
+
+function setClipboardPreviewRange(
+  startIndex,
+  endIndex
+) {
+  const from =
+    Math.min(
+      startIndex,
+      endIndex
+    );
+
+  const to =
+    Math.max(
+      startIndex,
+      endIndex
+    );
+
+  sequenceGrid
+    ?.querySelectorAll(
+      ".mokton-step"
+    )
+    .forEach(step => {
+      const index =
+        Number(
+          step.dataset.stepIndex
+        );
+
+      step.classList.toggle(
+        "clipboard-preview",
+        Number.isInteger(index) &&
+          index >= from &&
+          index <= to
+      );
+    });
+}
+
+function clearClipboardPreview() {
+  sequenceGrid
+    ?.querySelectorAll(
+      ".mokton-step.clipboard-preview"
+    )
+    .forEach(step => {
+      step.classList.remove(
+        "clipboard-preview"
+      );
+    });
+}
+
 let appView =
   "sequence";
 
@@ -2549,11 +2605,13 @@ function renderSequenceTools() {
         "clip",
         () => {
           clearEditClipboard();
+          clipboardSourceRange =
+            null;
           renderSequenceTools();
           renderSequence();
         },
         {
-          active: true,
+          active: false,
           title: "clear step clipboard"
         }
       );
@@ -2569,8 +2627,9 @@ function renderSequenceTools() {
       )
     );
 
-    tools.appendChild(
-      clipButton
+    tools.insertBefore(
+      clipButton,
+      tools.firstChild
     );
   }
 
@@ -3701,6 +3760,15 @@ function copyWholeStep(stepIndex) {
   selectedStepIndex =
     stepIndex;
 
+  clipboardSourceRange = {
+    patternIndex:
+      state.selectedPatternIndex,
+    startIndex:
+      stepIndex,
+    endIndex:
+      stepIndex
+  };
+
   renderSequenceTools();
   renderSequence();
   renderEditor();
@@ -3752,6 +3820,21 @@ function copyWholeStepRange(
 
   selectedStepIndex =
     endIndex;
+
+  clipboardSourceRange = {
+    patternIndex:
+      state.selectedPatternIndex,
+    startIndex:
+      Math.min(
+        startIndex,
+        endIndex
+      ),
+    endIndex:
+      Math.max(
+        startIndex,
+        endIndex
+      )
+  };
 
   renderSequenceTools();
   renderSequence();
@@ -3825,10 +3908,21 @@ function createStepButton(
       stepIndex
   );
 
-  button.classList.toggle(
-    "clipboard-ready",
+  const clipboardSourceActive =
     hasEditClipboard() &&
-      editClipboardOriginIsStep()
+    editClipboardOriginIsStep() &&
+    clipboardSourceRange?.patternIndex ===
+      state.selectedPatternIndex &&
+    stepIndex >=
+      clipboardSourceRange.startIndex &&
+    stepIndex <=
+      clipboardSourceRange.endIndex;
+
+  button.classList.toggle(
+    "clipboard-source",
+    Boolean(
+      clipboardSourceActive
+    )
   );
 
   const number =
@@ -4022,6 +4116,11 @@ function createStepButton(
         clipGestureCompleted =
           false;
 
+        setClipboardPreviewRange(
+          stepIndex,
+          stepIndex
+        );
+
         button.setPointerCapture?.(
           event.pointerId
         );
@@ -4166,6 +4265,11 @@ function createStepButton(
         ) {
           clipGesture.endIndex =
             targetIndex;
+
+          setClipboardPreviewRange(
+            clipGesture.startIndex,
+            clipGesture.endIndex
+          );
         }
 
         event.preventDefault();
@@ -4245,6 +4349,8 @@ function createStepButton(
       clipGesture = null;
       clipGestureCompleted =
         true;
+
+      clearClipboardPreview();
 
       if (
         startIndex === endIndex
