@@ -2327,6 +2327,13 @@ function stepChordOffsets(chord) {
   }
 
   if (
+    typeof chord === "string" &&
+    CHORD_NAMES.includes(chord)
+  ) {
+    return resolveChordNoteOffsets(chord);
+  }
+
+  if (
     Number.isFinite(
       Number(chord)
     )
