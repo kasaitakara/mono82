@@ -193,6 +193,27 @@ function keepOnlyClipboardSource(kind) {
   }
 }
 
+function refreshClipboardUiEverywhere() {
+  /*
+   * A new clip invalidates the previous logical clipboard globally.
+   * Re-render all surfaces that can expose a clipboard icon/marker so
+   * stale controls disappear immediately even before leaving the view.
+   */
+  renderPatternClipboardUi?.();
+  renderSequenceTools?.();
+  renderOffsetClipboardUi?.();
+
+  /*
+   * Source marker classes live inside these rendered surfaces.
+   * Re-rendering the current view is enough to clear stale markers.
+   */
+  if (appView === "pattern") {
+    renderPatternManager();
+  } else if (appView === "edit") {
+    renderSequence();
+  }
+}
+
 /*
  * A completed double-tap / sweep rebuilds the STEP DOM immediately.
  * On iOS, the trailing synthetic click can then land on the newly-created
@@ -3911,6 +3932,8 @@ function copyWholeStep(stepIndex) {
       stepIndex
   };
 
+  refreshClipboardUiEverywhere();
+
   renderSequenceTools();
   renderSequence();
   renderEditor();
@@ -3989,6 +4012,8 @@ function copyWholeStepRange(
         endIndex
       )
   };
+
+  refreshClipboardUiEverywhere();
 
   renderSequenceTools();
   renderSequence();
@@ -4582,6 +4607,7 @@ function createStepButton(
           startIndex: Math.min(startIndex, endIndex),
           endIndex: Math.max(startIndex, endIndex)
         };
+        refreshClipboardUiEverywhere();
         renderSequenceTools();
         renderSequence();
       } else if (startIndex === endIndex) {
@@ -5220,6 +5246,11 @@ function renderPatternClipboardUi() {
       patternClipboardSourceRange =
         null;
 
+      /*
+       * Do not rebuild toolbar order when clearing.
+       * Only remove clipboard UI and refresh pattern cells.
+       */
+      button.remove();
       renderPatternManager();
     };
 
@@ -5245,11 +5276,6 @@ function renderPatternClipboardUi() {
     )
   );
 
-  /*
-   * Match STEP clipboard behavior on iPhone:
-   * commit the clear on pointerup, then ignore
-   * the synthetic click fired afterwards.
-   */
   button.addEventListener(
     "pointerup",
     event => {
@@ -5260,20 +5286,11 @@ function renderPatternClipboardUi() {
   );
 
   /*
-   * Song toolbar:
-   * keep Pattern Edit at the far left, then push the
-   * Clipboard + Loop pair to the far right.
-   * Clipboard is therefore the fixed slot immediately
-   * left of Loop (column 7 of the 8-column pattern grid).
+   * Fixed overlay slot: right-from-second column of the
+   * 8-column pattern grid, immediately left of Loop.
+   * Because it is absolutely positioned, Pattern Edit never moves.
    */
-  if (patternLoopButton) {
-    toolbar.insertBefore(
-      button,
-      patternLoopButton
-    );
-  } else {
-    toolbar.append(button);
-  }
+  toolbar.append(button);
 }
 
 function patternClipboardIndexes(startIndex, endIndex) {
@@ -5699,6 +5716,7 @@ function createPatternButton(
         copyPatternRangeToClipboard(indexes);
         keepOnlyClipboardSource("pattern");
         patternClipboardSourceRange = { startIndex, endIndex };
+        refreshClipboardUiEverywhere();
         renderPatternManager();
         event.preventDefault();
         return;

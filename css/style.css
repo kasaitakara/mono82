@@ -4726,3 +4726,33 @@ body {
 .pattern-section #pattern-loop-button {
   margin-left: 0 !important;
 }
+
+
+/* =========================================================
+   Hierarchical clipboard v6
+   Song clipboard occupies a fixed overlay slot and never
+   participates in toolbar flex layout.
+   ========================================================= */
+
+.pattern-section .section-toolbar {
+  position: relative !important;
+}
+
+/* Loop is the far-right 8th-column control. Clipboard is 7th. */
+.pattern-section .mokton-pattern-clip-button {
+  position: absolute !important;
+  right: 28px !important;
+  left: auto !important;
+  top: 0 !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  margin: 0 !important;
+  z-index: 20 !important;
+}
+
+/* Never allow the temporary clipboard button to push Pattern Edit. */
+.pattern-section .section-toolbar > .mokton-pattern-clip-button {
+  flex: 0 0 28px !important;
+}
