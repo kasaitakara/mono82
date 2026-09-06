@@ -1306,6 +1306,19 @@ export function initializeAutosave() {
     }
   );
 
+  /*
+   * historychange can fire before a drag mutates data because the undo
+   * snapshot must capture the pre-edit state. projectchange is emitted after
+   * the final mutation (pointerup/toggle/paste), so restart recovery always
+   * receives the settled value rather than an intermediate sweep value.
+   */
+  window.addEventListener(
+    "projectchange",
+    () => {
+      scheduleAutosave();
+    }
+  );
+
   [
   "change",
   "input"

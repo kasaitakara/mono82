@@ -3668,6 +3668,10 @@ function toggleSelectedLayerAtStep(
       layer
     );
 
+    window.dispatchEvent(
+      new Event("projectchange")
+    );
+
     return;
   }
 
@@ -3678,6 +3682,10 @@ function toggleSelectedLayerAtStep(
    */
   placeSelectedSound(
     stepIndex
+  );
+
+  window.dispatchEvent(
+    new Event("projectchange")
   );
 }
 
@@ -3718,6 +3726,10 @@ function pasteWholeStep(stepIndex) {
 
   selectedStepIndex =
     stepIndex;
+
+  window.dispatchEvent(
+    new Event("projectchange")
+  );
 
   renderSequence();
   renderEditor();
@@ -4267,6 +4279,19 @@ function createStepButton(
      * pointerupで現在状態を確定表示する。
      */
     if (offsetGestureMoved) {
+      /*
+       * saveHistory() is intentionally called before the first mutation so
+       * Undo can restore the pre-drag state. That event must NOT be the only
+       * autosave trigger: a long sweep may continue after the debounce timer
+       * has already saved an intermediate value.
+       *
+       * Emit projectchange here, after the finger is released and the final
+       * offset/chord value is settled.
+       */
+      window.dispatchEvent(
+        new Event("projectchange")
+      );
+
       renderSequence();
       renderEditor();
     }
