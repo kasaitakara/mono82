@@ -3846,6 +3846,12 @@ function createStepParameterStrip() {
                 : definition.id;
           }
 
+          /*
+           * STEP <-> Offset is an editing-category change.
+           * Rebuild the tool strip immediately so a clipboard icon from
+           * the previous category cannot remain visually stale.
+           */
+          renderSequenceTools();
           renderSequence();
         }
       );
