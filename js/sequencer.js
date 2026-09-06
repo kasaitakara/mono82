@@ -68,6 +68,56 @@ export const CHORD_NAMES = Object.freeze([
   "7♭13"
 ]);
 
+/*
+ * Chord storage is now versioned.
+ * New snapshots always store chord names, never list indexes.
+ *
+ * LEGACY_NUMERIC_CHORD_NAMES_V0 is frozen permanently: it represents the
+ * numeric-index layout used immediately before name-based persistence was
+ * introduced. Never derive migration from the live CHORD_NAMES array again.
+ */
+export const CHORD_STORAGE_SCHEMA = "name-v1";
+
+const LEGACY_NUMERIC_CHORD_NAMES_V0 = Object.freeze([
+  "off",
+  "1-2",
+  "5th",
+  "maj",
+  "min",
+  "aug",
+  "dim",
+  "♭5",
+  "sus2",
+  "sus4",
+  "7",
+  "maj7",
+  "m7",
+  "mMaj7",
+  "6",
+  "m6",
+  "m7♭5",
+  "dim7",
+  "7sus4",
+  "maj7sus2",
+  "9",
+  "maj9",
+  "m9",
+  "mMaj9",
+  "6/9",
+  "m6/9",
+  "9sus4",
+  "7♭9",
+  "7♯9",
+  "aug♭9",
+  "aug♯9",
+  "m7♭5(9)",
+  "1-♭5-6-9",
+  "m7♯5",
+  "11",
+  "sus7(13)",
+  "7♭13"
+]);
+
 const CHORD_DEFINITIONS = Object.freeze([
   // 1 VOICE
   [0],
@@ -1037,7 +1087,11 @@ export function soundIsAudible(
  * Snapshot / normalization
  * ========================= */
 
-function normalizePattern(pattern, fallbackId) {
+function normalizePattern(
+  pattern,
+  fallbackId,
+  chordStorageSchema = null
+) {
   if (!pattern || typeof pattern !== "object") {
     return makePatternData(fallbackId);
   }
@@ -1061,15 +1115,30 @@ function normalizePattern(pattern, fallbackId) {
       if (step.melodic) {
         const chord = step.melodic.chord;
 
-        if (typeof chord !== "string") {
-          const chordIndex = clamp(
-            Math.round(Number(chord) || 0),
+        if (typeof chord === "string") {
+          /*
+           * Name-based snapshots are stable. Do not reinterpret a valid name
+           * through an index under any circumstances.
+           */
+          step.melodic.chord = CHORD_NAMES.includes(chord)
+            ? chord
+            : "off";
+        } else {
+          /*
+           * Only legacy snapshots may contain numeric indexes.
+           * Convert through the permanently frozen v0 table, never through
+           * the current live CHORD_NAMES ordering.
+           */
+          const legacyIndex = Math.max(
             0,
-            CHORD_NAMES.length - 1
+            Math.min(
+              LEGACY_NUMERIC_CHORD_NAMES_V0.length - 1,
+              Math.round(Number(chord) || 0)
+            )
           );
-          step.melodic.chord = CHORD_NAMES[chordIndex] ?? "off";
-        } else if (!CHORD_NAMES.includes(chord)) {
-          step.melodic.chord = "off";
+
+          step.melodic.chord =
+            LEGACY_NUMERIC_CHORD_NAMES_V0[legacyIndex] ?? "off";
         }
       }
 
@@ -1085,11 +1154,21 @@ function normalizeProjectSnapshot(snapshot) {
     ? structuredClone(snapshot)
     : {};
 
+  const chordStorageSchema =
+    typeof data.chordStorageSchema === "string"
+      ? data.chordStorageSchema
+      : null;
+
   data.soundBank = normalizeProjectSoundBank(data.soundBank);
 
   data.patterns = Array.from(
     { length: PATTERN_SLOT_COUNT },
-    (_, index) => normalizePattern(data.patterns?.[index], index + 1)
+    (_, index) =>
+      normalizePattern(
+        data.patterns?.[index],
+        index + 1,
+        chordStorageSchema
+      )
   );
 
   data.song ??= makeSongData();
@@ -1106,11 +1185,14 @@ function normalizeProjectSnapshot(snapshot) {
     ...(data.song.masterMix ?? {})
   };
 
+  data.chordStorageSchema = CHORD_STORAGE_SCHEMA;
+
   return data;
 }
 
 export function createProjectSnapshot() {
   return structuredClone({
+    chordStorageSchema: CHORD_STORAGE_SCHEMA,
     soundBank,
     patterns,
     song
@@ -1119,6 +1201,7 @@ export function createProjectSnapshot() {
 
 export function createNewProjectSnapshot() {
   return structuredClone({
+    chordStorageSchema: CHORD_STORAGE_SCHEMA,
     soundBank: createProjectSoundBank(),
     patterns: Array.from(
       { length: PATTERN_SLOT_COUNT },
