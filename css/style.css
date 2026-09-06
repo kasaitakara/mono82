@@ -4403,3 +4403,16 @@ body {
   justify-content: center !important;
   text-align: center !important;
 }
+
+/* =========================================================
+   mono82: disable font ligatures for bitmap-style UI labels
+   Prevent sequences such as "fi" in "fil" from changing glyph shape.
+   ========================================================= */
+.app,
+.app *,
+.app *::before,
+.app *::after {
+  font-variant-ligatures: none !important;
+  -webkit-font-variant-ligatures: none !important;
+  font-feature-settings: "liga" 0, "clig" 0, "calt" 0 !important;
+}
