@@ -24,6 +24,14 @@ import {
   hasEditClipboard,
   editClipboardOriginIsStep,
   clearEditClipboard,
+  copyPatternRangeToClipboard,
+  hasPatternClipboard,
+  clearPatternClipboard,
+  pastePatternClipboardAt,
+  copyLayerRangeToClipboard,
+  hasLayerClipboard,
+  clearLayerClipboard,
+  pasteLayerClipboardAt,
   song,
   setPatternRepeat,
   togglePatternLoop,
@@ -155,6 +163,12 @@ let selectedStepIndex =
  */
 let clipboardSourceRange =
   null;
+
+let patternClipboardSourceRange = null;
+const layerClipboardSourceRanges = { melodic: null, rhythm: null };
+let patternClipGesture = null;
+let lastPatternTap = { index: null, time: 0 };
+let lastOffsetTap = { index: null, layer: null, time: 0, original: null };
 
 /*
  * A completed double-tap / sweep rebuilds the STEP DOM immediately.
@@ -2648,6 +2662,7 @@ function renderSequenceTools() {
   }
 
   if (
+    !selectedStepParameterId &&
     hasEditClipboard() &&
     editClipboardOriginIsStep()
   ) {
@@ -2709,6 +2724,29 @@ function renderSequenceTools() {
       clipButton,
       tools.firstChild
     );
+  }
+
+  if (
+    selectedStepParameterId &&
+    hasLayerClipboard(state.selectedLayer)
+  ) {
+    const layer = state.selectedLayer;
+    let cleared = false;
+    const clearLayerClipUi = () => {
+      if (cleared) return;
+      cleared = true;
+      clearLayerClipboard(layer);
+      layerClipboardSourceRanges[layer] = null;
+      renderSequenceTools();
+      renderSequence();
+    };
+    const clipButton = createMiniButton("clip", clearLayerClipUi, { title: "clear layer clipboard" });
+    clipButton.classList.add("mokton-clip-button");
+    clipButton.replaceChildren(createMono82Icon("clipboard", "mono82-clipboard-icon"));
+    clipButton.addEventListener("pointerup", event => {
+      event.preventDefault(); event.stopPropagation(); clearLayerClipUi();
+    });
+    tools.insertBefore(clipButton, tools.firstChild);
   }
 
   host.appendChild(tools);
@@ -2823,6 +2861,7 @@ function createCompactSoundButton(
       }
 
       renderEditor();
+      renderSequenceTools();
       renderSequence();
     }
   );
@@ -3996,15 +4035,15 @@ function createStepButton(
       stepIndex
   );
 
+  const activeClipboardRange = selectedStepParameterId
+    ? layerClipboardSourceRanges[state.selectedLayer]
+    : clipboardSourceRange;
+
   const clipboardSourceActive =
-    hasEditClipboard() &&
-    editClipboardOriginIsStep() &&
-    clipboardSourceRange?.patternIndex ===
-      state.selectedPatternIndex &&
-    stepIndex >=
-      clipboardSourceRange.startIndex &&
-    stepIndex <=
-      clipboardSourceRange.endIndex;
+    Boolean(activeClipboardRange) &&
+    activeClipboardRange.patternIndex === state.selectedPatternIndex &&
+    stepIndex >= activeClipboardRange.startIndex &&
+    stepIndex <= activeClipboardRange.endIndex;
 
   button.classList.toggle(
     "clipboard-source",
@@ -4251,6 +4290,36 @@ function createStepButton(
         return;
       }
 
+      /* Offset Edit: current layer has its own independent clipboard. */
+      if (hasLayerClipboard(state.selectedLayer)) {
+        return;
+      }
+
+      const now = Date.now();
+      if (
+        lastOffsetTap.index === stepIndex &&
+        lastOffsetTap.layer === state.selectedLayer &&
+        now - lastOffsetTap.time < 320
+      ) {
+        /* Undo the first tap's UI mutation before taking the clipboard. */
+        const targetStep = currentStep(stepIndex);
+        if (targetStep && lastOffsetTap.original) {
+          targetStep[state.selectedLayer] = structuredClone(lastOffsetTap.original);
+        }
+        lastOffsetTap = { index: null, layer: null, time: 0, original: null };
+        clipGesture = { startIndex: stepIndex, endIndex: stepIndex, pointerId: event.pointerId, layerOnly: true };
+        setClipboardPreviewRange(stepIndex, stepIndex);
+        button.setPointerCapture?.(event.pointerId);
+        event.preventDefault();
+        return;
+      }
+      lastOffsetTap = {
+        index: stepIndex,
+        layer: state.selectedLayer,
+        time: now,
+        original: structuredClone(currentStep(stepIndex)?.[state.selectedLayer] ?? null)
+      };
+
       /*
        * Clipboard保持中は従来どおりpasteを優先する。
        */
@@ -4461,7 +4530,8 @@ function createStepButton(
 
       const {
         startIndex,
-        endIndex
+        endIndex,
+        layerOnly = false
       } = clipGesture;
 
       clipGesture = null;
@@ -4476,17 +4546,20 @@ function createStepButton(
 
       clearClipboardPreview();
 
-      if (
-        startIndex === endIndex
-      ) {
-        copyWholeStep(
-          startIndex
-        );
+      if (layerOnly) {
+        const layer = state.selectedLayer;
+        copyLayerRangeToClipboard(layer, startIndex, endIndex);
+        layerClipboardSourceRanges[layer] = {
+          patternIndex: state.selectedPatternIndex,
+          startIndex: Math.min(startIndex, endIndex),
+          endIndex: Math.max(startIndex, endIndex)
+        };
+        renderSequenceTools();
+        renderSequence();
+      } else if (startIndex === endIndex) {
+        copyWholeStep(startIndex);
       } else {
-        copyWholeStepRange(
-          startIndex,
-          endIndex
-        );
+        copyWholeStepRange(startIndex, endIndex);
       }
 
       event.preventDefault();
@@ -4581,6 +4654,20 @@ function createStepButton(
           stepIndex
         );
 
+        return;
+      }
+
+      if (
+        selectedStepParameterId &&
+        hasLayerClipboard(state.selectedLayer)
+      ) {
+        const layer = state.selectedLayer;
+        if (pasteLayerClipboardAt(layer, stepIndex)) {
+          clearLayerClipboard(layer);
+          layerClipboardSourceRanges[layer] = null;
+          window.dispatchEvent(new Event("projectchange"));
+          renderSequenceTools(); renderSequence(); renderEditor();
+        }
         return;
       }
 
@@ -5067,6 +5154,26 @@ function refreshPatternRangeVisuals() {
     });
 }
 
+function renderPatternClipboardUi() {
+  const toolbar = document.querySelector(".pattern-section .section-toolbar");
+  if (!toolbar) return;
+  toolbar.querySelector(".mokton-pattern-clip-button")?.remove();
+  if (appView !== "pattern" || !hasPatternClipboard()) return;
+  const button = createMiniButton("clip", () => {
+    clearPatternClipboard(); patternClipboardSourceRange = null; renderPatternManager();
+  }, { title: "clear pattern clipboard" });
+  button.classList.add("mokton-clip-button", "mokton-pattern-clip-button");
+  button.replaceChildren(createMono82Icon("clipboard", "mono82-clipboard-icon"));
+  toolbar.insertBefore(button, patternEditButton || toolbar.firstChild);
+}
+
+function patternClipboardIndexes(startIndex, endIndex) {
+  const order = normalizePatternOrder();
+  const a = order.indexOf(startIndex), b = order.indexOf(endIndex);
+  if (a < 0 || b < 0) return [startIndex];
+  return order.slice(Math.min(a,b), Math.max(a,b)+1);
+}
+
 function createPatternButton(
   patternIndex
 ) {
@@ -5129,6 +5236,13 @@ function createPatternButton(
     id,
     repeat
   );
+
+  const clipMarker = document.createElement("span");
+  clipMarker.className = "mokton-pattern-clipboard-marker";
+  clipMarker.setAttribute("aria-hidden", "true");
+  const src = patternClipboardSourceRange;
+  clipMarker.hidden = !(src && patternClipboardIndexes(src.startIndex, src.endIndex).includes(patternIndex));
+  button.appendChild(clipMarker);
 
   button.classList.toggle(
     "has-data",
@@ -5213,6 +5327,16 @@ function createPatternButton(
         return;
       }
 
+      const now = Date.now();
+      if (!hasPatternClipboard() && lastPatternTap.index === patternIndex && now - lastPatternTap.time < 320) {
+        lastPatternTap = { index: null, time: 0 };
+        patternClipGesture = { startIndex: patternIndex, endIndex: patternIndex, pointerId: event.pointerId };
+        button.setPointerCapture?.(event.pointerId);
+        event.preventDefault();
+        return;
+      }
+      lastPatternTap = { index: patternIndex, time: now };
+
       startX =
         event.clientX;
 
@@ -5263,6 +5387,20 @@ function createPatternButton(
   button.addEventListener(
     "pointermove",
     event => {
+      if (patternClipGesture?.pointerId === event.pointerId) {
+        const target = patternButtonAtPoint(event.clientX, event.clientY);
+        const targetIndex = Number(target?.dataset?.patternIndex);
+        if (Number.isInteger(targetIndex)) {
+          patternClipGesture.endIndex = targetIndex;
+          const preview = new Set(patternClipboardIndexes(patternClipGesture.startIndex, targetIndex));
+          patternGrid?.querySelectorAll(".mokton-pattern-button").forEach(el => {
+            el.classList.toggle("clipboard-preview", preview.has(Number(el.dataset.patternIndex)));
+          });
+        }
+        event.preventDefault();
+        return;
+      }
+
       const dx =
         event.clientX -
         startX;
@@ -5445,6 +5583,26 @@ function createPatternButton(
     event => {
       stopLongPress();
 
+      if (patternClipGesture?.pointerId === event.pointerId) {
+        const { startIndex, endIndex } = patternClipGesture;
+        patternClipGesture = null;
+        const indexes = patternClipboardIndexes(startIndex, endIndex);
+        copyPatternRangeToClipboard(indexes);
+        patternClipboardSourceRange = { startIndex, endIndex };
+        renderPatternManager();
+        event.preventDefault();
+        return;
+      }
+
+      if (hasPatternClipboard()) {
+        if (pastePatternClipboardAt(patternIndex)) {
+          clearPatternClipboard(); patternClipboardSourceRange = null;
+          window.dispatchEvent(new Event("projectchange"));
+          renderPatternManager();
+        }
+        return;
+      }
+
       if (
         patternDragState?.patternIndex ===
         patternIndex
@@ -5564,6 +5722,7 @@ function createPatternButton(
 
 export function renderPatternManager() {
   renderPatternLoopButton();
+  renderPatternClipboardUi();
 
   if (!patternGrid) {
     return;

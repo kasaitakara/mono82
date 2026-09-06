@@ -942,6 +942,76 @@ export function pasteStepClipboardAt(stepIndex) {
   return false;
 }
 
+
+/* =========================
+ * Hierarchical clipboards
+ * Song = Pattern / Offset = Layer
+ * Each category is independent and survives view changes.
+ * ========================= */
+
+let patternClipboard = null;
+const layerClipboards = { melodic: null, rhythm: null };
+
+export function copyPatternRangeToClipboard(patternIndexes) {
+  const indexes = Array.isArray(patternIndexes) ? patternIndexes : [];
+  const items = indexes
+    .filter(index => Number.isInteger(index) && patterns[index])
+    .map(index => structuredClone(patterns[index]));
+  if (!items.length) return false;
+  patternClipboard = { items };
+  return true;
+}
+
+export function hasPatternClipboard() { return Boolean(patternClipboard?.items?.length); }
+export function clearPatternClipboard() { patternClipboard = null; }
+
+export function pastePatternClipboardAt(patternIndex) {
+  if (!hasPatternClipboard() || !patterns[patternIndex]) return false;
+  const order = Array.isArray(song.order) ? song.order : [];
+  const startPosition = order.indexOf(patternIndex);
+  saveHistory();
+  patternClipboard.items.forEach((source, offset) => {
+    const targetIndex = startPosition >= 0
+      ? order[startPosition + offset]
+      : patternIndex + offset;
+    const target = patterns[targetIndex];
+    if (!target) return;
+    const keepId = target.id;
+    Object.assign(target, structuredClone(source), { id: keepId });
+    normalizePattern(target, keepId);
+  });
+  return true;
+}
+
+export function copyLayerRangeToClipboard(layer, startIndex, endIndex) {
+  if (!(layer in layerClipboards)) return false;
+  const sequence = currentSequence();
+  const start = clamp(Math.min(startIndex, endIndex), 0, STEP_COUNT - 1);
+  const end = clamp(Math.max(startIndex, endIndex), 0, STEP_COUNT - 1);
+  layerClipboards[layer] = {
+    items: structuredClone(sequence.slice(start, end + 1).map(step => step?.[layer] ?? null))
+  };
+  return true;
+}
+
+export function hasLayerClipboard(layer) { return Boolean(layerClipboards[layer]?.items?.length); }
+export function clearLayerClipboard(layer) { if (layer in layerClipboards) layerClipboards[layer] = null; }
+
+export function pasteLayerClipboardAt(layer, stepIndex) {
+  const clip = layerClipboards[layer];
+  if (!clip?.items?.length) return false;
+  const sequence = currentSequence();
+  const start = clamp(stepIndex, 0, STEP_COUNT - 1);
+  if (!sequence[start]) return false;
+  saveHistory();
+  clip.items.forEach((item, offset) => {
+    const targetIndex = start + offset;
+    if (!sequence[targetIndex]) return;
+    sequence[targetIndex][layer] = structuredClone(item);
+  });
+  return true;
+}
+
 /* =========================
  * Pattern clipboard
  * ========================= */
