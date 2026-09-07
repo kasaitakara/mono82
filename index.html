@@ -124,20 +124,17 @@
             </svg></button>
         </div>
 
-        <div class="transport-mixer">
-          <button
-            id="mixer-toggle-button"
-            class="mixer-toggle-button"
-            type="button"
-            aria-label="mixer"
-            aria-pressed="false"
-            title="mixer"
-          >
-            <span class="mini-eq-meter" aria-hidden="true">
-              <i></i><i></i><i></i><i></i>
-              <i></i><i></i><i></i><i></i>
-            </span>
-          </button>
+        <div class="transport-mixer" aria-hidden="true">
+          <span id="mini-eq-meter" class="mini-eq-meter">
+            <span><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i></span>
+          </span>
         </div>
 
         <div class="transport-center">
@@ -228,6 +225,13 @@
             <i></i><i></i><i></i><i></i>
           </span>
         </button>
+
+        <button
+          id="master-reverb-control"
+          class="master-reverb-control"
+          type="button"
+          aria-label="master reverb"
+        ><span>rev</span><span id="master-reverb-value">0</span></button>
 
         <button
           id="pattern-loop-button"

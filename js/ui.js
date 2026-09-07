@@ -106,16 +106,6 @@ const patternEditButton =
     "pattern-edit-button"
   );
 
-const patternSection =
-  document.querySelector(
-    ".pattern-section"
-  );
-
-const mixerToggleButton =
-  document.getElementById(
-    "mixer-toggle-button"
-  );
-
 const sequenceBackButton =
   currentSourceDisplay;
 
@@ -6629,23 +6619,17 @@ export function updatePlayingStep() {
 
 
 /* =========================================================
- * Master mixer
+ * Master display / reverb
  * ========================================================= */
 
-const MIXER_FREQUENCIES = Object.freeze([
-  "60", "120", "250", "500",
-  "1k", "2k", "4k", "8k"
-]);
-
-const MIXER_SEGMENT_COUNT = 12;
-let mixerOpen = false;
-let mixerRoot = null;
-let mixerMeterSegments = [];
-let mixerValueElements = [];
-let mixerReverbValue = null;
-let miniEqBars = [];
+let miniEqBands = [];
 let mixerMeterRaf = null;
 let lastMasterMixSyncKey = "";
+
+const masterReverbControl =
+  document.getElementById("master-reverb-control");
+const masterReverbValue =
+  document.getElementById("master-reverb-value");
 
 function masterMix() {
   song.masterMix ??= {
@@ -6655,10 +6639,15 @@ function masterMix() {
     reverb: 0
   };
 
-  song.masterMix.eq = Array.from(
-    { length: 8 },
-    (_, index) =>
-      Number(song.masterMix.eq?.[index]) || 0
+  // Mixer is retired. Keep legacy saved values neutral so old projects
+  // cannot silently alter the master sound. Reverb remains user-facing.
+  song.masterMix.eq = Array(8).fill(0);
+  song.masterMix.volume = 100;
+  song.masterMix.limiter = -1;
+  song.masterMix.reverb = clamp(
+    Math.round(Number(song.masterMix.reverb) || 0),
+    0,
+    100
   );
 
   return song.masterMix;
@@ -6666,106 +6655,56 @@ function masterMix() {
 
 function syncMasterMixAudio() {
   const mix = masterMix();
-  const key = JSON.stringify([
-    mix.eq,
-    mix.volume,
-    mix.limiter,
-    mix.reverb
-  ]);
+  const key = String(mix.reverb);
 
-  if (key === lastMasterMixSyncKey) {
-    return;
-  }
-
+  if (key === lastMasterMixSyncKey) return;
   lastMasterMixSyncKey = key;
 
-  mix.eq.forEach((value, index) => {
-    setMasterMixEqBand(index, value);
-  });
-
-  setMasterMixVolume(mix.volume);
-  setMasterLimiterThreshold(mix.limiter);
+  for (let index = 0; index < 8; index++) {
+    setMasterMixEqBand(index, 0);
+  }
+  setMasterMixVolume(100);
+  setMasterLimiterThreshold(-1);
   setMasterReverb(mix.reverb);
-}
 
-function formatMixerValue(type, value) {
-  const number = Number(value) || 0;
-
-  if (type === "eq") {
-    const rounded = Math.round(number);
-    return rounded > 0
-      ? `+${rounded}`
-      : String(rounded);
+  if (masterReverbValue) {
+    masterReverbValue.textContent = String(mix.reverb);
   }
-
-  return String(Math.round(number));
 }
 
-function setMixerParameter(type, index, value) {
+function setMasterReverbFromUi(value) {
   const mix = masterMix();
+  const next = clamp(Math.round(value), 0, 100);
+  mix.reverb = next;
+  setMasterReverb(next);
+  lastMasterMixSyncKey = String(next);
 
-  if (type === "eq") {
-    const next = clamp(Math.round(value), -12, 12);
-    mix.eq[index] = next;
-    setMasterMixEqBand(index, next);
-    mixerValueElements[index].textContent =
-      formatMixerValue(type, next);
-  } else if (type === "vol") {
-    const next = clamp(Math.round(value), 0, 100);
-    mix.volume = next;
-    setMasterMixVolume(next);
-    mixerValueElements[8].textContent = String(next);
-  } else if (type === "lim") {
-    const next = clamp(Math.round(value), -24, 0);
-    mix.limiter = next;
-    setMasterLimiterThreshold(next);
-    mixerValueElements[9].textContent = String(next);
-  } else if (type === "rev") {
-    const next = clamp(Math.round(value), 0, 100);
-    mix.reverb = next;
-    setMasterReverb(next);
-    if (mixerReverbValue) {
-      mixerReverbValue.textContent = String(next);
-    }
+  if (masterReverbValue) {
+    masterReverbValue.textContent = String(next);
   }
-
-  lastMasterMixSyncKey = "";
 }
 
-function enableMixerVerticalSwipe({
-  element,
-  type,
-  index = null,
-  getValue,
-  pixelsPerUnit
-}) {
+function enableReverbVerticalSwipe() {
+  if (!masterReverbControl) return;
+
   let pointerId = null;
   let startY = 0;
   let startValue = 0;
   let historySaved = false;
 
-  element.addEventListener("pointerdown", event => {
-    if (
-      event.pointerType === "mouse" &&
-      event.button !== 0
-    ) {
-      return;
-    }
+  masterReverbControl.addEventListener("pointerdown", event => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
 
     event.preventDefault();
     pointerId = event.pointerId;
     startY = event.clientY;
-    startValue = Number(getValue()) || 0;
+    startValue = masterMix().reverb;
     historySaved = false;
-
-    element.setPointerCapture(event.pointerId);
+    masterReverbControl.setPointerCapture(event.pointerId);
   });
 
-  element.addEventListener("pointermove", event => {
-    if (event.pointerId !== pointerId) {
-      return;
-    }
-
+  masterReverbControl.addEventListener("pointermove", event => {
+    if (event.pointerId !== pointerId) return;
     event.preventDefault();
 
     if (!historySaved) {
@@ -6773,273 +6712,52 @@ function enableMixerVerticalSwipe({
       historySaved = true;
     }
 
-    const delta =
-      (startY - event.clientY) /
-      pixelsPerUnit;
-
-    setMixerParameter(
-      type,
-      index,
-      startValue + delta
+    setMasterReverbFromUi(
+      startValue + (startY - event.clientY) / 2
     );
   });
 
   const finish = event => {
-    if (event.pointerId !== pointerId) {
-      return;
+    if (event.pointerId !== pointerId) return;
+    if (masterReverbControl.hasPointerCapture(event.pointerId)) {
+      masterReverbControl.releasePointerCapture(event.pointerId);
     }
-
-    if (element.hasPointerCapture(event.pointerId)) {
-      element.releasePointerCapture(event.pointerId);
-    }
-
     pointerId = null;
   };
 
-  element.addEventListener("pointerup", finish);
-  element.addEventListener("pointercancel", finish);
+  masterReverbControl.addEventListener("pointerup", finish);
+  masterReverbControl.addEventListener("pointercancel", finish);
 }
 
-function createMixerMeter() {
-  const meter = document.createElement("div");
-  meter.className = "mokton-mixer-meter";
-
-  const segments = [];
-
-  for (let index = 0; index < MIXER_SEGMENT_COUNT; index++) {
-    const segment = document.createElement("i");
-    segment.className = "mokton-mixer-segment";
-    meter.appendChild(segment);
-    segments.push(segment);
-  }
-
-  return { meter, segments };
-}
-
-function createMixerStrip({
-  type,
-  index,
-  label,
-  value,
-  pixelsPerUnit
-}) {
-  const strip = document.createElement("div");
-  strip.className = "mokton-mixer-strip";
-
-  const { meter, segments } = createMixerMeter();
-
-  const labelElement = document.createElement("div");
-  labelElement.className = "mokton-mixer-label";
-  labelElement.textContent = label;
-
-  const valueElement = document.createElement("div");
-  valueElement.className = "mokton-mixer-value";
-  valueElement.textContent = formatMixerValue(type, value);
-
-  strip.append(meter, labelElement, valueElement);
-
-  enableMixerVerticalSwipe({
-    element: strip,
-    type,
-    index,
-    getValue: () => {
-      const mix = masterMix();
-      if (type === "eq") return mix.eq[index];
-      if (type === "vol") return mix.volume;
-      return mix.limiter;
-    },
-    pixelsPerUnit
-  });
-
-  return { strip, segments, valueElement };
-}
-
-function renderMasterMixer() {
-  if (!patternSection) {
-    return;
-  }
-
-  patternSection.classList.toggle(
-    "mixer-open",
-    mixerOpen
-  );
-
-  mixerRoot?.remove();
-  mixerRoot = null;
-  mixerMeterSegments = [];
-  mixerValueElements = [];
-  mixerReverbValue = null;
-
-  mixerToggleButton?.classList.toggle(
-    "active",
-    mixerOpen
-  );
-
-  mixerToggleButton?.setAttribute(
-    "aria-pressed",
-    String(mixerOpen)
-  );
-
-  if (!mixerOpen) {
-    return;
-  }
-
-  const mix = masterMix();
-  const root = document.createElement("div");
-  root.className = "mokton-master-mixer";
-
-  const topLine = document.createElement("div");
-  topLine.className = "mokton-mixer-topline";
-
-  const reverb = document.createElement("button");
-  reverb.type = "button";
-  reverb.className = "mokton-mixer-reverb";
-  reverb.setAttribute("aria-label", "master reverb");
-
-  const reverbLabel = document.createElement("span");
-  reverbLabel.className = "label";
-  reverbLabel.textContent = "rev";
-
-  mixerReverbValue = document.createElement("span");
-  mixerReverbValue.textContent =
-    String(Math.round(Number(mix.reverb) || 0));
-
-  reverb.append(reverbLabel, mixerReverbValue);
-  topLine.appendChild(reverb);
-
-  enableMixerVerticalSwipe({
-    element: reverb,
-    type: "rev",
-    getValue: () => masterMix().reverb,
-    pixelsPerUnit: 2
-  });
-
-  const columns = document.createElement("div");
-  columns.className = "mokton-mixer-columns";
-
-  MIXER_FREQUENCIES.forEach((label, index) => {
-    const item = createMixerStrip({
-      type: "eq",
-      index,
-      label,
-      value: mix.eq[index],
-      pixelsPerUnit: 5
-    });
-
-    mixerMeterSegments[index] = item.segments;
-    mixerValueElements[index] = item.valueElement;
-    columns.appendChild(item.strip);
-  });
-
-  const vol = createMixerStrip({
-    type: "vol",
-    index: 8,
-    label: "vol",
-    value: mix.volume,
-    pixelsPerUnit: 2
-  });
-
-  mixerMeterSegments[8] = vol.segments;
-  mixerValueElements[8] = vol.valueElement;
-  columns.appendChild(vol.strip);
-
-  const lim = createMixerStrip({
-    type: "lim",
-    index: 9,
-    label: "lim",
-    value: mix.limiter,
-    pixelsPerUnit: 5
-  });
-
-  mixerMeterSegments[9] = lim.segments;
-  mixerValueElements[9] = lim.valueElement;
-  columns.appendChild(lim.strip);
-
-  root.append(topLine, columns);
-  patternSection.appendChild(root);
-  mixerRoot = root;
-}
-
-function paintMeterSegments(segments, normalized) {
-  const activeCount = Math.round(
-    clamp(Number(normalized) || 0, 0, 1) *
-      MIXER_SEGMENT_COUNT
-  );
-
-  segments?.forEach((segment, index) => {
-    segment.classList.toggle("on", index < activeCount);
-  });
-}
-
-function updateMixerMeters() {
+function updateMiniEqMeter() {
   const data = getMasterMixMeterData();
   const meterActive = Boolean(state.isPlaying);
 
-  miniEqBars.forEach((bar, index) => {
+  miniEqBands.forEach((band, index) => {
     const level = meterActive
       ? clamp(Number(data.bands[index]) || 0, 0, 1)
       : 0;
+    const activeCount = Math.round(level * 4);
 
-    bar.style.height = level > 0.001
-      ? `${Math.max(1, Math.round(level * 15))}px`
-      : "0px";
+    band.forEach((block, blockIndex) => {
+      block.classList.toggle("on", blockIndex < activeCount);
+    });
   });
 
-  if (mixerOpen) {
-    for (let index = 0; index < 8; index++) {
-      paintMeterSegments(
-        mixerMeterSegments[index],
-        meterActive
-          ? data.bands[index]
-          : 0
-      );
-    }
-
-    paintMeterSegments(
-      mixerMeterSegments[8],
-      meterActive
-        ? data.level
-        : 0
-    );
-
-    paintMeterSegments(
-      mixerMeterSegments[9],
-      meterActive
-        ? clamp(
-            (Number(data.limiterReduction) || 0) / 24,
-            0,
-            1
-          )
-        : 0
-    );
-  }
-
-  mixerMeterRaf = requestAnimationFrame(updateMixerMeters);
+  mixerMeterRaf = requestAnimationFrame(updateMiniEqMeter);
 }
 
-function ensureMixerMeterLoop() {
-  miniEqBars = Array.from(
-    document.querySelectorAll(
-      "#mixer-toggle-button .mini-eq-meter i"
-    )
-  );
+function ensureMiniEqMeterLoop() {
+  miniEqBands = Array.from(
+    document.querySelectorAll("#mini-eq-meter > span")
+  ).map(band => Array.from(band.querySelectorAll("i")));
 
   if (mixerMeterRaf === null) {
-    mixerMeterRaf = requestAnimationFrame(updateMixerMeters);
+    mixerMeterRaf = requestAnimationFrame(updateMiniEqMeter);
   }
 }
 
-mixerToggleButton?.addEventListener("click", () => {
-  mixerOpen = !mixerOpen;
-
-  /*
-   * Mixer always occupies the Song/Pattern-manager slot.
-   * Closing it therefore returns to Song, not to the previous edit view.
-   */
-  setAppView("pattern");
-  renderPatternManager();
-  renderMasterMixer();
-});
+enableReverbVerticalSwipe();
 
 /* =========================================================
  * Main.js compatibility exports
@@ -7047,8 +6765,7 @@ mixerToggleButton?.addEventListener("click", () => {
 
 export function renderSongMode() {
   syncMasterMixAudio();
-  renderMasterMixer();
-  ensureMixerMeterLoop();
+  ensureMiniEqMeterLoop();
 }
 
 export function refreshMasterMixMeterColor() {
