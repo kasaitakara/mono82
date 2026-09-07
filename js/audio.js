@@ -3292,12 +3292,19 @@ async function playLayerVoice({
   // Decayは既存の自然なtailを維持する。
   const releaseTime =
     holdDecayValue <= 0
-      ? 0.002
+      ? 0.005
       : 0.05;
 
   const releaseEnd =
     gateEnd +
     releaseTime;
+
+  // Holdはrelease完了とsource.stop()を同時刻にしない。
+  // gainが十分に落ち切った後に無音の猶予を置いてsourceを止めることで、
+  // stop境界由来のクリックを防ぐ。
+  const sourceStopTime =
+    releaseEnd +
+    (holdDecayValue <= 0 ? 0.003 : 0);
 
   const peakLevel =
     Math.max(
@@ -3455,7 +3462,7 @@ async function playLayerVoice({
       lfos,
       startTime,
       stopTime:
-        releaseEnd,
+        sourceStopTime,
       cleanupSources,
       cleanupGains
     });
@@ -3585,7 +3592,7 @@ async function playLayerVoice({
     lfos,
     startTime,
     stopTime:
-      releaseEnd,
+      sourceStopTime,
     cleanupSources,
     cleanupGains
   });
@@ -3595,7 +3602,7 @@ async function playLayerVoice({
     lfos,
     startTime,
     stopTime:
-      releaseEnd,
+      sourceStopTime,
     cleanupSources,
     cleanupGains
   });
@@ -3620,7 +3627,7 @@ async function playLayerVoice({
       Math.max(
         context.currentTime,
         startTime -
-          0.002
+          0.005
       );
 
     try {
@@ -3678,7 +3685,7 @@ async function playLayerVoice({
       /*
        * Decay side (> 0): overlap allowed, so a later trigger never cuts it.
        * Hold side (<= 0): overlap prohibited; a later trigger closes the
-       * previous voice with the 2 ms click-safe fade above.
+       * previous voice with the 5 ms click-safe fade above.
        */
       allowRetriggerCut:
         holdDecayValue <= 0
