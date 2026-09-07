@@ -2979,8 +2979,38 @@ function createLevelLfoChain({
           startTime
         );
 
+      /*
+       * LEVEL modulation gets a very small fixed smoothing stage.
+       * It removes the sharp digital edge from square/saw gain changes
+       * without adding another user parameter. About 1 ms: still chopped,
+       * just without an ideally instantaneous gain edge.
+       */
+      const smoothingFilter =
+        sprootoDebugNode(
+          context.createBiquadFilter(),
+          "levelLfoSmoothing"
+        );
+
+      smoothingFilter.type =
+        "lowpass";
+
+      smoothingFilter.frequency
+        .setValueAtTime(
+          160,
+          startTime
+        );
+
+      smoothingFilter.Q
+        .setValueAtTime(
+          0.0001,
+          startTime
+        );
+
       oscillator
         .connect(gain)
+        .connect(
+          smoothingFilter
+        )
         .connect(
           modulationGain.gain
         );
