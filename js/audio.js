@@ -2807,33 +2807,74 @@ function connectPanLfoForVoice({
     });
 }
 
-function connectGainLfoForVoice({
-  gainNode,
+function createLevelLfoChain({
+  inputNode,
   lfos,
-  peakLevel,
   startTime,
   stopTime,
   cleanupSources,
   cleanupGains
 }) {
+  let outputNode = inputNode;
+
   lfos
     .filter(
       lfo =>
-        lfo.target === "level"
+        lfo.target === "level" &&
+        lfo.depth > 0
     )
     .forEach(lfo => {
-      const depth =
-        peakLevel *
-        (
-          lfo.depth /
+      const depthAmount =
+        clamp(
+          Number(lfo.depth) || 0,
+          0,
           100
-        );
+        ) /
+        100;
 
-      if (
-        depth <= 0
-      ) {
+      if (depthAmount <= 0) {
         return;
       }
+
+      /*
+       * LEVEL LFO is multiplicative, not additive.
+       *
+       * DEP 0   => 1.00 .. 1.00
+       * DEP 50  => 0.50 .. 1.00
+       * DEP 100 => 0.00 .. 1.00
+       *
+       * The envelope remains on voiceGain; this node only multiplies the
+       * finished envelope. Therefore square DEP100 becomes a true dry gate
+       * and can never drive Gain below zero / invert phase.
+       */
+      const center =
+        1 - depthAmount / 2;
+
+      const excursion =
+        depthAmount / 2;
+
+      const modulationGain =
+        sprootoDebugNode(
+          context.createGain(),
+          "levelLfoGain"
+        );
+
+      modulationGain.gain
+        .setValueAtTime(
+          center,
+          startTime
+        );
+
+      outputNode.connect(
+        modulationGain
+      );
+
+      outputNode =
+        modulationGain;
+
+      cleanupGains.push(
+        modulationGain
+      );
 
       if (
         lfo.wave ===
@@ -2842,8 +2883,9 @@ function connectGainLfoForVoice({
         const source =
           createSampleAndHoldLfo({
             audioParam:
-              gainNode.gain,
-            depth,
+              modulationGain.gain,
+            depth:
+              excursion,
             rateHz:
               lfo.rateHz,
             startTime,
@@ -2865,12 +2907,16 @@ function connectGainLfoForVoice({
         lfo.wave === "rise" ||
         lfo.wave === "fall"
       ) {
+        /*
+         * One-shot shapes move inside the same safe 0..1 multiplier range.
+         * rise: low -> center, fall: high -> center.
+         */
         const source =
           createOneShotLfo({
             audioParam:
-              gainNode.gain,
+              modulationGain.gain,
             depth:
-              depth,
+              excursion,
             rateHz:
               lfo.rateHz,
             startTime,
@@ -2879,8 +2925,14 @@ function connectGainLfoForVoice({
               lfo.wave
           });
 
-        source.stop(stopTime);
-        cleanupSources.push(source);
+        source.stop(
+          stopTime
+        );
+
+        cleanupSources.push(
+          source
+        );
+
         return;
       }
 
@@ -2922,15 +2974,15 @@ function connectGainLfoForVoice({
         .setValueAtTime(
           lfo.wave ===
             "sawDown"
-            ? -depth
-            : depth,
+            ? -excursion
+            : excursion,
           startTime
         );
 
       oscillator
         .connect(gain)
         .connect(
-          gainNode.gain
+          modulationGain.gain
         );
 
       oscillator.start(
@@ -2949,6 +3001,8 @@ function connectGainLfoForVoice({
         gain
       );
     });
+
+  return outputNode;
 }
 
 function connectFilterLfoForVoice({
@@ -3356,11 +3410,23 @@ async function playLayerVoice({
       );
   }
 
+  const cleanupSources = [];
+  const cleanupGains = [];
+
   let outputNode =
-    voiceGain;
+    createLevelLfoChain({
+      inputNode:
+        voiceGain,
+      lfos,
+      startTime,
+      stopTime:
+        releaseEnd,
+      cleanupSources,
+      cleanupGains
+    });
 
   if (filter) {
-    voiceGain.connect(
+    outputNode.connect(
       filter
     );
 
@@ -3479,24 +3545,9 @@ async function playLayerVoice({
     );
   }
 
-  const cleanupSources = [];
-  const cleanupGains = [];
-
   connectPanLfoForVoice({
     panner,
     lfos,
-    startTime,
-    stopTime:
-      releaseEnd,
-    cleanupSources,
-    cleanupGains
-  });
-
-  connectGainLfoForVoice({
-    gainNode:
-      voiceGain,
-    lfos,
-    peakLevel,
     startTime,
     stopTime:
       releaseEnd,
