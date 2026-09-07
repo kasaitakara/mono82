@@ -3485,6 +3485,48 @@ async function playLayerVoice({
       panner;
   }
 
+  /*
+   * Holdの最終クリックガード。
+   * ENV GainはFILTER/PANより前段にあるため、入力を0へ落としても
+   * 後段フィルターの内部状態や共振がわずかに残ることがある。
+   * Holdだけはチェーン最終段でも5msで閉じ、実際の出力波形を
+   * 必ずゼロへ着地させる。Decayには一切かけない。
+   */
+  const holdClickGuard =
+    holdDecayValue <= 0
+      ? sprootoDebugNode(
+          context.createGain(),
+          "holdClickGuard"
+        )
+      : null;
+
+  if (holdClickGuard) {
+    holdClickGuard.gain
+      .setValueAtTime(
+        1,
+        startTime
+      );
+
+    holdClickGuard.gain
+      .setValueAtTime(
+        1,
+        gateEnd
+      );
+
+    holdClickGuard.gain
+      .linearRampToValueAtTime(
+        0,
+        releaseEnd
+      );
+
+    outputNode.connect(
+      holdClickGuard
+    );
+
+    outputNode =
+      holdClickGuard;
+  }
+
   let exportFadeGain = null;
 
   const fadeEnvelope =
@@ -3639,7 +3681,7 @@ async function playLayerVoice({
        * sounding now. cancelScheduledValues(closeStart) can remove the
        * endpoint of a long ramp and change that ramp before closeStart.
        * Hold the computed value at the cut point instead, then close only
-       * the final 2ms before the next trigger.
+       * the final 5ms before the next trigger.
        */
       if (
         typeof previousGain
@@ -3678,6 +3720,7 @@ async function playLayerVoice({
     soundKey,
     {
       gainNode:
+        holdClickGuard ??
         voiceGain,
       startTime,
       endTime:
