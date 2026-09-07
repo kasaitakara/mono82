@@ -4962,6 +4962,13 @@ body {
    mono82: master mixer
    ========================================================= */
 
+.transport-mixer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .mixer-toggle-button {
   width: 30px;
   min-width: 30px;
@@ -4994,8 +5001,8 @@ body {
 .mini-eq-meter i {
   display: block;
   width: 2px;
-  height: 1px;
-  min-height: 1px;
+  height: 0;
+  min-height: 0;
   background: currentColor;
   transform-origin: bottom;
 }
@@ -5052,14 +5059,14 @@ body {
 .mokton-mixer-strip {
   min-width: 0;
   display: grid;
-  grid-template-rows: 122px 16px 16px;
+  grid-template-rows: 110px 16px 16px;
   align-items: end;
   justify-items: stretch;
   touch-action: none;
 }
 
 .mokton-mixer-meter {
-  height: 116px;
+  height: 104px;
   display: flex;
   flex-direction: column-reverse;
   gap: 3px;
@@ -5073,7 +5080,7 @@ body {
   width: 100%;
   height: 6px;
   flex: 0 0 6px;
-  background: color-mix(in srgb, var(--text) 14%, transparent);
+  background: transparent;
 }
 
 .mokton-mixer-segment.on {

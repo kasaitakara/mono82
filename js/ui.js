@@ -37,7 +37,8 @@ import {
   setPatternLoopRange,
   clearPatternLoopRange,
   patternLoopRange,
-  sourceHasData
+  sourceHasData,
+  clamp
 } from "./sequencer.js";
 
 import {
@@ -6972,32 +6973,44 @@ function paintMeterSegments(segments, normalized) {
 
 function updateMixerMeters() {
   const data = getMasterMixMeterData();
+  const meterActive = Boolean(state.isPlaying);
 
   miniEqBars.forEach((bar, index) => {
-    const level = clamp(Number(data.bands[index]) || 0, 0, 1);
-    bar.style.height = `${Math.max(1, Math.round(level * 15))}px`;
+    const level = meterActive
+      ? clamp(Number(data.bands[index]) || 0, 0, 1)
+      : 0;
+
+    bar.style.height = level > 0.001
+      ? `${Math.max(1, Math.round(level * 15))}px`
+      : "0px";
   });
 
   if (mixerOpen) {
     for (let index = 0; index < 8; index++) {
       paintMeterSegments(
         mixerMeterSegments[index],
-        data.bands[index]
+        meterActive
+          ? data.bands[index]
+          : 0
       );
     }
 
     paintMeterSegments(
       mixerMeterSegments[8],
-      data.level
+      meterActive
+        ? data.level
+        : 0
     );
 
     paintMeterSegments(
       mixerMeterSegments[9],
-      clamp(
-        (Number(data.limiterReduction) || 0) / 24,
-        0,
-        1
-      )
+      meterActive
+        ? clamp(
+            (Number(data.limiterReduction) || 0) / 24,
+            0,
+            1
+          )
+        : 0
     );
   }
 
