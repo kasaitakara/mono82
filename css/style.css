@@ -4914,7 +4914,7 @@ body {
 }
 
 #theme-button .mono82-theme-paint-cut {
-  fill: var(--mokton-bg, #000) !important;
+  fill: var(--bg) !important;
   stroke: none !important;
 }
 

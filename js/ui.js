@@ -708,7 +708,7 @@ function createLfoWaveIcon(
 
   const paths = {
     sine:
-      "M2 9C5 2 9 2 12 9S19 16 22 9 27 2 30 9",
+      "M2 9 4 5 6 3 8 3 10 5 12 9 14 13 16 15 18 15 20 13 22 9 24 5 26 3 28 3 30 5",
     triangle:
       "M2 14 9 4 16 14 23 4 30 14",
     square:
