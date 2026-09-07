@@ -1,15 +1,13 @@
-const CACHE_NAME = "sprooto-cache-v5";
+const CACHE_NAME = "mono82-cache-v1";
 
+/*
+ * mono82で現在必要なローカルファイルだけをApp Shellとして保持する。
+ * 外部Google FontsはService Workerの同一originキャッシュ対象にしない。
+ */
 const APP_SHELL = [
   "./",
   "./index.html",
-
   "./css/style.css",
-
-  "./fonts/IBMPlexMono-Regular.ttf",
-  "./fonts/IBMPlexMono-Regular.woff2",
-  "./fonts/Saira-VariableFont_wdth,wght.ttf",
-
   "./js/main.js",
   "./js/audio.js",
   "./js/export.js",
@@ -22,26 +20,15 @@ const APP_SHELL = [
   "./js/ui.js"
 ];
 
-
-/**
- * install
- * sprooto本体に必要なファイルをすべてcacheへ保存する。
- */
 self.addEventListener("install", event => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
       .then(cache => cache.addAll(APP_SHELL))
+      .then(() => self.skipWaiting())
   );
-
-  self.skipWaiting();
 });
 
-
-/**
- * activate
- * 古いsprooto cacheを削除する。
- */
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches
@@ -49,10 +36,12 @@ self.addEventListener("activate", event => {
       .then(cacheNames =>
         Promise.all(
           cacheNames
-            .filter(
-              name =>
-                name.startsWith("sprooto-cache-") &&
-                name !== CACHE_NAME
+            .filter(name =>
+              (
+                name.startsWith("sprooto-cache-") ||
+                name.startsWith("mono82-cache-")
+              ) &&
+              name !== CACHE_NAME
             )
             .map(name => caches.delete(name))
         )
@@ -61,16 +50,6 @@ self.addEventListener("activate", event => {
   );
 });
 
-
-/**
- * fetch
- *
- * online:
- * networkから最新版を取得し、cacheも更新。
- *
- * offline:
- * 保存済みcacheから返す。
- */
 self.addEventListener("fetch", event => {
   const request = event.request;
 
@@ -87,20 +66,17 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     fetch(request)
       .then(response => {
-        if (
-          !response ||
-          response.status !== 200
-        ) {
+        if (!response || response.status !== 200) {
           return response;
         }
 
         const copy = response.clone();
 
-        caches
-          .open(CACHE_NAME)
-          .then(cache => {
-            cache.put(request, copy);
-          });
+        event.waitUntil(
+          caches
+            .open(CACHE_NAME)
+            .then(cache => cache.put(request, copy))
+        );
 
         return response;
       })
