@@ -6737,7 +6737,7 @@ function updateMiniEqMeter() {
     const level = meterActive
       ? clamp(Number(data.bands[index]) || 0, 0, 1)
       : 0;
-    const activeCount = Math.round(level * 4);
+    const activeCount = Math.round(level * 8);
 
     band.forEach((block, blockIndex) => {
       block.classList.toggle("on", blockIndex < activeCount);

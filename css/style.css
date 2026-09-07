@@ -4967,15 +4967,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
+  width: 39px;
   height: 24px;
 }
 
 .mini-eq-meter {
-  width: 25px;
+  width: 39px;
   height: 15px;
   display: grid;
-  grid-template-columns: repeat(8, 2px);
+  grid-template-columns: repeat(8, 4px);
   align-items: end;
   justify-content: space-between;
   color: var(--text);
@@ -4992,9 +4992,9 @@ body {
 
 .mini-eq-meter i {
   display: block;
-  width: 2px;
-  height: 3px;
-  flex: 0 0 3px;
+  width: 4px;
+  height: 1px;
+  flex: 0 0 1px;
   background: transparent;
 }
 
@@ -5025,3 +5025,19 @@ body {
   -webkit-touch-callout: none;
 }
 
+
+
+/* =========================================================
+   mono82 2026-09-07: song toolbar order refinement
+   edit -> reverb -> spacer -> clipboard -> loop
+   ========================================================= */
+.pattern-section #pattern-edit-button,
+.pattern-section .pattern-edit-button {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.pattern-section #master-reverb-control {
+  margin-left: 6px !important;
+  margin-right: auto !important;
+}
