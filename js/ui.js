@@ -951,6 +951,25 @@ const LFO_TARGETS = Object.freeze([
   "filter"
 ]);
 
+/*
+ * LFO Rate UI is deliberately discrete.
+ * Storage remains backward-compatible: Free values are tenths of a Hz,
+ * BPM values are indexes into the existing sync-ratio table in audio.js.
+ */
+const LFO_FREE_RATE_VALUES = Object.freeze([
+  1, 2, 3, 5, 7,
+  10, 15, 20, 25, 30,
+  40, 50, 60, 80, 100,
+  120, 150, 200, 250, 300,
+  400, 500, 600, 800, 1000
+]);
+
+const LFO_BPM_RATE_LABELS = Object.freeze([
+  "1/16", "1/12", "1/8", "1/6",
+  "1/4", "1/3", "1/2", "2/3",
+  "1", "4/3", "2", "4", "8", "16"
+]);
+
 function selectedSound() {
   return (
     soundBank?.[
@@ -2652,7 +2671,6 @@ function renderSequenceTools() {
 
   tools.append(
     createMiniButton("", () => {
-      saveHistory();
       shiftSequence(-1);
       window.dispatchEvent(
         new CustomEvent(
@@ -2664,7 +2682,6 @@ function renderSequenceTools() {
     }, { title: "shift sequence left" }),
 
     createMiniButton("", () => {
-      saveHistory();
       shiftSequence(1);
       window.dispatchEvent(
         new CustomEvent(
@@ -2676,7 +2693,6 @@ function renderSequenceTools() {
     }, { title: "shift sequence right" }),
 
     createMiniButton("rdm", () => {
-      saveHistory();
       randomizeSequence();
       window.dispatchEvent(
         new CustomEvent(
@@ -3492,6 +3508,340 @@ function createLfoStaticCell(
   return cell;
 }
 
+function nearestOptionIndex(
+  value,
+  options
+) {
+  const numeric =
+    Number(value);
+
+  let bestIndex = 0;
+  let bestDistance = Infinity;
+
+  options.forEach(
+    (option, index) => {
+      const distance =
+        Math.abs(
+          Number(option) - numeric
+        );
+
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    }
+  );
+
+  return bestIndex;
+}
+
+function enableVerticalChoiceSweep({
+  button,
+  values,
+  getValue,
+  setValue,
+  normalizeValue = value => value,
+  pixelsPerItem = 14,
+  onRender
+}) {
+  let drag = null;
+
+  button.style.touchAction = "none";
+
+  button.addEventListener(
+    "pointerdown",
+    event => {
+      if (
+        event.button !== undefined &&
+        event.button !== 0
+      ) {
+        return;
+      }
+
+      const current =
+        normalizeValue(
+          getValue()
+        );
+
+      drag = {
+        pointerId:
+          event.pointerId,
+        startY:
+          event.clientY,
+        startIndex:
+          Math.max(
+            0,
+            values.indexOf(
+              current
+            )
+          ),
+        lastIndex:
+          Math.max(
+            0,
+            values.indexOf(
+              current
+            )
+          ),
+        saved: false
+      };
+
+      button.setPointerCapture?.(
+        event.pointerId
+      );
+    }
+  );
+
+  button.addEventListener(
+    "pointermove",
+    event => {
+      if (
+        !drag ||
+        drag.pointerId !==
+          event.pointerId
+      ) {
+        return;
+      }
+
+      const delta =
+        drag.startY -
+        event.clientY;
+
+      const offset =
+        Math.round(
+          delta /
+          pixelsPerItem
+        );
+
+      const nextIndex =
+        Math.min(
+          values.length - 1,
+          Math.max(
+            0,
+            drag.startIndex +
+              offset
+          )
+        );
+
+      if (
+        nextIndex ===
+        drag.lastIndex
+      ) {
+        return;
+      }
+
+      if (!drag.saved) {
+        saveHistory();
+        drag.saved = true;
+      }
+
+      drag.lastIndex =
+        nextIndex;
+
+      setValue(
+        values[nextIndex]
+      );
+
+      onRender?.();
+    }
+  );
+
+  const finish = event => {
+    if (
+      !drag ||
+      drag.pointerId !==
+        event.pointerId
+    ) {
+      return;
+    }
+
+    button.releasePointerCapture?.(
+      event.pointerId
+    );
+
+    drag = null;
+  };
+
+  button.addEventListener(
+    "pointerup",
+    finish
+  );
+
+  button.addEventListener(
+    "pointercancel",
+    finish
+  );
+
+  button.addEventListener(
+    "keydown",
+    event => {
+      if (
+        event.key !== "ArrowUp" &&
+        event.key !== "ArrowDown"
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const current =
+        normalizeValue(
+          getValue()
+        );
+
+      const currentIndex =
+        Math.max(
+          0,
+          values.indexOf(
+            current
+          )
+        );
+
+      const direction =
+        event.key === "ArrowUp"
+          ? 1
+          : -1;
+
+      const nextIndex =
+        Math.min(
+          values.length - 1,
+          Math.max(
+            0,
+            currentIndex +
+              direction
+          )
+        );
+
+      if (
+        nextIndex ===
+        currentIndex
+      ) {
+        return;
+      }
+
+      saveHistory();
+      setValue(values[nextIndex]);
+      onRender?.();
+    }
+  );
+}
+
+function createLfoRatePad(
+  lfo
+) {
+  const button =
+    document.createElement(
+      "button"
+    );
+
+  button.type = "button";
+  button.className =
+    "mokton-direct-value-pad mokton-lfo-inline-value";
+
+  const label =
+    document.createElement(
+      "span"
+    );
+
+  label.className =
+    "mokton-direct-value-label";
+  label.textContent = "rat";
+
+  const value =
+    document.createElement(
+      "strong"
+    );
+
+  value.className =
+    "mokton-direct-value-number";
+
+  const renderValue = () => {
+    if (
+      lfo.syncMode === "bpm"
+    ) {
+      const index =
+        Math.min(
+          LFO_BPM_RATE_LABELS.length - 1,
+          Math.max(
+            0,
+            Math.round(
+              Number(lfo.rate) || 0
+            )
+          )
+        );
+
+      value.textContent =
+        LFO_BPM_RATE_LABELS[index];
+      return;
+    }
+
+    const storageValue =
+      LFO_FREE_RATE_VALUES[
+        nearestOptionIndex(
+          lfo.rate,
+          LFO_FREE_RATE_VALUES
+        )
+      ];
+
+    const hz =
+      storageValue / 10;
+
+    value.textContent =
+      `${Number.isInteger(hz) ? hz : hz.toFixed(1)}hz`;
+  };
+
+  renderValue();
+
+  const values =
+    lfo.syncMode === "bpm"
+      ? Array.from(
+          {
+            length:
+              LFO_BPM_RATE_LABELS.length
+          },
+          (_, index) => index
+        )
+      : [...LFO_FREE_RATE_VALUES];
+
+  const normalizeValue =
+    lfo.syncMode === "bpm"
+      ? raw =>
+          Math.min(
+            LFO_BPM_RATE_LABELS.length - 1,
+            Math.max(
+              0,
+              Math.round(
+                Number(raw) || 0
+              )
+            )
+          )
+      : raw =>
+          LFO_FREE_RATE_VALUES[
+            nearestOptionIndex(
+              raw,
+              LFO_FREE_RATE_VALUES
+            )
+          ];
+
+  enableVerticalChoiceSweep({
+    button,
+    values,
+    getValue: () => lfo.rate,
+    setValue: next => {
+      lfo.rate = next;
+    },
+    normalizeValue,
+    pixelsPerItem: 12,
+    onRender: renderValue
+  });
+
+  button.append(
+    label,
+    value
+  );
+
+  return button;
+}
+
 function createLfoRow(
   lfoKey
 ) {
@@ -3548,7 +3898,6 @@ function createLfoRow(
 
   targetLabel.className =
     "mokton-lfo-cell-label";
-
   targetLabel.textContent =
     "tgt";
 
@@ -3560,50 +3909,48 @@ function createLfoRow(
   targetValue.className =
     "mokton-lfo-cell-value";
 
-  targetValue.textContent =
-    shortTargetLabel(
-      lfo.target
-    );
+  const normalizeTarget = value => {
+    const legacyMap = {
+      gain: "level",
+      fmDepth: "fm",
+      cutoff: "filter"
+    };
+
+    const normalized =
+      legacyMap[value] ?? value;
+
+    return LFO_TARGETS.includes(
+      normalized
+    )
+      ? normalized
+      : "pitch";
+  };
+
+  const renderTarget = () => {
+    targetValue.textContent =
+      shortTargetLabel(
+        lfo.target
+      );
+  };
+
+  renderTarget();
 
   targetButton.append(
     targetLabel,
     targetValue
   );
 
-  targetButton.addEventListener(
-    "click",
-    () => {
-      const legacyMap = {
-        gain: "level",
-        fmDepth: "fm",
-        cutoff: "filter"
-      };
-
-      const current =
-        legacyMap[lfo.target] ??
-        lfo.target;
-
-      const currentIndex =
-        Math.max(
-          0,
-          LFO_TARGETS.indexOf(
-            current
-          )
-        );
-
-      saveHistory();
-
-      lfo.target =
-        LFO_TARGETS[
-          (
-            currentIndex + 1
-          ) %
-          LFO_TARGETS.length
-        ];
-
-      renderEditor();
-    }
-  );
+  enableVerticalChoiceSweep({
+    button: targetButton,
+    values: LFO_TARGETS,
+    getValue: () => lfo.target,
+    setValue: next => {
+      lfo.target = next;
+    },
+    normalizeValue: normalizeTarget,
+    pixelsPerItem: 16,
+    onRender: renderTarget
+  });
 
   row.appendChild(
     targetButton
@@ -3627,7 +3974,6 @@ function createLfoRow(
 
   waveLabel.className =
     "mokton-lfo-cell-label";
-
   waveLabel.textContent =
     "wav";
 
@@ -3639,41 +3985,35 @@ function createLfoRow(
   waveValue.className =
     "mokton-lfo-cell-value";
 
-  waveValue.replaceChildren(
-    createLfoWaveIcon(
-      lfo.wave
-    )
-  );
+  const renderWave = () => {
+    waveValue.replaceChildren(
+      createLfoWaveIcon(
+        lfo.wave
+      )
+    );
+  };
+
+  renderWave();
 
   waveButton.append(
     waveLabel,
     waveValue
   );
 
-  waveButton.addEventListener(
-    "click",
-    () => {
-      const currentIndex =
-        Math.max(
-          0,
-          LFO_WAVES.indexOf(
-            lfo.wave
-          )
-        );
-
-      saveHistory();
-
-      lfo.wave =
-        LFO_WAVES[
-          (
-            currentIndex + 1
-          ) %
-          LFO_WAVES.length
-        ];
-
-      renderEditor();
-    }
-  );
+  enableVerticalChoiceSweep({
+    button: waveButton,
+    values: LFO_WAVES,
+    getValue: () => lfo.wave,
+    setValue: next => {
+      lfo.wave = next;
+    },
+    normalizeValue: value =>
+      LFO_WAVES.includes(value)
+        ? value
+        : "sine",
+    pixelsPerItem: 16,
+    onRender: renderWave
+  });
 
   row.appendChild(
     waveButton
@@ -3684,14 +4024,6 @@ function createLfoRow(
     label: "dep",
     min: 0,
     max: 100,
-    step: 1
-  };
-
-  const rateDefinition = {
-    id: "rate",
-    label: "rat",
-    min: 1,
-    max: 1000,
     step: 1
   };
 
@@ -3707,13 +4039,8 @@ function createLfoRow(
   );
 
   row.appendChild(
-    createDirectValuePad(
-      lfo,
-      rateDefinition,
-      {
-        extraClass:
-          "mokton-lfo-inline-value"
-      }
+    createLfoRatePad(
+      lfo
     )
   );
 
@@ -3735,7 +4062,6 @@ function createLfoRow(
 
   syncLabel.className =
     "mokton-lfo-cell-label";
-
   syncLabel.textContent =
     "syn";
 
@@ -3762,10 +4088,32 @@ function createLfoRow(
     () => {
       saveHistory();
 
-      lfo.syncMode =
+      if (
         lfo.syncMode === "bpm"
-          ? "free"
-          : "bpm";
+      ) {
+        lfo.syncMode = "free";
+
+        if (
+          !LFO_FREE_RATE_VALUES.includes(
+            Number(lfo.rate)
+          )
+        ) {
+          lfo.rate = 25;
+        }
+      } else {
+        lfo.syncMode = "bpm";
+
+        lfo.rate =
+          Math.min(
+            LFO_BPM_RATE_LABELS.length - 1,
+            Math.max(
+              0,
+              Math.round(
+                Number(lfo.rate) || 8
+              )
+            )
+          );
+      }
 
       renderEditor();
     }

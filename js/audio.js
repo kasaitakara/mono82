@@ -3537,21 +3537,42 @@ async function playLayerVoice({
       );
 
     try {
-      previousVoice.gainNode.gain
-        .cancelScheduledValues(
-          closeStart
-        );
+      const previousGain =
+        previousVoice.gainNode.gain;
 
-      previousVoice.gainNode.gain
-        .setValueAtTime(
-          Math.max(
-            0.0001,
-            previousVoice.gainNode.gain.value
-          ),
-          closeStart
-        );
+      /*
+       * A future retrigger must not rewrite the decay curve that is already
+       * sounding now. cancelScheduledValues(closeStart) can remove the
+       * endpoint of a long ramp and change that ramp before closeStart.
+       * Hold the computed value at the cut point instead, then close only
+       * the final 4ms before the next trigger.
+       */
+      if (
+        typeof previousGain
+          .cancelAndHoldAtTime ===
+          "function"
+      ) {
+        previousGain
+          .cancelAndHoldAtTime(
+            closeStart
+          );
+      } else {
+        previousGain
+          .cancelScheduledValues(
+            closeStart
+          );
 
-      previousVoice.gainNode.gain
+        previousGain
+          .setValueAtTime(
+            Math.max(
+              0.0001,
+              previousGain.value
+            ),
+            closeStart
+          );
+      }
+
+      previousGain
         .exponentialRampToValueAtTime(
           0.0001,
           startTime
