@@ -936,11 +936,12 @@ const masterMixSettings = {
 };
 
 /*
- * Trackごとに最後に予約した発音の
- * GainNodeを保持する。
+ * Soundごとに最後に予約した発音のGainNodeを保持する。
  *
- * 次のトリガー時に前音を短く閉じて、
- * FM波形同士の位相干渉を防ぐ。
+ * Decay側は設定した減衰カーブを最後まで生かし、後続トリガーと
+ * 重なっても切らない（overlapあり）。
+ * Hold側はmonophonic retriggerとし、次トリガー直前に極短フェードで
+ * 前音を閉じる（overlapなし）。
  */
 const activeTrackVoices =
   new Map();
@@ -3287,8 +3288,12 @@ async function playLayerVoice({
     duration +
     maximumStrumDelay;
 
+  // Holdは聴感上ほぼ即時停止のままクリックだけ避ける。
+  // Decayは既存の自然なtailを維持する。
   const releaseTime =
-    0.05;
+    holdDecayValue <= 0
+      ? 0.002
+      : 0.05;
 
   const releaseEnd =
     gateEnd +
@@ -3608,13 +3613,14 @@ async function playLayerVoice({
   if (
     previousVoice?.gainNode &&
     previousVoice.endTime >
-      startTime
+      startTime &&
+    previousVoice.allowRetriggerCut !== false
   ) {
     const closeStart =
       Math.max(
         context.currentTime,
         startTime -
-          0.004
+          0.002
       );
 
     try {
@@ -3626,7 +3632,7 @@ async function playLayerVoice({
        * sounding now. cancelScheduledValues(closeStart) can remove the
        * endpoint of a long ramp and change that ramp before closeStart.
        * Hold the computed value at the cut point instead, then close only
-       * the final 4ms before the next trigger.
+       * the final 2ms before the next trigger.
        */
       if (
         typeof previousGain
@@ -3668,7 +3674,14 @@ async function playLayerVoice({
         voiceGain,
       startTime,
       endTime:
-        releaseEnd
+        releaseEnd,
+      /*
+       * Decay side (> 0): overlap allowed, so a later trigger never cuts it.
+       * Hold side (<= 0): overlap prohibited; a later trigger closes the
+       * previous voice with the 2 ms click-safe fade above.
+       */
+      allowRetriggerCut:
+        holdDecayValue <= 0
     }
   );
 

@@ -34,6 +34,7 @@ import {
   pasteLayerClipboardAt,
   song,
   togglePatternLoop,
+  setPatternEditLoopEnabled,
   setPatternLoopRange,
   clearPatternLoopRange,
   patternLoopRange,
@@ -330,15 +331,16 @@ function setAppView(
       : "pattern";
 
   /*
-   * View changes must not change the user's loop choice.
-   * Pattern Edit and Song share the same persistent loop state/range.
-   * When loop is already ON, entering Pattern Edit follows the selected
-   * Pattern during playback; when loop is OFF, normal song playback is
-   * left untouched.
+   * Pattern Edit is its own audition mode: while it is open the selected
+   * Pattern repeats at every boundary. Song loop ON/OFF and its range remain
+   * exactly as the user left them and resume when returning to Song.
    */
+  setPatternEditLoopEnabled(
+    appView === "sequence"
+  );
+
   if (
     appView === "sequence" &&
-    state.patternLoopEnabled &&
     state.isPlaying &&
     state.playingPatternIndex !==
       null &&

@@ -276,6 +276,12 @@ function makeDefaultRuntimeState() {
      */
     patternLoopRange: null,
 
+    /*
+     * UI-only playback override used while Pattern Edit is open.
+     * This never changes the Song screen loop button/range state.
+     */
+    patternEditLoopEnabled: false,
+
     songMode: false,
     selectedSongPartIndex: 0,
     playingSongPartIndex: null,
@@ -547,6 +553,18 @@ export function togglePatternLoop() {
 }
 
 
+export function setPatternEditLoopEnabled(
+  enabled
+) {
+  state.patternEditLoopEnabled =
+    Boolean(enabled);
+
+  state.playingPatternRepeatCount =
+    0;
+
+  return state.patternEditLoopEnabled;
+}
+
 export function beginSelectedPlayback() {
   state.playingPatternIndex =
     state.selectedPatternIndex;
@@ -591,6 +609,19 @@ export function advancePlaybackSource() {
       "pattern";
 
     return true;
+  }
+
+  /*
+   * Pattern Edit always loops the Pattern being edited, regardless of the
+   * Song screen loop setting. The Song loop state is left untouched.
+   */
+  if (
+    state.patternEditLoopEnabled
+  ) {
+    state.playingPatternRepeatCount =
+      0;
+
+    return false;
   }
 
   if (
