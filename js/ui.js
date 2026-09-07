@@ -44,6 +44,14 @@ import {
   getCurrentProjectMeta
 } from "./storage.js";
 
+import {
+  getMasterMixMeterData,
+  setMasterMixEqBand,
+  setMasterMixVolume,
+  setMasterLimiterThreshold,
+  setMasterReverb
+} from "./audio.js";
+
 
 /* =========================================================
  * mokton UI - Stage 1
@@ -95,6 +103,16 @@ const patternLoopButton =
 const patternEditButton =
   document.getElementById(
     "pattern-edit-button"
+  );
+
+const patternSection =
+  document.querySelector(
+    ".pattern-section"
+  );
+
+const mixerToggleButton =
+  document.getElementById(
+    "mixer-toggle-button"
   );
 
 const sequenceBackButton =
@@ -6610,20 +6628,418 @@ export function updatePlayingStep() {
 
 
 /* =========================================================
+ * Master mixer
+ * ========================================================= */
+
+const MIXER_FREQUENCIES = Object.freeze([
+  "60", "120", "250", "500",
+  "1k", "2k", "4k", "8k"
+]);
+
+const MIXER_SEGMENT_COUNT = 12;
+let mixerOpen = false;
+let mixerRoot = null;
+let mixerMeterSegments = [];
+let mixerValueElements = [];
+let mixerReverbValue = null;
+let miniEqBars = [];
+let mixerMeterRaf = null;
+let lastMasterMixSyncKey = "";
+
+function masterMix() {
+  song.masterMix ??= {
+    eq: Array(8).fill(0),
+    volume: 100,
+    limiter: -1,
+    reverb: 0
+  };
+
+  song.masterMix.eq = Array.from(
+    { length: 8 },
+    (_, index) =>
+      Number(song.masterMix.eq?.[index]) || 0
+  );
+
+  return song.masterMix;
+}
+
+function syncMasterMixAudio() {
+  const mix = masterMix();
+  const key = JSON.stringify([
+    mix.eq,
+    mix.volume,
+    mix.limiter,
+    mix.reverb
+  ]);
+
+  if (key === lastMasterMixSyncKey) {
+    return;
+  }
+
+  lastMasterMixSyncKey = key;
+
+  mix.eq.forEach((value, index) => {
+    setMasterMixEqBand(index, value);
+  });
+
+  setMasterMixVolume(mix.volume);
+  setMasterLimiterThreshold(mix.limiter);
+  setMasterReverb(mix.reverb);
+}
+
+function formatMixerValue(type, value) {
+  const number = Number(value) || 0;
+
+  if (type === "eq") {
+    const rounded = Math.round(number);
+    return rounded > 0
+      ? `+${rounded}`
+      : String(rounded);
+  }
+
+  return String(Math.round(number));
+}
+
+function setMixerParameter(type, index, value) {
+  const mix = masterMix();
+
+  if (type === "eq") {
+    const next = clamp(Math.round(value), -12, 12);
+    mix.eq[index] = next;
+    setMasterMixEqBand(index, next);
+    mixerValueElements[index].textContent =
+      formatMixerValue(type, next);
+  } else if (type === "vol") {
+    const next = clamp(Math.round(value), 0, 100);
+    mix.volume = next;
+    setMasterMixVolume(next);
+    mixerValueElements[8].textContent = String(next);
+  } else if (type === "lim") {
+    const next = clamp(Math.round(value), -24, 0);
+    mix.limiter = next;
+    setMasterLimiterThreshold(next);
+    mixerValueElements[9].textContent = String(next);
+  } else if (type === "rev") {
+    const next = clamp(Math.round(value), 0, 100);
+    mix.reverb = next;
+    setMasterReverb(next);
+    if (mixerReverbValue) {
+      mixerReverbValue.textContent = String(next);
+    }
+  }
+
+  lastMasterMixSyncKey = "";
+}
+
+function enableMixerVerticalSwipe({
+  element,
+  type,
+  index = null,
+  getValue,
+  pixelsPerUnit
+}) {
+  let pointerId = null;
+  let startY = 0;
+  let startValue = 0;
+  let historySaved = false;
+
+  element.addEventListener("pointerdown", event => {
+    if (
+      event.pointerType === "mouse" &&
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    pointerId = event.pointerId;
+    startY = event.clientY;
+    startValue = Number(getValue()) || 0;
+    historySaved = false;
+
+    element.setPointerCapture(event.pointerId);
+  });
+
+  element.addEventListener("pointermove", event => {
+    if (event.pointerId !== pointerId) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (!historySaved) {
+      saveHistory();
+      historySaved = true;
+    }
+
+    const delta =
+      (startY - event.clientY) /
+      pixelsPerUnit;
+
+    setMixerParameter(
+      type,
+      index,
+      startValue + delta
+    );
+  });
+
+  const finish = event => {
+    if (event.pointerId !== pointerId) {
+      return;
+    }
+
+    if (element.hasPointerCapture(event.pointerId)) {
+      element.releasePointerCapture(event.pointerId);
+    }
+
+    pointerId = null;
+  };
+
+  element.addEventListener("pointerup", finish);
+  element.addEventListener("pointercancel", finish);
+}
+
+function createMixerMeter() {
+  const meter = document.createElement("div");
+  meter.className = "mokton-mixer-meter";
+
+  const segments = [];
+
+  for (let index = 0; index < MIXER_SEGMENT_COUNT; index++) {
+    const segment = document.createElement("i");
+    segment.className = "mokton-mixer-segment";
+    meter.appendChild(segment);
+    segments.push(segment);
+  }
+
+  return { meter, segments };
+}
+
+function createMixerStrip({
+  type,
+  index,
+  label,
+  value,
+  pixelsPerUnit
+}) {
+  const strip = document.createElement("div");
+  strip.className = "mokton-mixer-strip";
+
+  const { meter, segments } = createMixerMeter();
+
+  const labelElement = document.createElement("div");
+  labelElement.className = "mokton-mixer-label";
+  labelElement.textContent = label;
+
+  const valueElement = document.createElement("div");
+  valueElement.className = "mokton-mixer-value";
+  valueElement.textContent = formatMixerValue(type, value);
+
+  strip.append(meter, labelElement, valueElement);
+
+  enableMixerVerticalSwipe({
+    element: strip,
+    type,
+    index,
+    getValue: () => {
+      const mix = masterMix();
+      if (type === "eq") return mix.eq[index];
+      if (type === "vol") return mix.volume;
+      return mix.limiter;
+    },
+    pixelsPerUnit
+  });
+
+  return { strip, segments, valueElement };
+}
+
+function renderMasterMixer() {
+  if (!patternSection) {
+    return;
+  }
+
+  patternSection.classList.toggle(
+    "mixer-open",
+    mixerOpen
+  );
+
+  mixerRoot?.remove();
+  mixerRoot = null;
+  mixerMeterSegments = [];
+  mixerValueElements = [];
+  mixerReverbValue = null;
+
+  mixerToggleButton?.classList.toggle(
+    "active",
+    mixerOpen
+  );
+
+  mixerToggleButton?.setAttribute(
+    "aria-pressed",
+    String(mixerOpen)
+  );
+
+  if (!mixerOpen) {
+    return;
+  }
+
+  const mix = masterMix();
+  const root = document.createElement("div");
+  root.className = "mokton-master-mixer";
+
+  const topLine = document.createElement("div");
+  topLine.className = "mokton-mixer-topline";
+
+  const reverb = document.createElement("button");
+  reverb.type = "button";
+  reverb.className = "mokton-mixer-reverb";
+  reverb.setAttribute("aria-label", "master reverb");
+
+  const reverbLabel = document.createElement("span");
+  reverbLabel.className = "label";
+  reverbLabel.textContent = "rev";
+
+  mixerReverbValue = document.createElement("span");
+  mixerReverbValue.textContent =
+    String(Math.round(Number(mix.reverb) || 0));
+
+  reverb.append(reverbLabel, mixerReverbValue);
+  topLine.appendChild(reverb);
+
+  enableMixerVerticalSwipe({
+    element: reverb,
+    type: "rev",
+    getValue: () => masterMix().reverb,
+    pixelsPerUnit: 2
+  });
+
+  const columns = document.createElement("div");
+  columns.className = "mokton-mixer-columns";
+
+  MIXER_FREQUENCIES.forEach((label, index) => {
+    const item = createMixerStrip({
+      type: "eq",
+      index,
+      label,
+      value: mix.eq[index],
+      pixelsPerUnit: 5
+    });
+
+    mixerMeterSegments[index] = item.segments;
+    mixerValueElements[index] = item.valueElement;
+    columns.appendChild(item.strip);
+  });
+
+  const vol = createMixerStrip({
+    type: "vol",
+    index: 8,
+    label: "vol",
+    value: mix.volume,
+    pixelsPerUnit: 2
+  });
+
+  mixerMeterSegments[8] = vol.segments;
+  mixerValueElements[8] = vol.valueElement;
+  columns.appendChild(vol.strip);
+
+  const lim = createMixerStrip({
+    type: "lim",
+    index: 9,
+    label: "lim",
+    value: mix.limiter,
+    pixelsPerUnit: 5
+  });
+
+  mixerMeterSegments[9] = lim.segments;
+  mixerValueElements[9] = lim.valueElement;
+  columns.appendChild(lim.strip);
+
+  root.append(topLine, columns);
+  patternSection.appendChild(root);
+  mixerRoot = root;
+}
+
+function paintMeterSegments(segments, normalized) {
+  const activeCount = Math.round(
+    clamp(Number(normalized) || 0, 0, 1) *
+      MIXER_SEGMENT_COUNT
+  );
+
+  segments?.forEach((segment, index) => {
+    segment.classList.toggle("on", index < activeCount);
+  });
+}
+
+function updateMixerMeters() {
+  const data = getMasterMixMeterData();
+
+  miniEqBars.forEach((bar, index) => {
+    const level = clamp(Number(data.bands[index]) || 0, 0, 1);
+    bar.style.height = `${Math.max(1, Math.round(level * 15))}px`;
+  });
+
+  if (mixerOpen) {
+    for (let index = 0; index < 8; index++) {
+      paintMeterSegments(
+        mixerMeterSegments[index],
+        data.bands[index]
+      );
+    }
+
+    paintMeterSegments(
+      mixerMeterSegments[8],
+      data.level
+    );
+
+    paintMeterSegments(
+      mixerMeterSegments[9],
+      clamp(
+        (Number(data.limiterReduction) || 0) / 24,
+        0,
+        1
+      )
+    );
+  }
+
+  mixerMeterRaf = requestAnimationFrame(updateMixerMeters);
+}
+
+function ensureMixerMeterLoop() {
+  miniEqBars = Array.from(
+    document.querySelectorAll(
+      "#mixer-toggle-button .mini-eq-meter i"
+    )
+  );
+
+  if (mixerMeterRaf === null) {
+    mixerMeterRaf = requestAnimationFrame(updateMixerMeters);
+  }
+}
+
+mixerToggleButton?.addEventListener("click", () => {
+  mixerOpen = !mixerOpen;
+
+  /*
+   * Mixer always occupies the Song/Pattern-manager slot.
+   * Closing it therefore returns to Song, not to the previous edit view.
+   */
+  setAppView("pattern");
+  renderPatternManager();
+  renderMasterMixer();
+});
+
+/* =========================================================
  * Main.js compatibility exports
  * ========================================================= */
 
 export function renderSongMode() {
-  /*
-   * Song UIは仕様未確定。
-   * Stage 1では表示しない。
-   */
+  syncMasterMixAudio();
+  renderMasterMixer();
+  ensureMixerMeterLoop();
 }
 
 export function refreshMasterMixMeterColor() {
-  /*
-   * Mixer UI再設計まで互換exportのみ維持。
-   */
+  /* Meter colors are CSS-variable driven; repaint is automatic. */
 }
 
 

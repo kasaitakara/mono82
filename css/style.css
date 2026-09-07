@@ -4957,3 +4957,143 @@ body {
 .mokton-pattern-repeat {
   display: none !important;
 }
+
+/* =========================================================
+   mono82: master mixer
+   ========================================================= */
+
+.mixer-toggle-button {
+  width: 30px;
+  min-width: 30px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.mixer-toggle-button.active {
+  color: var(--accent);
+}
+
+.mini-eq-meter {
+  width: 25px;
+  height: 15px;
+  display: grid;
+  grid-template-columns: repeat(8, 2px);
+  align-items: end;
+  justify-content: space-between;
+}
+
+.mini-eq-meter i {
+  display: block;
+  width: 2px;
+  height: 1px;
+  min-height: 1px;
+  background: currentColor;
+  transform-origin: bottom;
+}
+
+.pattern-section.mixer-open {
+  padding-top: 10px;
+}
+
+.pattern-section.mixer-open > .section-toolbar,
+.pattern-section.mixer-open > #pattern-grid {
+  display: none !important;
+}
+
+.mokton-master-mixer {
+  width: 100%;
+  display: grid;
+  grid-template-rows: 22px minmax(0, 1fr);
+  gap: 7px;
+}
+
+.mokton-mixer-topline {
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.mokton-mixer-reverb {
+  min-width: 70px;
+  min-height: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  font-size: 7px;
+  touch-action: none;
+}
+
+.mokton-mixer-reverb .label {
+  color: var(--muted);
+}
+
+.mokton-mixer-columns {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+
+.mokton-mixer-strip {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: 122px 16px 16px;
+  align-items: end;
+  justify-items: stretch;
+  touch-action: none;
+}
+
+.mokton-mixer-meter {
+  height: 116px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 3px;
+  justify-content: flex-start;
+  align-items: stretch;
+  padding: 1px 2px;
+}
+
+.mokton-mixer-segment {
+  display: block;
+  width: 100%;
+  height: 6px;
+  flex: 0 0 6px;
+  background: color-mix(in srgb, var(--text) 14%, transparent);
+}
+
+.mokton-mixer-segment.on {
+  background: var(--accent);
+}
+
+.mokton-mixer-label,
+.mokton-mixer-value {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  font-size: 7px;
+  line-height: 1;
+}
+
+.mokton-mixer-label {
+  color: var(--muted);
+}
+
+.mokton-mixer-value {
+  color: var(--text);
+}
