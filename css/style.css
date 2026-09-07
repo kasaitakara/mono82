@@ -80,6 +80,18 @@
   --accent: #ffcc00;
 }
 
+:root.theme-hachipro {
+  --bg: #ffb515;
+  --text: #000000;
+  --accent: #dcdcdc;
+}
+
+:root.theme-electro {
+  --bg: #dddddd;
+  --text: #868686;
+  --accent: #eb96a0;
+}
+
 :root.theme-game {
   --bg: #ffffff;
   --text: #711521;

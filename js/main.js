@@ -1369,6 +1369,8 @@ const THEME_CLASSES = Object.freeze([
   "theme-ryuichi",
   "theme-aya",
   "theme-tobokegao",
+  "theme-hachipro",
+  "theme-electro",
   "theme-game"
 ]);
 
