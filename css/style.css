@@ -81,15 +81,15 @@
 }
 
 :root.theme-hachipro {
-  --bg: #ffb515;
-  --text: #000000;
-  --accent: #dcdcdc;
+  --bg: #ef9834;
+  --text: #4e4e4e;
+  --accent: #b3b3b3;
 }
 
 :root.theme-electro {
-  --bg: #dddddd;
-  --text: #868686;
-  --accent: #eb96a0;
+  --bg: #c4c0b8;
+  --text: #6b6d6d;
+  --accent: #8bbcc0;
 }
 
 :root.theme-game {
