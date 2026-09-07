@@ -3283,7 +3283,18 @@ function createDirectValuePad(
         return;
       }
 
+      /*
+       * iOS gesture hardening:
+       * direct-value vertical sweeps must stay owned by the app once begun.
+       * touch-action:none is already set in CSS; preventDefault + pointerId
+       * lock keeps Safari's own scrolling/gesture handling from taking over
+       * during the active edit as far as the browser is allowed to.
+       */
+      event.preventDefault();
+
       drag = {
+        pointerId:
+          event.pointerId,
         startY:
           event.clientY,
         startValue:
@@ -3305,9 +3316,15 @@ function createDirectValuePad(
   button.addEventListener(
     "pointermove",
     event => {
-      if (!drag) {
+      if (
+        !drag ||
+        drag.pointerId !==
+          event.pointerId
+      ) {
         return;
       }
+
+      event.preventDefault();
 
       const delta =
         drag.startY -
@@ -3346,9 +3363,15 @@ function createDirectValuePad(
   const finishDrag = (
     event
   ) => {
-    if (!drag) {
+    if (
+      !drag ||
+      drag.pointerId !==
+        event.pointerId
+    ) {
       return;
     }
+
+    event.preventDefault();
 
     button.releasePointerCapture?.(
       event.pointerId
