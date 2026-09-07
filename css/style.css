@@ -4907,13 +4907,19 @@ body {
   overflow: visible;
 }
 
-#theme-button .mono82-theme-brush-icon path {
-  fill: none !important;
-  stroke: currentColor !important;
-  stroke-width: 1.6 !important;
-  stroke-linecap: square !important;
-  stroke-linejoin: miter !important;
-  vector-effect: non-scaling-stroke;
+#theme-button .mono82-theme-brush-icon path,
+#theme-button .mono82-theme-brush-icon circle {
+  stroke: none !important;
+}
+
+#theme-button .mono82-theme-brush-body,
+#theme-button .mono82-theme-brush-ferrule,
+#theme-button .mono82-theme-brush-bristles {
+  fill: currentColor !important;
+}
+
+#theme-button .mono82-theme-brush-hole {
+  fill: var(--mokton-bg, #000) !important;
 }
 
 /*
