@@ -3665,11 +3665,12 @@ async function playLayerVoice({
       startTime &&
     previousVoice.allowRetriggerCut !== false
   ) {
+    const retriggerFade = 0.008;
     const closeStart =
       Math.max(
         context.currentTime,
         startTime -
-          0.005
+          retriggerFade
       );
 
     try {
@@ -3677,13 +3678,32 @@ async function playLayerVoice({
         previousVoice.gainNode.gain;
 
       /*
-       * A future retrigger must not rewrite the decay curve that is already
-       * sounding now. cancelScheduledValues(closeStart) can remove the
-       * endpoint of a long ramp and change that ramp before closeStart.
-       * Hold the computed value at the cut point instead, then close only
-       * the final 5ms before the next trigger.
+       * Holdのゲート途中で次の同soundが来た場合、最終Gainは
+       * closeStart時点で必ず1。値推定やcancelAndHoldAtTimeに頼らず、
+       * その既知値から新発音直前まで8msで完全に0へ落とす。
+       * これによりHoldのretrigger cutだけをクリックレス化する。
        */
       if (
+        Number.isFinite(previousVoice.gateEnd) &&
+        startTime < previousVoice.gateEnd
+      ) {
+        previousGain
+          .cancelScheduledValues(
+            closeStart
+          );
+
+        previousGain
+          .setValueAtTime(
+            1,
+            closeStart
+          );
+
+        previousGain
+          .linearRampToValueAtTime(
+            0,
+            startTime
+          );
+      } else if (
         typeof previousGain
           .cancelAndHoldAtTime ===
           "function"
@@ -3692,27 +3712,13 @@ async function playLayerVoice({
           .cancelAndHoldAtTime(
             closeStart
           );
-      } else {
-        previousGain
-          .cancelScheduledValues(
-            closeStart
-          );
 
         previousGain
-          .setValueAtTime(
-            Math.max(
-              0.0001,
-              previousGain.value
-            ),
-            closeStart
+          .linearRampToValueAtTime(
+            0,
+            startTime
           );
       }
-
-      previousGain
-        .exponentialRampToValueAtTime(
-          0.0001,
-          startTime
-        );
     } catch {}
   }
 
@@ -3725,6 +3731,7 @@ async function playLayerVoice({
       startTime,
       endTime:
         releaseEnd,
+      gateEnd,
       /*
        * Decay side (> 0): overlap allowed, so a later trigger never cuts it.
        * Hold side (<= 0): overlap prohibited; a later trigger closes the
