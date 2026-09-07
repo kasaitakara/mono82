@@ -81,13 +81,13 @@
 }
 
 :root.theme-hachi {
-  --bg: #eb9431;
+  --bg: #e48a23;
   --text: #3f3f3f;
   --accent: #b3b3b3;
 }
 
 :root.theme-electro {
-  --bg: #bcbcbc;
+  --bg: #acabab;
   --text: #6b6d6d;
   --accent: #7ab2b7;
 }
