@@ -73,32 +73,93 @@ export const RHYTHM_STEP_DEFAULTS = Object.freeze({
   nudge: 0
 });
 
+const LFO_TARGETS = Object.freeze([
+  "level",
+  "pitch",
+  "pan",
+  "fm",
+  "filter"
+]);
+
+const LFO_WAVES = Object.freeze([
+  "sine",
+  "triangle",
+  "sawUp",
+  "sawDown",
+  "square",
+  "random",
+  "rise",
+  "fall"
+]);
+
+function normalizeLfoTarget(target) {
+  const value =
+    String(target ?? "")
+      .trim()
+      .toLowerCase();
+
+  const legacyMap = {
+    gain: "level",
+    lvl: "level",
+    cutoff: "filter",
+    fmdepth: "fm",
+    fmd: "fm"
+  };
+
+  const normalized =
+    legacyMap[value] ?? value;
+
+  return LFO_TARGETS.includes(normalized)
+    ? normalized
+    : LFO_DEFAULTS.target;
+}
+
 function cloneLfo(source = null) {
   const value =
     source && typeof source === "object"
       ? source
       : {};
 
+  const wave =
+    typeof value.wave === "string" &&
+    LFO_WAVES.includes(value.wave)
+      ? value.wave
+      : LFO_DEFAULTS.wave;
+
   return {
     target:
-      typeof value.target === "string"
-        ? value.target
-        : LFO_DEFAULTS.target,
+      normalizeLfoTarget(
+        value.target
+      ),
 
-    wave:
-      typeof value.wave === "string"
-        ? value.wave
-        : LFO_DEFAULTS.wave,
+    wave,
 
     depth:
-      Number.isFinite(Number(value.depth))
-        ? Number(value.depth)
-        : LFO_DEFAULTS.depth,
+      Math.min(
+        100,
+        Math.max(
+          0,
+          Number.isFinite(Number(value.depth))
+            ? Number(value.depth)
+            : LFO_DEFAULTS.depth
+        )
+      ),
 
+    /*
+     * rate is stored as tenths of a Hz in free mode.
+     * Keeping the existing storage unit preserves old projects:
+     * 25 = 2.5Hz, 100 = 10Hz. New range extends to 1000 = 100Hz.
+     */
     rate:
-      Number.isFinite(Number(value.rate))
-        ? Number(value.rate)
-        : LFO_DEFAULTS.rate,
+      Math.min(
+        1000,
+        Math.max(
+          1,
+          Number.isFinite(Number(value.rate))
+            ? Number(value.rate)
+            : LFO_DEFAULTS.rate
+        )
+      ),
 
     syncMode:
       value.syncMode === "bpm"

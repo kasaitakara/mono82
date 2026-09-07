@@ -1049,11 +1049,24 @@ async function initializeFmVoiceWorklet() {
               ? p.pitchLfos
               : [];
 
+          this.fmLfos =
+            Array.isArray(p.fmLfos)
+              ? p.fmLfos
+              : [];
+
           this.carrierPhase = 0;
           this.modulatorPhase = 0;
 
-          this.randomStates =
+          this.pitchRandomStates =
             this.pitchLfos.map(
+              config =>
+                this.makeRandomState(
+                  config
+                )
+            );
+
+          this.fmRandomStates =
+            this.fmLfos.map(
               config =>
                 this.makeRandomState(
                   config
@@ -1222,12 +1235,23 @@ async function initializeFmVoiceWorklet() {
               100
             );
 
+          const normalized =
+            depth / 100;
+
+          /*
+           * Keep the old maximum range but make the bottom of DEP far finer.
+           * DEP 1 is now subtle enough for electric-piano drift, while
+           * DEP 100 still reaches the previous extreme range.
+           */
+          const shaped =
+            normalized * normalized;
+
           return (
             config.wave === "rise" ||
             config.wave === "fall"
           )
-            ? depth * 36
-            : depth * 12;
+            ? shaped * 3600
+            : shaped * 1200;
         }
 
         process(inputs, outputs) {
@@ -1291,7 +1315,7 @@ async function initializeFmVoiceWorklet() {
                 this.lfoWaveValue(
                   config,
                   elapsed,
-                  this.randomStates[n]
+                  this.pitchRandomStates[n]
                 ) *
                 this.pitchDepthToCents(
                   config
@@ -1305,9 +1329,44 @@ async function initializeFmVoiceWorklet() {
                 pitchCents / 1200
               );
 
+            let fmLfoAmount = 0;
+
+            for (
+              let n = 0;
+              n < this.fmLfos.length;
+              n++
+            ) {
+              const config =
+                this.fmLfos[n];
+
+              fmLfoAmount +=
+                this.lfoWaveValue(
+                  config,
+                  elapsed,
+                  this.fmRandomStates[n]
+                ) *
+                (
+                  this.clamp(
+                    Number(config.depth) || 0,
+                    0,
+                    100
+                  ) /
+                  100
+                ) *
+                20;
+            }
+
+            const effectiveFmDepth =
+              this.clamp(
+                this.fmDepth +
+                  fmLfoAmount,
+                0,
+                40
+              );
+
             const fmAmount =
               carrierFrequency *
-              this.fmDepth *
+              effectiveFmDepth *
               0.1;
 
             const modulatorValue =
@@ -1892,8 +1951,9 @@ function frequency(note) {
 }
 
 /*
- * LFO Rate：
- * UI上の1〜100を0.1〜10Hzへ変換。
+ * LFO Rate:
+ * Free keeps the existing tenths-of-a-Hz storage unit for compatibility.
+ * 1 = 0.1Hz, 100 = 10Hz, 1000 = 100Hz.
  */
 function lfoRateToHz(
   value,
@@ -1905,7 +1965,7 @@ function lfoRateToHz(
       clamp(
         Number(value) || 1,
         1,
-        100
+        1000
       ) / 10
     );
   }
@@ -2180,6 +2240,64 @@ function createSampleAndHoldLfo({
   return source;
 }
 
+/*
+ * rise / fall are one-shot modulation shapes, not repeating oscillators.
+ * rise starts at -depth and returns to center; fall starts at +depth and
+ * returns to center. Rate controls how quickly the movement completes.
+ */
+function createOneShotLfo({
+  audioParam,
+  depth,
+  rateHz,
+  startTime,
+  stopTime,
+  wave
+}) {
+  const source =
+    sprootoDebugNode(
+      context.createConstantSource(),
+      "lfo"
+    );
+
+  const safeRate =
+    Math.max(
+      0.001,
+      Number(rateHz) || 1
+    );
+
+  const safeDepth =
+    Number.isFinite(Number(depth))
+      ? Number(depth)
+      : 0;
+
+  const initial =
+    wave === "rise"
+      ? -safeDepth
+      : safeDepth;
+
+  const endTime =
+    Math.min(
+      stopTime,
+      startTime + 1 / safeRate
+    );
+
+  source.connect(audioParam);
+  source.offset.setValueAtTime(
+    initial,
+    startTime
+  );
+  source.offset.linearRampToValueAtTime(
+    0,
+    Math.max(
+      startTime + 0.0001,
+      endTime
+    )
+  );
+  source.start(startTime);
+
+  return source;
+}
+
 
 let sharedNoiseBuffer = null;
 let sharedNoiseBufferContext = null;
@@ -2272,11 +2390,27 @@ function soundLfoList(
         ) > 0
     )
     .map(lfo => ({
-      target:
-        String(
-          lfo.target ??
-          "pitch"
-        ),
+      target: (() => {
+        const raw =
+          String(
+            lfo.target ??
+            "pitch"
+          ).toLowerCase();
+
+        if (raw === "gain" || raw === "lvl") {
+          return "level";
+        }
+
+        if (raw === "fmdepth" || raw === "fmd") {
+          return "fm";
+        }
+
+        if (raw === "cutoff") {
+          return "filter";
+        }
+
+        return raw;
+      })(),
 
       wave:
         String(
@@ -2583,6 +2717,29 @@ function connectPanLfoForVoice({
         return;
       }
 
+      if (
+        lfo.wave === "rise" ||
+        lfo.wave === "fall"
+      ) {
+        const source =
+          createOneShotLfo({
+            audioParam:
+              panner.pan,
+            depth:
+              depth,
+            rateHz:
+              lfo.rateHz,
+            startTime,
+            stopTime,
+            wave:
+              lfo.wave
+          });
+
+        source.stop(stopTime);
+        cleanupSources.push(source);
+        return;
+      }
+
       const oscillator =
         sprootoDebugNode(
           context.createOscillator(),
@@ -2662,7 +2819,7 @@ function connectGainLfoForVoice({
   lfos
     .filter(
       lfo =>
-        lfo.target === "gain"
+        lfo.target === "level"
     )
     .forEach(lfo => {
       const depth =
@@ -2701,6 +2858,29 @@ function connectGainLfoForVoice({
           source
         );
 
+        return;
+      }
+
+      if (
+        lfo.wave === "rise" ||
+        lfo.wave === "fall"
+      ) {
+        const source =
+          createOneShotLfo({
+            audioParam:
+              gainNode.gain,
+            depth:
+              depth,
+            rateHz:
+              lfo.rateHz,
+            startTime,
+            stopTime,
+            wave:
+              lfo.wave
+          });
+
+        source.stop(stopTime);
+        cleanupSources.push(source);
         return;
       }
 
@@ -2818,6 +2998,29 @@ function connectFilterLfoForVoice({
           source
         );
 
+        return;
+      }
+
+      if (
+        lfo.wave === "rise" ||
+        lfo.wave === "fall"
+      ) {
+        const source =
+          createOneShotLfo({
+            audioParam:
+              filter.detune,
+            depth:
+              depthCents,
+            rateHz:
+              lfo.rateHz,
+            startTime,
+            stopTime,
+            wave:
+              lfo.wave
+          });
+
+        source.stop(stopTime);
+        cleanupSources.push(source);
         return;
       }
 
@@ -3106,8 +3309,17 @@ async function playLayerVoice({
       sound.filterCutoff
     );
 
+  const filterLfoActive =
+    lfos.some(
+      lfo =>
+        lfo.target === "filter"
+    );
+
   const filter =
-    filterDefinition
+    (
+      filterDefinition ||
+      filterLfoActive
+    )
       ? sprootoDebugNode(
           context.createBiquadFilter(),
           "filter"
@@ -3115,12 +3327,18 @@ async function playLayerVoice({
       : null;
 
   if (filter) {
+    /*
+     * At FIL=0 the normal signal path is open. If FILTER LFO is active,
+     * create a near-open low-pass so modulation still has something to move.
+     */
     filter.type =
-      filterDefinition.type;
+      filterDefinition?.type ??
+      "lowpass";
 
     filter.frequency
       .setValueAtTime(
-        filterDefinition.frequency,
+        filterDefinition?.frequency ??
+        18000,
         startTime
       );
 
@@ -3377,6 +3595,23 @@ async function playLayerVoice({
           lfo.wave
       }));
 
+  const fmLfos =
+    layer === "melodic"
+      ? lfos
+          .filter(
+            lfo =>
+              lfo.target === "fm"
+          )
+          .map(lfo => ({
+            depth:
+              lfo.depth,
+            rateHz:
+              lfo.rateHz,
+            wave:
+              lfo.wave
+          }))
+      : [];
+
   const fmDepth =
     layer === "melodic"
       ? clamp(
@@ -3483,7 +3718,8 @@ async function playLayerVoice({
           layer === "rhythm" ||
           fmDepth <= 0
         ) &&
-        pitchLfos.length === 0;
+        pitchLfos.length === 0 &&
+        fmLfos.length === 0;
 
       if (
         canUseNativeSine
@@ -3583,7 +3819,9 @@ async function playLayerVoice({
 
                   fmRatio,
 
-                  pitchLfos
+                  pitchLfos,
+
+                  fmLfos
                 }
               }
             ),

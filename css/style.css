@@ -2926,7 +2926,7 @@ body,
 }
 
 .mokton-lfo-target-cell {
-  cursor: default;
+  cursor: pointer;
 }
 
 /* Old expandable LFO structures are no longer part of the editor. */

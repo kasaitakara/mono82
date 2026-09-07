@@ -935,12 +935,20 @@ const SOUND_PARAMETER_SCHEMA = Object.freeze({
 const LFO_WAVES = Object.freeze([
   "sine",
   "triangle",
-  "square",
   "sawUp",
   "sawDown",
+  "square",
   "random",
   "rise",
   "fall"
+]);
+
+const LFO_TARGETS = Object.freeze([
+  "level",
+  "pitch",
+  "pan",
+  "fm",
+  "filter"
 ]);
 
 function selectedSound() {
@@ -3085,7 +3093,9 @@ function dragValueWithCenterSnap(
   const pixelsPerStep =
     definition.id === "chord"
       ? 12
-      : 7;
+      : definition.id === "rate"
+        ? 1
+        : 7;
 
   const continuousValue =
     Number(startValue) +
@@ -3100,6 +3110,38 @@ function dragValueWithCenterSnap(
     Number(definition.max) > 0;
 
   if (!isBipolar) {
+    if (definition.id === "rate") {
+      const delta =
+        Number(deltaPixels) || 0;
+
+      const direction =
+        delta < 0 ? -1 : 1;
+
+      const magnitude =
+        Math.abs(delta);
+
+      /*
+       * Fine around the touch-down point, progressively faster on long swipes.
+       * About 200px can traverse the extended 0.1-100Hz range.
+       */
+      const acceleratedSteps =
+        magnitude +
+        Math.pow(
+          magnitude / 7,
+          2
+        );
+
+      return clampEditorValue(
+        Number(startValue) +
+          direction *
+          Math.round(
+            acceleratedSteps
+          ) *
+          step,
+        definition
+      );
+    }
+
     return clampEditorValue(
       Number(startValue) +
         Math.round(
@@ -3370,8 +3412,10 @@ function shortTargetLabel(
     filter: "fil",
     cutoff: "fil",
     gain: "lvl",
+    level: "lvl",
     pan: "pan",
-    fmdepth: "fmd",
+    fm: "fm",
+    fmdepth: "fm",
     fmratio: "fmr",
     noise: "nse"
   };
@@ -3486,18 +3530,83 @@ function createLfoRow(
     title
   );
 
-  /*
-   * Target candidates are still unresolved.
-   * Surface the current target only; do not invent a selector.
-   */
+  const targetButton =
+    document.createElement(
+      "button"
+    );
+
+  targetButton.type =
+    "button";
+
+  targetButton.className =
+    "mokton-lfo-cell mokton-lfo-target-cell";
+
+  const targetLabel =
+    document.createElement(
+      "span"
+    );
+
+  targetLabel.className =
+    "mokton-lfo-cell-label";
+
+  targetLabel.textContent =
+    "tgt";
+
+  const targetValue =
+    document.createElement(
+      "span"
+    );
+
+  targetValue.className =
+    "mokton-lfo-cell-value";
+
+  targetValue.textContent =
+    shortTargetLabel(
+      lfo.target
+    );
+
+  targetButton.append(
+    targetLabel,
+    targetValue
+  );
+
+  targetButton.addEventListener(
+    "click",
+    () => {
+      const legacyMap = {
+        gain: "level",
+        fmDepth: "fm",
+        cutoff: "filter"
+      };
+
+      const current =
+        legacyMap[lfo.target] ??
+        lfo.target;
+
+      const currentIndex =
+        Math.max(
+          0,
+          LFO_TARGETS.indexOf(
+            current
+          )
+        );
+
+      saveHistory();
+
+      lfo.target =
+        LFO_TARGETS[
+          (
+            currentIndex + 1
+          ) %
+          LFO_TARGETS.length
+        ];
+
+      renderEditor();
+    }
+  );
+
   row.appendChild(
-    createLfoStaticCell(
-      "tgt",
-      shortTargetLabel(
-        lfo.target
-      ),
-      "mokton-lfo-target-cell"
-    )
+    targetButton
   );
 
   const waveButton =
@@ -3582,7 +3691,7 @@ function createLfoRow(
     id: "rate",
     label: "rat",
     min: 1,
-    max: 100,
+    max: 1000,
     step: 1
   };
 
