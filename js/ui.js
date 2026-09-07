@@ -550,49 +550,49 @@ function createMono82Icon(
   switch (name) {
     case "play":
       addPolygon(
-        "7,4 20,12 7,20"
+        "7,4 11,4 11,6 14,6 14,8 17,8 17,10 20,10 20,14 17,14 17,16 14,16 14,18 11,18 11,20 7,20"
       );
       break;
 
     case "undo":
       addPath(
-        "M18 4v3c0 2-1 3-3 3H6M9 7l-3 3 3 3"
+        "M19 5v3h-2v2H8M11 6 7 10l4 4"
       );
       break;
 
     case "redo":
       addPath(
-        "M6 4v3c0 2 1 3 3 3h9M15 7l3 3-3 3"
+        "M5 5v3h2v2h9M13 6l4 4-4 4"
       );
       break;
 
     case "loop":
       addPath(
-        "M4 11.5V10c0-2 1-3 3-3h10.5"
+        "M4 11V9h2V7h11"
       );
 
       addPolygon(
-        "22,7 16.5,3 16.5,11"
+        "21,7 17,3 17,11"
       );
 
       addPath(
-        "M20 12.5V14c0 2-1 3-3 3H6.5"
+        "M20 13v2h-2v2H7"
       );
 
       addPolygon(
-        "2,17 7.5,13 7.5,21"
+        "3,17 7,13 7,21"
       );
       break;
 
     case "shift-left":
       addPolygon(
-        "16,4 6,12 16,20"
+        "16,4 12,4 12,7 9,7 9,9 6,9 6,15 9,15 9,17 12,17 12,20 16,20"
       );
       break;
 
     case "shift-right":
       addPolygon(
-        "8,4 18,12 8,20"
+        "8,4 12,4 12,7 15,7 15,9 18,9 18,15 15,15 15,17 12,17 12,20 8,20"
       );
       break;
 

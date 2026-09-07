@@ -4124,7 +4124,7 @@ body {
 /* icon shape revision 2 */
 #pattern-loop-button .mono82-icon path {
   stroke-linecap: square !important;
-  stroke-linejoin: round !important;
+  stroke-linejoin: miter !important;
 }
 
 
@@ -4137,7 +4137,7 @@ body {
 
 #pattern-loop-button .mono82-icon path {
   stroke-linecap: square !important;
-  stroke-linejoin: round !important;
+  stroke-linejoin: miter !important;
 }
 
 
@@ -4193,7 +4193,7 @@ body {
   stroke: var(--text) !important;
   stroke-width: 2.4 !important;
   stroke-linecap: square !important;
-  stroke-linejoin: round !important;
+  stroke-linejoin: miter !important;
   vector-effect: non-scaling-stroke;
 }
 
@@ -4895,31 +4895,27 @@ body {
   padding: 0 !important;
 }
 
-/* Palette control is now a compact paint-brush glyph. */
+/* Palette control: tiny pixel-ish paint tube. */
 #theme-button {
   display: grid !important;
   place-items: center !important;
 }
 
-#theme-button .mono82-theme-brush-icon {
+#theme-button .mono82-theme-paint-icon {
   width: 13px !important;
   height: 13px !important;
   overflow: visible;
+  shape-rendering: crispEdges;
 }
 
-#theme-button .mono82-theme-brush-icon path,
-#theme-button .mono82-theme-brush-icon circle {
+#theme-button .mono82-theme-paint-fill {
+  fill: currentColor !important;
   stroke: none !important;
 }
 
-#theme-button .mono82-theme-brush-body,
-#theme-button .mono82-theme-brush-ferrule,
-#theme-button .mono82-theme-brush-bristles {
-  fill: currentColor !important;
-}
-
-#theme-button .mono82-theme-brush-hole {
+#theme-button .mono82-theme-paint-cut {
   fill: var(--mokton-bg, #000) !important;
+  stroke: none !important;
 }
 
 /*
