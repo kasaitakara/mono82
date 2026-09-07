@@ -26,9 +26,9 @@
   --play-control: var(--accent);
 
   --font-main:
-    "Press Start 2P",
-    ui-monospace,
-    monospace;
+  "Silkscreen",
+  ui-monospace,
+  monospace;
 
   --app-width: 390px;
   --gap: 8px;
