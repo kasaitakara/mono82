@@ -662,45 +662,12 @@ export function advancePlaybackSource() {
     state.selectedPatternIndex ??
     0;
 
-  const pattern =
-    patterns[
-      currentIndex
-    ];
-
-  if (!pattern) {
-    return false;
-  }
-
-  const repeat =
-    clamp(
-      Math.round(
-        Number(
-          pattern.repeat
-        ) || 1
-      ),
-      1,
-      99
-    );
-
-  const completedPasses =
-    state.playingPatternRepeatCount +
-    1;
-
   /*
-   * Still inside this Pattern's repeat count.
-   * Returning false tells main.js to keep the current Pattern
-   * and only wrap STEP back to 01.
+   * Pattern repeat has been retired from the Song screen.
+   * Every completed Pattern now advances directly through song.order.
+   * The legacy repeat field may remain in saved data for compatibility,
+   * but playback intentionally ignores it.
    */
-  if (
-    completedPasses <
-    repeat
-  ) {
-    state.playingPatternRepeatCount =
-      completedPasses;
-
-    return false;
-  }
-
   const nextIndex =
     nextPatternInSongOrder(
       currentIndex

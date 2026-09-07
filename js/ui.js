@@ -33,7 +33,6 @@ import {
   clearLayerClipboard,
   pasteLayerClipboardAt,
   song,
-  setPatternRepeat,
   togglePatternLoop,
   setPatternLoopRange,
   clearPatternLoopRange,
@@ -1689,7 +1688,7 @@ const STEP_CHORD_NAMES =
 const STEP_CHORD_DEFINITION =
   Object.freeze({
     id: "chord",
-    label: "chrd",
+    label: "chd",
     min: 0,
     max:
       STEP_CHORD_NAMES.length - 1,
@@ -5825,23 +5824,6 @@ function createPatternButton(
         )
       : "▪";
 
-  const repeat =
-    document.createElement(
-      "span"
-    );
-
-  repeat.className =
-    "mokton-pattern-repeat";
-
-  const updateRepeat = () => {
-    repeat.textContent =
-      Number(pattern.repeat) > 1
-        ? `×${pattern.repeat}`
-        : "";
-  };
-
-  updateRepeat();
-
   const preview =
     document.createElement(
       "span"
@@ -5900,8 +5882,7 @@ function createPatternButton(
     "mokton-pattern-header";
 
   header.append(
-    id,
-    repeat
+    id
   );
 
   button.append(
@@ -5960,13 +5941,7 @@ function createPatternButton(
   let startY =
     0;
 
-  let startRepeat =
-    pattern.repeat;
-
   let moved =
-    false;
-
-  let repeatEdited =
     false;
 
   let rangeSelecting =
@@ -6015,13 +5990,7 @@ function createPatternButton(
       startY =
         event.clientY;
 
-      startRepeat =
-        pattern.repeat;
-
       moved =
-        false;
-
-      repeatEdited =
         false;
 
       rangeSelecting =
@@ -6145,14 +6114,21 @@ function createPatternButton(
       ) {
         stopLongPress();
 
+        const rangeSelectingWasStarted =
+          rangeSelecting;
+
         rangeSelecting =
           true;
 
-        if (
-          patternRangeAnchorIndex ===
-          null
-        ) {
+        /*
+         * Every new range gesture owns a fresh anchor.
+         * A previous 01-03 selection must not leak into a later 17-20 sweep.
+         */
+        if (!rangeSelectingWasStarted) {
           patternRangeAnchorIndex =
+            patternIndex;
+
+          patternRangeEndIndex =
             patternIndex;
 
           selectPattern(
@@ -6202,52 +6178,6 @@ function createPatternButton(
         return;
       }
 
-      /*
-       * Vertical swipe before long-press fires
-       * changes Pattern repeat.
-       */
-      if (
-        Math.abs(dy) >
-          12 &&
-        Math.abs(dy) >
-          Math.abs(dx)
-      ) {
-        stopLongPress();
-
-        const delta =
-          Math.trunc(
-            -dy / 22
-          );
-
-        const next =
-          Math.max(
-            1,
-            Math.min(
-              99,
-              startRepeat +
-                delta
-            )
-          );
-
-        if (
-          next !==
-          pattern.repeat
-        ) {
-          if (!repeatEdited) {
-            saveHistory();
-          }
-
-          repeatEdited =
-            true;
-
-          setPatternRepeat(
-            patternIndex,
-            next
-          );
-
-          updateRepeat();
-        }
-      }
     }
   );
 
@@ -6328,10 +6258,7 @@ function createPatternButton(
         return;
       }
 
-      if (
-        repeatEdited ||
-        moved
-      ) {
+      if (moved) {
         return;
       }
 

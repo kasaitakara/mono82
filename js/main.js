@@ -276,13 +276,16 @@ window.addEventListener(
      * 実際にProjectが切り替わった時だけ
      * Play表示を停止状態へ戻す。
      */
-    if (
-      event.detail?.type !== "save"
-    ) {
-      playButton.classList.remove(
-        "playing"
-      );
-    }
+    /*
+     * Generic projectchange events are also emitted after ordinary edits
+     * (STEP/offset/paste etc.). Those must never clear the PLAY highlight
+     * while audio is still running. Keep the button visual synced to the
+     * actual runtime state instead of inferring playback from event type.
+     */
+    playButton.classList.toggle(
+      "playing",
+      state.isPlaying
+    );
 
     setMasterVolumeValue(
       Number(volumeInput.value)

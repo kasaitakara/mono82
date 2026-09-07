@@ -4851,3 +4851,107 @@ body {
 .mokton-pattern-preview-step.occupied:not(.playing) {
   background: var(--text);
 }
+
+
+/* =========================================================
+   mono82 2026-09-07 UI alignment / loop / palette refinements
+   ========================================================= */
+
+/* PLAY belongs to the exact vertical center of the VOL/BPM row. */
+.app-header .transport-center {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: stretch !important;
+}
+
+.app-header #play-button {
+  align-self: center !important;
+  vertical-align: middle !important;
+}
+
+/*
+ * Icon labels (lvl/atk/h-d) and text labels (fil/res/...) share one
+ * fixed-height label slot so every numeric value sits on the same baseline.
+ */
+.mokton-sound-parameter-values
+> .mokton-direct-value-pad
+> .mokton-direct-value-label {
+  width: 100% !important;
+  height: 17px !important;
+  min-height: 17px !important;
+  max-height: 17px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+.mokton-sound-parameter-values
+> .mokton-direct-value-pad
+> .mokton-direct-value-number {
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Palette control is now a compact paint-brush glyph. */
+#theme-button {
+  display: grid !important;
+  place-items: center !important;
+}
+
+#theme-button .mono82-theme-brush-icon {
+  width: 13px !important;
+  height: 13px !important;
+  overflow: visible;
+}
+
+#theme-button .mono82-theme-brush-icon path {
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.6 !important;
+  stroke-linecap: square !important;
+  stroke-linejoin: miter !important;
+  vector-effect: non-scaling-stroke;
+}
+
+/*
+ * Keep the Loop touch target unchanged, but shrink only its ON background.
+ * 18x18 is intentionally smaller than the 28x24 button hit area.
+ */
+#pattern-loop-button {
+  position: relative !important;
+  isolation: isolate;
+}
+
+#pattern-loop-button.active,
+#pattern-loop-button[aria-pressed="true"] {
+  background: transparent !important;
+  color: var(--bg) !important;
+}
+
+#pattern-loop-button.active::before,
+#pattern-loop-button[aria-pressed="true"]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  background: var(--text);
+  z-index: -1;
+  pointer-events: none;
+}
+
+#pattern-loop-button.active .mono82-icon,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon {
+  position: relative;
+  z-index: 1;
+}
+
+/* Pattern repeat display is retired; old CSS/data can remain harmlessly. */
+.mokton-pattern-repeat {
+  display: none !important;
+}
