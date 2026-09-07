@@ -5084,7 +5084,7 @@ body {
 }
 
 .mokton-mixer-segment.on {
-  background: var(--accent);
+  background: var(--text);
 }
 
 .mokton-mixer-label,
