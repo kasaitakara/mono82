@@ -70,21 +70,76 @@ function sourceDuration(item, bpm) {
     : 0;
 }
 
-function flattenTarget(target) {
+function patternHasData(
+  pattern
+) {
+  return Boolean(
+    pattern?.sequence?.some(
+      step =>
+        step?.melodic?.soundId ||
+        step?.rhythm?.soundId
+    )
+  );
+}
+
+function flattenTarget(
+  target,
+  patternIndexes = null
+) {
   if (target === "song") {
     const order = Array.isArray(song.order)
-      ? song.order
+      ? song.order.filter(index =>
+          Number.isInteger(index) &&
+          patterns[index]
+        )
       : [];
 
+    let lastUsedPosition = -1;
+
+    order.forEach(
+      (index, position) => {
+        if (
+          patternHasData(
+            patterns[index]
+          )
+        ) {
+          lastUsedPosition =
+            position;
+        }
+      }
+    );
+
+    if (lastUsedPosition < 0) {
+      return [];
+    }
+
     return order
-      .filter(index =>
-        Number.isInteger(index) &&
-        patterns[index]
+      .slice(
+        0,
+        lastUsedPosition + 1
       )
       .map(index => ({
         type: "pattern",
         index
       }));
+  }
+
+  const requestedIndexes =
+    Array.isArray(patternIndexes)
+      ? patternIndexes
+          .filter(index =>
+            Number.isInteger(index) &&
+            patterns[index]
+          )
+      : [];
+
+  if (requestedIndexes.length) {
+    return requestedIndexes.map(
+      index => ({
+        type: "pattern",
+        index
+      })
+    );
   }
 
   const selectedIndex =
@@ -1470,6 +1525,7 @@ async function renderSingleContext({
 
 export async function renderExportWav({
   target = "song",
+  patternIndexes = null,
   endMode = "tail",
   headSeconds = 0,
   fadeInSeconds = 0,
@@ -1485,7 +1541,8 @@ export async function renderExportWav({
 
   const sources =
     flattenTarget(
-      target
+      target,
+      patternIndexes
     );
 
   if (!sources.length) {

@@ -5450,7 +5450,7 @@ let patternRangeAnchorIndex =
 let patternRangeEndIndex =
   null;
 
-function selectedPatternRange() {
+export function selectedPatternRange() {
   if (
     patternRangeAnchorIndex ===
       null ||

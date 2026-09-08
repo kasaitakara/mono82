@@ -32,7 +32,8 @@ import {
   resetPlayingStepDisplay,
   renderPatternManager,
   renderSongMode,
-  refreshMasterMixMeterColor
+  refreshMasterMixMeterColor,
+  selectedPatternRange
 } from "./ui.js";
 
 import {
@@ -1664,6 +1665,20 @@ function showConfirm(
       actions
     );
 
+    const titleRect =
+      currentProjectNameElement
+        ?.getBoundingClientRect();
+
+    if (titleRect) {
+      layer.style.setProperty(
+        "--confirm-top",
+        `${Math.max(
+          4,
+          titleRect.top - 28
+        )}px`
+      );
+    }
+
     layer.append(panel);
     document.body.append(layer);
     noButton.focus();
@@ -1705,6 +1720,28 @@ function sortProjectRecords(
 function makeNameInput(
   onSubmit
 ) {
+  const editor =
+    document.createElement(
+      "div"
+    );
+  editor.className =
+    "project-name-editor";
+
+  const display =
+    document.createElement(
+      "span"
+    );
+  display.className =
+    "project-name-editor-text";
+
+  const cursor =
+    document.createElement(
+      "span"
+    );
+  cursor.className =
+    "project-name-editor-cursor";
+  cursor.textContent = "_";
+
   const input =
     document.createElement(
       "input"
@@ -1716,6 +1753,12 @@ function makeNameInput(
   input.autocomplete = "off";
   input.autocapitalize = "none";
   input.spellcheck = false;
+  input.enterKeyHint = "done";
+
+  const refreshDisplay = () => {
+    display.textContent =
+      input.value;
+  };
 
   input.addEventListener(
     "input",
@@ -1737,6 +1780,8 @@ function makeNameInput(
           end
         );
       }
+
+      refreshDisplay();
     }
   );
 
@@ -1753,6 +1798,25 @@ function makeNameInput(
       );
     }
   );
+
+  editor.addEventListener(
+    "pointerdown",
+    () => {
+      input.focus();
+    }
+  );
+
+  editor.append(
+    display,
+    cursor,
+    input
+  );
+
+  input.nameEditorRoot = editor;
+  input.refreshNameEditor =
+    refreshDisplay;
+
+  refreshDisplay();
 
   return input;
 }
@@ -1997,7 +2061,10 @@ async function showProjectList(
           }
         );
 
-      list.append(input);
+      list.append(
+        input.nameEditorRoot ??
+        input
+      );
       requestAnimationFrame(
         () => input.focus()
       );
@@ -2168,8 +2235,12 @@ async function startInlineRename() {
     );
 
   input.value = original;
+  input.refreshNameEditor?.();
   currentProjectNameElement
-    .replaceChildren(input);
+    .replaceChildren(
+      input.nameEditorRoot ??
+      input
+    );
 
   const cancel = event => {
     if (
@@ -2216,7 +2287,12 @@ async function startInlineRename() {
   requestAnimationFrame(
     () => {
       input.focus();
-      input.select();
+      const end =
+        input.value.length;
+      input.setSelectionRange(
+        end,
+        end
+      );
     }
   );
 }
@@ -2712,9 +2788,19 @@ async function openExportModal() {
       applyState();
 
       try {
+        const partPatternIndexes =
+          target === "part"
+            ? (
+                selectedPatternRange() ??
+                [state.selectedPatternIndex]
+              )
+            : null;
+
         const result =
           await renderExportWav({
             target,
+            patternIndexes:
+              partPatternIndexes,
             endMode,
             headSeconds:
               headControl.getValue(),
@@ -2756,12 +2842,29 @@ async function openExportModal() {
             "project"
           );
 
-        const suffix =
+        const partRange =
           target === "part"
-            ? `-${String(
-                state.selectedPatternIndex +
-                1
-              ).padStart(2, "0")}`
+            ? (
+                selectedPatternRange() ??
+                [state.selectedPatternIndex]
+              )
+            : null;
+
+        const suffix =
+          partRange?.length
+            ? (
+                partRange.length === 1
+                  ? `-${String(
+                      partRange[0] + 1
+                    ).padStart(2, "0")}`
+                  : `-${String(
+                      partRange[0] + 1
+                    ).padStart(2, "0")}-${String(
+                      partRange[
+                        partRange.length - 1
+                      ] + 1
+                    ).padStart(2, "0")}`
+              )
             : "";
 
         await shareOrDownloadExport(

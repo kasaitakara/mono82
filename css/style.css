@@ -5349,3 +5349,168 @@ body {
 .export-actions {
   margin-top: 3px;
 }
+
+/* =========================================================
+   Save / project / export refinements 2026-09-08
+   ========================================================= */
+
+/* ≡ should read at the same visual size as the 13px palette glyph. */
+.global-menu-button {
+  min-width: 24px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
+/* Project/export utility text follows the app's 10px base text size. */
+.global-panel,
+.export-modal {
+  font-size: 10px !important;
+}
+
+.project-delete-button {
+  font-size: 10px !important;
+}
+
+.export-label {
+  color: var(--text) !important;
+  font-size: inherit !important;
+}
+
+/* Terminal-style name editor: native input only captures the keyboard.
+   The visible cursor is one blinking underscore that advances with text. */
+.project-name-editor {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 1ch;
+  max-width: 100%;
+  min-height: 20px;
+  overflow: hidden;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.45;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.project-name-editor-text {
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: clip;
+  color: var(--text);
+}
+
+.project-name-editor-cursor {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 1ch;
+  color: var(--text);
+  animation: mono82-name-cursor 0.8s steps(1, end) infinite;
+}
+
+@keyframes mono82-name-cursor {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.project-name-input {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: transparent !important;
+  outline: 0 !important;
+  opacity: 0.01;
+  text-transform: lowercase;
+}
+
+.project-name-input:focus-visible {
+  outline: 0 !important;
+}
+
+.current-project-name .project-name-editor {
+  width: 100%;
+  color: var(--text);
+}
+
+.project-list > .project-name-editor {
+  display: flex;
+  width: calc(100% - 16px);
+  margin: 8px;
+  min-height: 28px;
+  padding: 5px 0 3px;
+  border: 0;
+  color: var(--text);
+}
+
+/* Confirmation sits just above the project title, centered, without a box. */
+.global-confirm-layer {
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding: 0 14px !important;
+  pointer-events: auto;
+}
+
+.global-confirm-panel {
+  position: absolute;
+  top: var(--confirm-top, 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100% - 28px), 336px) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: var(--bg) !important;
+}
+
+.global-confirm-message {
+  min-height: 18px !important;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.45 !important;
+}
+
+.global-confirm-actions {
+  width: 112px;
+  margin: 2px auto 0;
+  gap: 4px !important;
+}
+
+.global-confirm-actions button {
+  min-height: 22px !important;
+  border: 0 !important;
+  text-align: center !important;
+}
+
+/* Export uses only the standard foreground/background pair for text states. */
+.export-modal-title {
+  color: var(--text) !important;
+}
+
+.export-modal button,
+.export-choice,
+.export-value-control button,
+.export-actions button {
+  color: var(--text) !important;
+}
+
+.export-choice.active {
+  border-color: var(--text) !important;
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+.export-modal button:active {
+  color: var(--text) !important;
+}
+
+.export-choice.active:active {
+  color: var(--bg) !important;
+}
