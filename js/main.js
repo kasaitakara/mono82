@@ -1521,6 +1521,20 @@ function showNotice(text) {
     );
   }
 
+  const titleRect =
+    currentProjectNameElement
+      ?.getBoundingClientRect();
+
+  if (titleRect) {
+    notice.style.setProperty(
+      "--notice-top",
+      `${Math.max(
+        4,
+        titleRect.top - 18
+      )}px`
+    );
+  }
+
   notice.textContent = text;
   notice.classList.add("show");
 
@@ -1558,6 +1572,20 @@ function makeOverlay(
       }
     }
   );
+
+  const headerRect =
+    document.querySelector(
+      ".app-header"
+    )?.getBoundingClientRect();
+
+  if (headerRect) {
+    overlay.style.setProperty(
+      "--overlay-top",
+      `${Math.ceil(
+        headerRect.bottom + 4
+      )}px`
+    );
+  }
 
   document.body.append(
     overlay
@@ -2663,6 +2691,20 @@ async function openExportModal() {
     progress,
     actions
   );
+  const headerRect =
+    document.querySelector(
+      ".app-header"
+    )?.getBoundingClientRect();
+
+  if (headerRect) {
+    overlay.style.setProperty(
+      "--overlay-top",
+      `${Math.ceil(
+        headerRect.bottom + 4
+      )}px`
+    );
+  }
+
   overlay.append(modal);
   document.body.append(overlay);
   exportModal = overlay;

@@ -5514,3 +5514,79 @@ body {
 .export-choice.active:active {
   color: var(--bg) !important;
 }
+
+/* =========================================================
+   Save / export layout refinements 2026-09-08 b
+   ========================================================= */
+
+/* Utility windows always begin below the live app header. */
+.global-overlay,
+.export-overlay {
+  align-items: flex-start !important;
+  padding:
+    var(--overlay-top, max(48px, calc(env(safe-area-inset-top) + 38px)))
+    14px
+    max(14px, env(safe-area-inset-bottom)) !important;
+}
+
+/* Project list: no internal ruler lines. */
+.project-list-toolbar {
+  border-bottom: 0 !important;
+}
+
+.project-list-row,
+.project-list-row:first-of-type {
+  border-top: 0 !important;
+}
+
+/* Export: compact panel and remove internal horizontal rulers. */
+.export-overlay {
+  justify-content: center !important;
+}
+
+.export-modal {
+  width: min(calc(100% - 28px), 238px) !important;
+  padding: 8px !important;
+  gap: 5px !important;
+}
+
+.export-modal-title {
+  min-height: 18px !important;
+}
+
+.export-row {
+  grid-template-columns: 52px minmax(0, 1fr) !important;
+  gap: 5px !important;
+  min-height: 26px !important;
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.export-choice-group,
+.export-value-control,
+.export-actions {
+  gap: 3px !important;
+}
+
+.export-choice,
+.export-value-control button,
+.export-actions button {
+  min-height: 24px !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+
+.export-value-control {
+  grid-template-columns: 28px 1fr 28px !important;
+}
+
+/* Completion notices share the same title-relative position as confirms,
+   but remain borderless and non-blocking. */
+.operation-notice {
+  top: var(--notice-top, max(8px, env(safe-area-inset-top))) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: var(--bg) !important;
+  text-align: center;
+  line-height: 1.45;
+}
