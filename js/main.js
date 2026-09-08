@@ -2574,7 +2574,7 @@ async function openExportModal() {
   const targetSong =
     makeExportChoice("song", "song");
   const targetPart =
-    makeExportChoice("pattern", "part");
+    makeExportChoice("ptrn", "part");
   targetGroup.append(
     targetSong,
     targetPart

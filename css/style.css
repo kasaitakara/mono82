@@ -87,9 +87,9 @@
 }
 
 :root.theme-electro {
-  --bg: #b1afac;
-  --text: #575a5a;
-  --accent: #65a3a8;
+  --bg: #979494;
+  --text: #4a4d4d;
+  --accent: #54959a;
 }
 
 :root.theme-game {
@@ -5796,4 +5796,32 @@ body {
 .export-actions::after {
   content: none !important;
   display: none !important;
+}
+
+
+/* =========================================================
+   Export compact labels refinement 2026-09-08 e
+   ========================================================= */
+.export-modal {
+  font-size: 9px !important;
+}
+
+.export-row {
+  grid-template-columns: 48px minmax(0, 124px) !important;
+  gap: 5px !important;
+}
+
+.export-choice-group,
+.export-value-control {
+  width: 124px !important;
+}
+
+.export-value-control {
+  grid-template-columns: 21px minmax(0, 1fr) 21px !important;
+}
+
+.export-choice,
+.export-value-control button {
+  padding-left: 2px !important;
+  padding-right: 2px !important;
 }
