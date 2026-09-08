@@ -47,6 +47,16 @@ import {
 } from "./storage.js";
 
 import {
+  getFactoryPresets,
+  getUserPresets,
+  saveUserPreset,
+  deleteUserPreset,
+  captureSoundPreset,
+  applySoundPreset,
+  soundsEqual
+} from "./sound-preset-manager.js";
+
+import {
   getMasterMixMeterData,
   setMasterMixEqBand,
   setMasterMixVolume,
@@ -989,6 +999,844 @@ function selectedSound() {
     ] ??
     null
   );
+}
+
+
+/* =========================================================
+ * Sound preset library
+ * ========================================================= */
+
+let soundPresetModal = null;
+
+function createSoundPresetButton(
+  label,
+  className = ""
+) {
+  const button =
+    document.createElement(
+      "button"
+    );
+
+  button.type = "button";
+  button.className = className;
+  button.textContent = label;
+
+  return button;
+}
+
+function createSoundPresetNameInput({
+  initialValue = "",
+  onSubmit
+}) {
+  const editor =
+    document.createElement(
+      "div"
+    );
+
+  editor.className =
+    "project-name-editor sound-preset-name-editor";
+
+  const display =
+    document.createElement(
+      "span"
+    );
+
+  display.className =
+    "project-name-editor-text";
+
+  const cursor =
+    document.createElement(
+      "span"
+    );
+
+  cursor.className =
+    "project-name-editor-cursor";
+  cursor.textContent = "_";
+
+  const input =
+    document.createElement(
+      "input"
+    );
+
+  input.type = "text";
+  input.className =
+    "project-name-input";
+  input.autocomplete = "off";
+  input.autocapitalize = "none";
+  input.spellcheck = false;
+  input.enterKeyHint = "done";
+  input.value =
+    String(initialValue || "")
+      .toLowerCase();
+
+  const refreshDisplay = () => {
+    display.textContent =
+      input.value;
+  };
+
+  input.addEventListener(
+    "input",
+    () => {
+      const start =
+        input.selectionStart;
+      const end =
+        input.selectionEnd;
+
+      input.value =
+        input.value.toLowerCase();
+
+      if (
+        start !== null &&
+        end !== null
+      ) {
+        input.setSelectionRange(
+          start,
+          end
+        );
+      }
+
+      refreshDisplay();
+    }
+  );
+
+  input.addEventListener(
+    "keydown",
+    event => {
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      event.preventDefault();
+      onSubmit?.(
+        input.value
+      );
+    }
+  );
+
+  editor.addEventListener(
+    "pointerdown",
+    () => input.focus()
+  );
+
+  editor.append(
+    display,
+    cursor,
+    input
+  );
+
+  refreshDisplay();
+
+  return {
+    root: editor,
+    input
+  };
+}
+
+function openSoundPresetModal() {
+  if (soundPresetModal) {
+    return;
+  }
+
+  const targetSound =
+    selectedSound();
+
+  const category =
+    state.selectedLayer ===
+      "rhythm"
+      ? "rhythm"
+      : "melodic";
+
+  if (!targetSound) {
+    return;
+  }
+
+  const nowSound =
+    captureSoundPreset(
+      targetSound,
+      category
+    );
+
+  const nowName =
+    String(
+      targetSound.name ||
+      `sound ${state.selectedSoundId}`
+    );
+
+  let library = "factory";
+  let selected = {
+    type: "now",
+    id: "now",
+    name: "now"
+  };
+
+  let historySaved = false;
+
+  const overlay =
+    document.createElement(
+      "div"
+    );
+
+  overlay.className =
+    "global-overlay sound-preset-overlay";
+
+  overlay.setAttribute(
+    "role",
+    "dialog"
+  );
+  overlay.setAttribute(
+    "aria-modal",
+    "true"
+  );
+  overlay.setAttribute(
+    "aria-label",
+    "sound preset"
+  );
+
+  const headerRect =
+    document.querySelector(
+      ".app-header"
+    )?.getBoundingClientRect();
+
+  if (headerRect) {
+    overlay.style.setProperty(
+      "--overlay-top",
+      `${Math.ceil(
+        headerRect.bottom + 4
+      )}px`
+    );
+  }
+
+  const panel =
+    document.createElement(
+      "div"
+    );
+
+  panel.className =
+    "global-panel sound-preset-modal";
+
+  const header =
+    document.createElement(
+      "div"
+    );
+
+  header.className =
+    "sound-preset-header";
+
+  const factoryTab =
+    createSoundPresetButton(
+      "factory",
+      "sound-preset-tab active"
+    );
+
+  const userTab =
+    createSoundPresetButton(
+      "user",
+      "sound-preset-tab"
+    );
+
+  const closeButton =
+    createSoundPresetButton(
+      "×",
+      "sound-preset-close"
+    );
+
+  closeButton.setAttribute(
+    "aria-label",
+    "close preset"
+  );
+
+  const tabs =
+    document.createElement(
+      "div"
+    );
+
+  tabs.className =
+    "sound-preset-tabs";
+
+  tabs.append(
+    factoryTab,
+    userTab
+  );
+
+  header.append(
+    tabs,
+    closeButton
+  );
+
+  const content =
+    document.createElement(
+      "div"
+    );
+
+  content.className =
+    "sound-preset-content";
+
+  const list =
+    document.createElement(
+      "div"
+    );
+
+  list.className =
+    "sound-preset-list";
+
+  const actions =
+    document.createElement(
+      "div"
+    );
+
+  actions.className =
+    "sound-preset-actions";
+
+  const saveButton =
+    createSoundPresetButton(
+      "save",
+      "sound-preset-action"
+    );
+
+  const deleteButton =
+    createSoundPresetButton(
+      "delete",
+      "sound-preset-action"
+    );
+
+  actions.append(
+    saveButton,
+    deleteButton
+  );
+
+  content.append(
+    list,
+    actions
+  );
+
+  panel.append(
+    header,
+    content
+  );
+
+  overlay.append(panel);
+  document.body.append(overlay);
+  soundPresetModal = overlay;
+
+  const currentSoundChanged = () =>
+    !soundsEqual(
+      targetSound,
+      nowSound,
+      category
+    ) ||
+    String(targetSound.name || "") !==
+      nowName;
+
+  const ensureHistory = () => {
+    if (historySaved) {
+      return;
+    }
+
+    saveHistory();
+    historySaved = true;
+  };
+
+  const closePreset = () => {
+    if (!soundPresetModal) {
+      return;
+    }
+
+    if (currentSoundChanged()) {
+      window.dispatchEvent(
+        new Event(
+          "projectchange"
+        )
+      );
+    }
+
+    soundPresetModal.remove();
+    soundPresetModal = null;
+  };
+
+  function applySelection(
+    item,
+    type
+  ) {
+    ensureHistory();
+
+    if (type === "now") {
+      applySoundPreset(
+        targetSound,
+        category,
+        nowSound,
+        nowName
+      );
+
+      selected = {
+        type: "now",
+        id: "now",
+        name: "now"
+      };
+    } else {
+      applySoundPreset(
+        targetSound,
+        category,
+        item.sound,
+        item.name
+      );
+
+      selected = {
+        type,
+        id: item.id,
+        name: item.name
+      };
+    }
+
+    renderEditor();
+    renderList();
+  }
+
+  function currentPresets() {
+    return library === "factory"
+      ? getFactoryPresets(
+          category
+        )
+      : getUserPresets(
+          category
+        );
+  }
+
+  function renderList() {
+    list.replaceChildren();
+
+    const nowButton =
+      createSoundPresetButton(
+        "now",
+        "sound-preset-item sound-preset-now"
+      );
+
+    nowButton.classList.toggle(
+      "active",
+      selected.type === "now"
+    );
+
+    nowButton.addEventListener(
+      "click",
+      () =>
+        applySelection(
+          null,
+          "now"
+        )
+    );
+
+    list.append(nowButton);
+
+    currentPresets()
+      .forEach(preset => {
+        const button =
+          createSoundPresetButton(
+            preset.name,
+            "sound-preset-item"
+          );
+
+        button.classList.toggle(
+          "active",
+          selected.type === library &&
+          selected.id === preset.id
+        );
+
+        button.addEventListener(
+          "click",
+          () =>
+            applySelection(
+              preset,
+              library
+            )
+        );
+
+        list.append(button);
+      });
+
+    deleteButton.hidden =
+      library !== "user";
+
+    deleteButton.disabled =
+      !(
+        selected.type === "user" &&
+        selected.id
+      );
+  }
+
+  function restoreLibraryView() {
+    content.replaceChildren(
+      list,
+      actions
+    );
+    renderList();
+  }
+
+  function saveAsView(
+    initialValue = ""
+  ) {
+    const saveView =
+      document.createElement(
+        "div"
+      );
+
+    saveView.className =
+      "sound-preset-save-view";
+
+    const label =
+      document.createElement(
+        "div"
+      );
+
+    label.className =
+      "sound-preset-current";
+    label.textContent =
+      `current preset ${selected.name}`;
+
+    const finishSaveAs = value => {
+      const saved =
+        saveUserPreset({
+          category,
+          name: value,
+          sound: targetSound
+        });
+
+      if (!saved) {
+        return;
+      }
+
+      library = "user";
+      selected = {
+        type: "user",
+        id: saved.id,
+        name: saved.name
+      };
+
+      applySoundPreset(
+        targetSound,
+        category,
+        saved.sound,
+        saved.name
+      );
+
+      factoryTab.classList.remove(
+        "active"
+      );
+      userTab.classList.add(
+        "active"
+      );
+
+      renderEditor();
+      restoreLibraryView();
+    };
+
+    const nameEditor =
+      createSoundPresetNameInput({
+        initialValue,
+        onSubmit:
+          finishSaveAs
+      });
+
+    const cancel =
+      createSoundPresetButton(
+        "cancel",
+        "sound-preset-action"
+      );
+
+    cancel.addEventListener(
+      "click",
+      restoreLibraryView
+    );
+
+    saveView.append(
+      label,
+      nameEditor.root,
+      cancel
+    );
+
+    content.replaceChildren(
+      saveView
+    );
+
+    requestAnimationFrame(
+      () => {
+        nameEditor.input.focus();
+        nameEditor.input.setSelectionRange(
+          nameEditor.input.value.length,
+          nameEditor.input.value.length
+        );
+      }
+    );
+  }
+
+  function openSaveView() {
+    if (
+      selected.type !== "user"
+    ) {
+      saveAsView(
+        selected.type === "now"
+          ? ""
+          : selected.name
+      );
+      return;
+    }
+
+    const saveView =
+      document.createElement(
+        "div"
+      );
+
+    saveView.className =
+      "sound-preset-save-view";
+
+    const label =
+      document.createElement(
+        "div"
+      );
+
+    label.className =
+      "sound-preset-current";
+    label.textContent =
+      `current preset ${selected.name}`;
+
+    const choices =
+      document.createElement(
+        "div"
+      );
+
+    choices.className =
+      "sound-preset-save-modes";
+
+    const overwrite =
+      createSoundPresetButton(
+        "overwrite",
+        "sound-preset-save-mode"
+      );
+
+    const saveAs =
+      createSoundPresetButton(
+        "save as",
+        "sound-preset-save-mode"
+      );
+
+    const cancel =
+      createSoundPresetButton(
+        "cancel",
+        "sound-preset-action"
+      );
+
+    overwrite.addEventListener(
+      "click",
+      () => {
+        const saved =
+          saveUserPreset({
+            id: selected.id,
+            category,
+            name: selected.name,
+            sound: targetSound
+          });
+
+        if (!saved) {
+          return;
+        }
+
+        selected = {
+          type: "user",
+          id: saved.id,
+          name: saved.name
+        };
+
+        restoreLibraryView();
+      }
+    );
+
+    saveAs.addEventListener(
+      "click",
+      () =>
+        saveAsView(
+          selected.name
+        )
+    );
+
+    cancel.addEventListener(
+      "click",
+      restoreLibraryView
+    );
+
+    choices.append(
+      overwrite,
+      saveAs
+    );
+
+    saveView.append(
+      label,
+      choices,
+      cancel
+    );
+
+    content.replaceChildren(
+      saveView
+    );
+  }
+
+  function openDeleteView() {
+    if (
+      selected.type !== "user" ||
+      !selected.id
+    ) {
+      return;
+    }
+
+    const deleteView =
+      document.createElement(
+        "div"
+      );
+
+    deleteView.className =
+      "sound-preset-delete-view";
+
+    const message =
+      document.createElement(
+        "div"
+      );
+
+    message.textContent =
+      `delete ${selected.name}?`;
+
+    const confirmActions =
+      document.createElement(
+        "div"
+      );
+
+    confirmActions.className =
+      "sound-preset-confirm-actions";
+
+    const no =
+      createSoundPresetButton(
+        "no"
+      );
+
+    const yes =
+      createSoundPresetButton(
+        "yes"
+      );
+
+    no.addEventListener(
+      "click",
+      restoreLibraryView
+    );
+
+    yes.addEventListener(
+      "click",
+      () => {
+        if (
+          !deleteUserPreset(
+            selected.id
+          )
+        ) {
+          return;
+        }
+
+        selected = {
+          type: "custom",
+          id: null,
+          name:
+            String(
+              targetSound.name ||
+              "now"
+            )
+        };
+
+        restoreLibraryView();
+      }
+    );
+
+    confirmActions.append(
+      no,
+      yes
+    );
+
+    deleteView.append(
+      message,
+      confirmActions
+    );
+
+    content.replaceChildren(
+      deleteView
+    );
+  }
+
+  function switchLibrary(
+    nextLibrary
+  ) {
+    library =
+      nextLibrary === "user"
+        ? "user"
+        : "factory";
+
+    factoryTab.classList.toggle(
+      "active",
+      library === "factory"
+    );
+
+    userTab.classList.toggle(
+      "active",
+      library === "user"
+    );
+
+    restoreLibraryView();
+  }
+
+  factoryTab.addEventListener(
+    "click",
+    () =>
+      switchLibrary(
+        "factory"
+      )
+  );
+
+  userTab.addEventListener(
+    "click",
+    () =>
+      switchLibrary(
+        "user"
+      )
+  );
+
+  saveButton.addEventListener(
+    "click",
+    openSaveView
+  );
+
+  deleteButton.addEventListener(
+    "click",
+    openDeleteView
+  );
+
+  closeButton.addEventListener(
+    "click",
+    closePreset
+  );
+
+  overlay.addEventListener(
+    "pointerdown",
+    event => {
+      if (event.target === overlay) {
+        closePreset();
+      }
+    }
+  );
+
+  overlay.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closePreset();
+      }
+    }
+  );
+
+  renderList();
+  closeButton.focus();
 }
 
 function formatParameterValue(
@@ -2988,15 +3836,26 @@ function createSelectedSoundMuteSolo() {
 
   const label =
     document.createElement(
-      "span"
+      "button"
     );
 
+  label.type = "button";
   label.className =
     "mokton-ms-label mokton-selected-sound-name";
 
   label.textContent =
     sound.name ||
     `sound ${state.selectedSoundId}`;
+
+  label.setAttribute(
+    "aria-label",
+    `${label.textContent}. open sound preset`
+  );
+
+  label.addEventListener(
+    "click",
+    openSoundPresetModal
+  );
 
   row.append(
     label,

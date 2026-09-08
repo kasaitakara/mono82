@@ -5848,3 +5848,163 @@ body.global-confirm-open #global-menu-button {
 }
 
 
+
+
+/* =========================================================
+   Sound preset library - mono82 2026-09-08
+   ========================================================= */
+
+/* Sound name is the preset entry point, as in the final sprooto UI. */
+.mokton-selected-sound-name {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+  font: inherit !important;
+  color: var(--text) !important;
+  cursor: pointer;
+}
+
+.mokton-selected-sound-name:active {
+  color: var(--accent) !important;
+}
+
+.sound-preset-overlay {
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding:
+    var(--overlay-top, max(48px, calc(env(safe-area-inset-top) + 38px)))
+    14px
+    max(14px, env(safe-area-inset-bottom)) !important;
+}
+
+.sound-preset-modal {
+  width: min(calc(100% - 28px), 238px) !important;
+  max-height: min(62dvh, 420px);
+  padding: 8px !important;
+  border: 0 !important;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-size: var(--mokton-ui-font-size, 7px) !important;
+}
+
+.sound-preset-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.sound-preset-tabs,
+.sound-preset-actions,
+.sound-preset-save-modes,
+.sound-preset-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sound-preset-tab,
+.sound-preset-close,
+.sound-preset-action,
+.sound-preset-save-mode,
+.sound-preset-confirm-actions button,
+.sound-preset-item {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  min-height: 22px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  padding: 3px 4px !important;
+  font: inherit !important;
+  text-align: left;
+}
+
+.sound-preset-tab.active,
+.sound-preset-item.active,
+.sound-preset-save-mode:active {
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+.sound-preset-close {
+  min-width: 22px;
+  text-align: center;
+}
+
+.sound-preset-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sound-preset-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: min(44dvh, 300px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: 4px 0;
+}
+
+.sound-preset-list::-webkit-scrollbar {
+  display: none;
+}
+
+.sound-preset-item {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.sound-preset-actions {
+  justify-content: flex-end;
+  min-height: 26px;
+  padding-top: 3px;
+}
+
+.sound-preset-action:disabled {
+  opacity: 0.35;
+}
+
+.sound-preset-save-view,
+.sound-preset-delete-view {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 0 2px;
+}
+
+.sound-preset-current {
+  min-height: 18px;
+  line-height: 1.45;
+}
+
+.sound-preset-name-editor {
+  display: flex !important;
+  width: 100%;
+  min-height: 28px;
+  padding: 5px 0 3px;
+}
+
+.sound-preset-save-modes,
+.sound-preset-confirm-actions {
+  justify-content: center;
+}
+
+.sound-preset-confirm-actions {
+  width: 112px;
+  margin: 2px auto 0;
+}
+
+.sound-preset-confirm-actions button {
+  flex: 1 1 0;
+  text-align: center;
+}
