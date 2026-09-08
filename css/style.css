@@ -5041,3 +5041,311 @@ body {
   margin-left: 6px !important;
   margin-right: auto !important;
 }
+
+/* =========================================================
+   Global menu / Project manager / Export
+   ========================================================= */
+
+.global-menu-button {
+  min-width: 24px;
+  font-size: 11px;
+}
+
+.current-project-name {
+  cursor: text;
+}
+
+.project-name-input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 3px;
+  border: 0;
+  border-bottom: 1px solid var(--accent);
+  border-radius: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  outline: 0;
+  text-transform: lowercase;
+  animation: mono82-name-caret 0.8s steps(1, end) infinite;
+}
+
+@keyframes mono82-name-caret {
+  0%, 49% { border-bottom-color: var(--accent); }
+  50%, 100% { border-bottom-color: transparent; }
+}
+
+.global-overlay,
+.export-overlay,
+.global-confirm-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding:
+    max(48px, calc(env(safe-area-inset-top) + 38px))
+    14px
+    max(14px, env(safe-area-inset-bottom));
+  background: transparent;
+}
+
+.global-confirm-layer {
+  z-index: 9100;
+  align-items: center;
+}
+
+.global-panel,
+.export-modal {
+  width: min(100%, 336px);
+  max-height: calc(100dvh - 76px);
+  overflow: auto;
+  border: 1px solid var(--text);
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 8px;
+}
+
+.global-menu-panel {
+  width: 148px;
+  margin-left: auto;
+  margin-right: max(0px, calc((100vw - min(100vw, var(--app-width))) / 2));
+  display: grid;
+}
+
+.global-menu-panel button,
+.project-list-toolbar button,
+.global-confirm-actions button,
+.export-modal button {
+  min-height: 30px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.global-menu-panel button + button {
+  border-top: 1px solid var(--line);
+}
+
+.global-menu-panel button:active,
+.project-list-toolbar button:active,
+.global-confirm-actions button:active,
+.export-modal button:active,
+.export-choice.active {
+  color: var(--accent);
+}
+
+.project-list-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.project-list-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  border-bottom: 1px solid var(--line);
+}
+
+.project-list-toolbar button {
+  min-height: 28px;
+}
+
+.project-list {
+  max-height: min(64dvh, 430px);
+  overflow-y: auto;
+}
+
+.project-list > .project-name-input {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 8px;
+  min-height: 28px;
+  color: var(--text);
+}
+
+.project-list-row {
+  position: relative;
+  overflow: hidden;
+  min-height: 34px;
+  border-top: 1px solid var(--line);
+}
+
+.project-list-row:first-of-type {
+  border-top: 0;
+}
+
+.project-list-item,
+.project-delete-button {
+  min-height: 34px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.project-list-item {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 0 9px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: left;
+  transition: transform 100ms linear;
+  touch-action: pan-y;
+}
+
+.project-delete-button {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 0 auto;
+  width: 62px;
+  padding: 0;
+  background: var(--text);
+  color: var(--bg);
+  text-align: center;
+  font-size: 6px;
+}
+
+.global-confirm-panel {
+  width: min(100%, 286px);
+  padding: 10px;
+}
+
+.global-confirm-message {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  line-height: 1.7;
+}
+
+.global-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.global-confirm-actions button {
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.operation-notice {
+  position: fixed;
+  z-index: 10000;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  padding: 5px 7px;
+  border: 1px solid var(--text);
+  background: var(--bg);
+  color: var(--text);
+  opacity: 0;
+}
+
+.operation-notice.show {
+  opacity: 1;
+}
+
+.export-overlay {
+  z-index: 9050;
+  align-items: center;
+}
+
+.export-modal {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.export-modal-title {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  color: var(--accent);
+}
+
+.export-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+  border-top: 1px solid var(--line);
+  padding-top: 7px;
+}
+
+.export-label {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.export-choice-group,
+.export-value-control,
+.export-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 5px;
+}
+
+.export-choice,
+.export-value-control button,
+.export-actions button {
+  min-height: 28px !important;
+  border: 1px solid var(--line) !important;
+  text-align: center !important;
+}
+
+.export-choice.active {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+  color: var(--bg) !important;
+}
+
+.export-value-control {
+  grid-template-columns: 34px 1fr 34px;
+  align-items: center;
+}
+
+.export-value-control output {
+  text-align: center;
+}
+
+.export-row.disabled {
+  opacity: .3;
+}
+
+.export-progress {
+  display: grid;
+  gap: 5px;
+  min-height: 28px;
+}
+
+.export-progress-track {
+  height: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.export-progress-track i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+}
+
+.export-actions {
+  margin-top: 3px;
+}

@@ -38,8 +38,22 @@ import {
 import {
   initializeAutosave,
   restoreAutosave,
-  scheduleAutosave
+  scheduleAutosave,
+  getProjectList,
+  getCurrentProjectMeta,
+  getCurrentProjectId,
+  createNewProject,
+  openProject,
+  saveCurrentProject,
+  hasUnsavedChanges,
+  saveAsProject,
+  renameProject,
+  deleteProject
 } from "./storage.js";
+
+import {
+  renderExportWav
+} from "./export.js";
 
 import "./keyboard-navigation.js";
 
@@ -1458,6 +1472,1325 @@ redoButton.addEventListener("click", () => {
   updateHistoryButtons();
 });
 
+
+/* =========================
+ * Global project / export menu
+ * ========================= */
+
+const globalMenuButton =
+  document.getElementById(
+    "global-menu-button"
+  );
+
+const currentProjectNameElement =
+  document.getElementById(
+    "current-project-name"
+  );
+
+let globalOverlay = null;
+let projectSortMode = "updated";
+let noticeTimer = null;
+
+function closeGlobalOverlay() {
+  globalOverlay?.remove();
+  globalOverlay = null;
+}
+
+function showNotice(text) {
+  clearTimeout(noticeTimer);
+
+  let notice =
+    document.getElementById(
+      "operation-notice"
+    );
+
+  if (!notice) {
+    notice =
+      document.createElement(
+        "div"
+      );
+
+    notice.id =
+      "operation-notice";
+    notice.className =
+      "operation-notice";
+
+    document.body.append(
+      notice
+    );
+  }
+
+  notice.textContent = text;
+  notice.classList.add("show");
+
+  noticeTimer =
+    window.setTimeout(
+      () => {
+        notice?.classList.remove(
+          "show"
+        );
+      },
+      1000
+    );
+}
+
+function makeOverlay(
+  className = "global-overlay"
+) {
+  closeGlobalOverlay();
+
+  const overlay =
+    document.createElement(
+      "div"
+    );
+
+  overlay.className =
+    className;
+
+  overlay.addEventListener(
+    "pointerdown",
+    event => {
+      if (
+        event.target === overlay
+      ) {
+        closeGlobalOverlay();
+      }
+    }
+  );
+
+  document.body.append(
+    overlay
+  );
+
+  globalOverlay = overlay;
+  return overlay;
+}
+
+function makePanel(
+  extraClass = ""
+) {
+  const panel =
+    document.createElement(
+      "div"
+    );
+
+  panel.className =
+    `global-panel ${extraClass}`.trim();
+
+  return panel;
+}
+
+function showConfirm(
+  message
+) {
+  return new Promise(resolve => {
+    const layer =
+      document.createElement(
+        "div"
+      );
+
+    layer.className =
+      "global-confirm-layer";
+
+    const panel =
+      makePanel(
+        "global-confirm-panel"
+      );
+
+    const text =
+      document.createElement(
+        "div"
+      );
+
+    text.className =
+      "global-confirm-message";
+    text.textContent = message;
+
+    const actions =
+      document.createElement(
+        "div"
+      );
+
+    actions.className =
+      "global-confirm-actions";
+
+    const noButton =
+      document.createElement(
+        "button"
+      );
+    noButton.type = "button";
+    noButton.textContent = "no";
+
+    const yesButton =
+      document.createElement(
+        "button"
+      );
+    yesButton.type = "button";
+    yesButton.textContent = "yes";
+
+    const finish = value => {
+      layer.remove();
+      resolve(value);
+    };
+
+    noButton.addEventListener(
+      "click",
+      () => finish(false)
+    );
+
+    yesButton.addEventListener(
+      "click",
+      () => finish(true)
+    );
+
+    layer.addEventListener(
+      "pointerdown",
+      event => {
+        if (
+          event.target === layer
+        ) {
+          finish(false);
+        }
+      }
+    );
+
+    actions.append(
+      noButton,
+      yesButton
+    );
+
+    panel.append(
+      text,
+      actions
+    );
+
+    layer.append(panel);
+    document.body.append(layer);
+    noButton.focus();
+  });
+}
+
+function sortProjectRecords(
+  records
+) {
+  const copy = [...records];
+
+  if (
+    projectSortMode === "name"
+  ) {
+    return copy.sort(
+      (a, b) =>
+        String(a.name ?? "")
+          .localeCompare(
+            String(b.name ?? ""),
+            undefined,
+            {
+              sensitivity: "base"
+            }
+          )
+    );
+  }
+
+  return copy.sort(
+    (a, b) =>
+      Date.parse(
+        b.updatedAt ?? ""
+      ) -
+      Date.parse(
+        a.updatedAt ?? ""
+      )
+  );
+}
+
+function makeNameInput(
+  onSubmit
+) {
+  const input =
+    document.createElement(
+      "input"
+    );
+
+  input.type = "text";
+  input.className =
+    "project-name-input";
+  input.autocomplete = "off";
+  input.autocapitalize = "none";
+  input.spellcheck = false;
+
+  input.addEventListener(
+    "input",
+    () => {
+      const start =
+        input.selectionStart;
+      const end =
+        input.selectionEnd;
+
+      input.value =
+        input.value.toLowerCase();
+
+      if (
+        start !== null &&
+        end !== null
+      ) {
+        input.setSelectionRange(
+          start,
+          end
+        );
+      }
+    }
+  );
+
+  input.addEventListener(
+    "keydown",
+    async event => {
+      if (event.key !== "Enter") {
+        return;
+      }
+
+      event.preventDefault();
+      await onSubmit(
+        input.value
+      );
+    }
+  );
+
+  return input;
+}
+
+function makeProjectListItem({
+  record,
+  onOpen,
+  onDeleted
+}) {
+  const row =
+    document.createElement(
+      "div"
+    );
+  row.className =
+    "project-list-row";
+
+  const deleteButton =
+    document.createElement(
+      "button"
+    );
+  deleteButton.type = "button";
+  deleteButton.className =
+    "project-delete-button";
+  deleteButton.textContent =
+    "delete";
+
+  const item =
+    document.createElement(
+      "button"
+    );
+  item.type = "button";
+  item.className =
+    "project-list-item";
+  item.textContent =
+    record.name;
+
+  let pointerId = null;
+  let startX = 0;
+  let currentX = 0;
+  let swiped = false;
+
+  item.addEventListener(
+    "pointerdown",
+    event => {
+      if (
+        event.pointerType === "mouse" &&
+        event.button !== 0
+      ) {
+        return;
+      }
+
+      pointerId = event.pointerId;
+      startX = event.clientX;
+      currentX = event.clientX;
+      swiped = false;
+      item.setPointerCapture?.(
+        pointerId
+      );
+    }
+  );
+
+  item.addEventListener(
+    "pointermove",
+    event => {
+      if (
+        event.pointerId !== pointerId
+      ) {
+        return;
+      }
+
+      currentX = event.clientX;
+      const delta =
+        Math.min(
+          0,
+          currentX - startX
+        );
+
+      if (delta < -8) {
+        event.preventDefault();
+      }
+
+      item.style.transform =
+        `translateX(${Math.max(-62, delta)}px)`;
+    }
+  );
+
+  const finishSwipe = event => {
+    if (
+      event.pointerId !== pointerId
+    ) {
+      return;
+    }
+
+    const delta =
+      currentX - startX;
+
+    swiped = delta < -28;
+    item.style.transform =
+      swiped
+        ? "translateX(-62px)"
+        : "translateX(0)";
+
+    pointerId = null;
+  };
+
+  item.addEventListener(
+    "pointerup",
+    finishSwipe
+  );
+
+  item.addEventListener(
+    "pointercancel",
+    event => {
+      pointerId = null;
+      item.style.transform =
+        "translateX(0)";
+    }
+  );
+
+  item.addEventListener(
+    "click",
+    event => {
+      if (swiped) {
+        event.preventDefault();
+        swiped = false;
+        return;
+      }
+
+      void onOpen(record);
+    }
+  );
+
+  deleteButton.addEventListener(
+    "click",
+    async () => {
+      const confirmed =
+        await showConfirm(
+          "delete this project?"
+        );
+
+      if (!confirmed) {
+        item.style.transform =
+          "translateX(0)";
+        return;
+      }
+
+      if (
+        await deleteProject(
+          record.id
+        )
+      ) {
+        await onDeleted();
+      }
+    }
+  );
+
+  row.append(
+    deleteButton,
+    item
+  );
+
+  return row;
+}
+
+async function showProjectList(
+  mode
+) {
+  const overlay =
+    makeOverlay();
+  const panel =
+    makePanel(
+      "project-list-panel"
+    );
+
+  overlay.append(panel);
+
+  const toolbar =
+    document.createElement(
+      "div"
+    );
+  toolbar.className =
+    "project-list-toolbar";
+
+  const sortButton =
+    document.createElement(
+      "button"
+    );
+  sortButton.type = "button";
+
+  const list =
+    document.createElement(
+      "div"
+    );
+  list.className =
+    "project-list";
+
+  const renderList = async () => {
+    const records =
+      sortProjectRecords(
+        await getProjectList()
+      );
+
+    sortButton.textContent =
+      projectSortMode === "updated"
+        ? "sort updated ↓"
+        : "sort name a-z";
+
+    list.replaceChildren();
+
+    if (
+      mode === "new" ||
+      mode === "saveas"
+    ) {
+      const input =
+        makeNameInput(
+          async value => {
+            if (mode === "new") {
+              const id =
+                await createNewProject(
+                  value
+                );
+
+              if (id) {
+                closeGlobalOverlay();
+                render();
+                updateHistoryButtons();
+                showNotice("created…");
+              }
+            } else {
+              const id =
+                await saveAsProject(
+                  value
+                );
+
+              if (id) {
+                closeGlobalOverlay();
+                render();
+                updateHistoryButtons();
+                showNotice("saved…");
+              }
+            }
+          }
+        );
+
+      list.append(input);
+      requestAnimationFrame(
+        () => input.focus()
+      );
+    }
+
+    for (
+      const record of records
+    ) {
+      list.append(
+        makeProjectListItem({
+          record,
+          onOpen:
+            async target => {
+              if (mode !== "load") {
+                return;
+              }
+
+              if (
+                hasUnsavedChanges()
+              ) {
+                const confirmed =
+                  await showConfirm(
+                    "unsaved changes. continue?"
+                  );
+
+                if (!confirmed) {
+                  return;
+                }
+              }
+
+              if (
+                await openProject(
+                  target.id
+                )
+              ) {
+                closeGlobalOverlay();
+                render();
+                updateHistoryButtons();
+                showNotice("loaded…");
+              }
+            },
+          onDeleted:
+            async () => {
+              await renderList();
+              render();
+              updateHistoryButtons();
+            }
+        })
+      );
+    }
+  };
+
+  sortButton.addEventListener(
+    "click",
+    async () => {
+      projectSortMode =
+        projectSortMode === "updated"
+          ? "name"
+          : "updated";
+
+      await renderList();
+    }
+  );
+
+  toolbar.append(sortButton);
+  panel.append(toolbar, list);
+  await renderList();
+}
+
+async function beginNewProjectFlow() {
+  if (hasUnsavedChanges()) {
+    const confirmed =
+      await showConfirm(
+        "unsaved changes. continue?"
+      );
+
+    if (!confirmed) {
+      openGlobalMenu();
+      return;
+    }
+  }
+
+  await showProjectList("new");
+}
+
+function openGlobalMenu() {
+  const overlay =
+    makeOverlay();
+  const panel =
+    makePanel(
+      "global-menu-panel"
+    );
+
+  const commands = [
+    ["new", () => void beginNewProjectFlow()],
+    ["load", () => void showProjectList("load")],
+    ["save", async () => {
+      if (
+        await saveCurrentProject()
+      ) {
+        closeGlobalOverlay();
+        render();
+        updateHistoryButtons();
+        showNotice("saved…");
+      }
+    }],
+    ["save as", () => void showProjectList("saveas")],
+    ["export", () => void openExportModal()]
+  ];
+
+  commands.forEach(
+    ([label, action]) => {
+      const button =
+        document.createElement(
+          "button"
+        );
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener(
+        "click",
+        action
+      );
+      panel.append(button);
+    }
+  );
+
+  overlay.append(panel);
+}
+
+globalMenuButton?.addEventListener(
+  "click",
+  openGlobalMenu
+);
+
+async function startInlineRename() {
+  if (
+    !currentProjectNameElement ||
+    currentProjectNameElement.querySelector(
+      "input"
+    )
+  ) {
+    return;
+  }
+
+  const meta =
+    await getCurrentProjectMeta();
+
+  if (!meta?.id) {
+    return;
+  }
+
+  const original =
+    meta.name ?? "";
+
+  const input =
+    makeNameInput(
+      async value => {
+        if (
+          await renameProject(
+            meta.id,
+            value
+          )
+        ) {
+          render();
+          showNotice("renamed…");
+        }
+      }
+    );
+
+  input.value = original;
+  currentProjectNameElement
+    .replaceChildren(input);
+
+  const cancel = event => {
+    if (
+      event.target === input ||
+      currentProjectNameElement
+        .contains(event.target)
+    ) {
+      return;
+    }
+
+    document.removeEventListener(
+      "pointerdown",
+      cancel,
+      true
+    );
+
+    if (
+      document.body.contains(input)
+    ) {
+      currentProjectNameElement
+        .textContent = original;
+    }
+  };
+
+  input.addEventListener(
+    "keydown",
+    event => {
+      if (event.key === "Enter") {
+        document.removeEventListener(
+          "pointerdown",
+          cancel,
+          true
+        );
+      }
+    }
+  );
+
+  document.addEventListener(
+    "pointerdown",
+    cancel,
+    true
+  );
+
+  requestAnimationFrame(
+    () => {
+      input.focus();
+      input.select();
+    }
+  );
+}
+
+currentProjectNameElement
+  ?.addEventListener(
+    "click",
+    () => void startInlineRename()
+  );
+
+/* =========================
+ * Existing sprooto export UI, reconnected
+ * ========================= */
+
+let exportModal = null;
+
+function safeExportFileName(name) {
+  const cleaned =
+    String(name || "project")
+      .replace(
+        /[\\/:*?"<>|\u0000-\u001f]+/g,
+        "-"
+      )
+      .replace(/[. ]+$/g, "-")
+      .trim();
+
+  return cleaned || "project";
+}
+
+function downloadExportBlob(
+  blob,
+  fileName
+) {
+  const url =
+    URL.createObjectURL(blob);
+  const anchor =
+    document.createElement("a");
+
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.style.display = "none";
+
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+
+  window.setTimeout(
+    () => URL.revokeObjectURL(url),
+    1000
+  );
+}
+
+async function shareOrDownloadExport(
+  blob,
+  fileName
+) {
+  const isMobile =
+    /iPhone|iPad|iPod|Android/i.test(
+      navigator.userAgent
+    ) ||
+    (
+      navigator.platform === "MacIntel" &&
+      navigator.maxTouchPoints > 1
+    );
+
+  if (isMobile) {
+    const file =
+      new File(
+        [blob],
+        fileName,
+        { type: "audio/wav" }
+      );
+
+    if (
+      navigator.share &&
+      navigator.canShare?.({
+        files: [file]
+      })
+    ) {
+      try {
+        await navigator.share({
+          files: [file]
+        });
+        return;
+      } catch (error) {
+        if (
+          error?.name ===
+          "AbortError"
+        ) {
+          return;
+        }
+      }
+    }
+  }
+
+  downloadExportBlob(
+    blob,
+    fileName
+  );
+}
+
+function makeExportChoice(
+  label,
+  value
+) {
+  const button =
+    document.createElement(
+      "button"
+    );
+  button.type = "button";
+  button.className =
+    "export-choice";
+  button.textContent = label;
+  button.dataset.value = value;
+  return button;
+}
+
+function makeExportNumberRow({
+  label,
+  min,
+  max,
+  step,
+  value
+}) {
+  const row =
+    document.createElement("div");
+  row.className = "export-row";
+
+  const labelNode =
+    document.createElement("div");
+  labelNode.className =
+    "export-label";
+  labelNode.textContent = label;
+
+  const control =
+    document.createElement("div");
+  control.className =
+    "export-value-control";
+
+  const minus =
+    document.createElement("button");
+  minus.type = "button";
+  minus.textContent = "−";
+
+  const output =
+    document.createElement("output");
+
+  const plus =
+    document.createElement("button");
+  plus.type = "button";
+  plus.textContent = "+";
+
+  function setValue(nextValue) {
+    const next =
+      clamp(
+        Math.round(
+          Number(nextValue) /
+          step
+        ) * step,
+        min,
+        max
+      );
+
+    output.dataset.value =
+      String(next);
+    output.textContent =
+      step === 0.5
+        ? `${next.toFixed(1)}s`
+        : `${Math.round(next)}s`;
+  }
+
+  minus.addEventListener(
+    "click",
+    () => setValue(
+      Number(output.dataset.value) -
+      step
+    )
+  );
+
+  plus.addEventListener(
+    "click",
+    () => setValue(
+      Number(output.dataset.value) +
+      step
+    )
+  );
+
+  setValue(value);
+  control.append(
+    minus,
+    output,
+    plus
+  );
+  row.append(
+    labelNode,
+    control
+  );
+
+  return {
+    row,
+    getValue: () =>
+      Number(
+        output.dataset.value
+      ) || 0,
+    setValue,
+    setDisabled(disabled) {
+      row.classList.toggle(
+        "disabled",
+        disabled
+      );
+      minus.disabled = disabled;
+      plus.disabled = disabled;
+    }
+  };
+}
+
+async function openExportModal() {
+  closeGlobalOverlay();
+
+  if (exportModal) {
+    return;
+  }
+
+  const overlay =
+    document.createElement("div");
+  overlay.className =
+    "export-overlay";
+
+  const modal =
+    document.createElement("div");
+  modal.className =
+    "export-modal";
+
+  const title =
+    document.createElement("div");
+  title.className =
+    "export-modal-title";
+  title.textContent = "export";
+
+  const targetRow =
+    document.createElement("div");
+  targetRow.className = "export-row";
+  const targetLabel =
+    document.createElement("div");
+  targetLabel.className =
+    "export-label";
+  targetLabel.textContent = "target";
+  const targetGroup =
+    document.createElement("div");
+  targetGroup.className =
+    "export-choice-group";
+  const targetSong =
+    makeExportChoice("song", "song");
+  const targetPart =
+    makeExportChoice("part", "part");
+  targetGroup.append(
+    targetSong,
+    targetPart
+  );
+  targetRow.append(
+    targetLabel,
+    targetGroup
+  );
+
+  const endRow =
+    document.createElement("div");
+  endRow.className = "export-row";
+  const endLabel =
+    document.createElement("div");
+  endLabel.className =
+    "export-label";
+  endLabel.textContent = "end";
+  const endGroup =
+    document.createElement("div");
+  endGroup.className =
+    "export-choice-group";
+  const endTail =
+    makeExportChoice("tail", "tail");
+  const endLoop =
+    makeExportChoice("loop", "loop");
+  endGroup.append(
+    endTail,
+    endLoop
+  );
+  endRow.append(
+    endLabel,
+    endGroup
+  );
+
+  const headControl =
+    makeExportNumberRow({
+      label: "head",
+      min: 0,
+      max: 5,
+      step: 0.5,
+      value: 0
+    });
+
+  const fadeInControl =
+    makeExportNumberRow({
+      label: "fade in",
+      min: 0,
+      max: 30,
+      step: 1,
+      value: 0
+    });
+
+  const fadeOutControl =
+    makeExportNumberRow({
+      label: "fade out",
+      min: 0,
+      max: 30,
+      step: 1,
+      value: 0
+    });
+
+  const formatRow =
+    document.createElement("div");
+  formatRow.className = "export-row";
+  formatRow.innerHTML =
+    '<div class="export-label">format</div><div>wav / 24bit / 48khz</div>';
+
+  const progress =
+    document.createElement("div");
+  progress.className =
+    "export-progress";
+  progress.hidden = true;
+
+  const progressText =
+    document.createElement("div");
+  const progressTrack =
+    document.createElement("div");
+  progressTrack.className =
+    "export-progress-track";
+  const progressBar =
+    document.createElement("i");
+  progressTrack.append(progressBar);
+  progress.append(
+    progressText,
+    progressTrack
+  );
+
+  const actions =
+    document.createElement("div");
+  actions.className =
+    "export-actions";
+  const cancel =
+    document.createElement("button");
+  cancel.type = "button";
+  cancel.textContent = "close";
+  const exportAction =
+    document.createElement("button");
+  exportAction.type = "button";
+  exportAction.textContent = "export";
+  actions.append(
+    cancel,
+    exportAction
+  );
+
+  modal.append(
+    title,
+    targetRow,
+    endRow,
+    headControl.row,
+    fadeInControl.row,
+    fadeOutControl.row,
+    formatRow,
+    progress,
+    actions
+  );
+  overlay.append(modal);
+  document.body.append(overlay);
+  exportModal = overlay;
+
+  let target = "song";
+  let endMode = "tail";
+  let working = false;
+  let signal = null;
+
+  const close = () => {
+    if (working) {
+      signal.cancelled = true;
+      return;
+    }
+
+    overlay.remove();
+    exportModal = null;
+  };
+
+  function applyState() {
+    targetSong.classList.toggle(
+      "active",
+      target === "song"
+    );
+    targetPart.classList.toggle(
+      "active",
+      target === "part"
+    );
+    endTail.classList.toggle(
+      "active",
+      endMode === "tail"
+    );
+    endLoop.classList.toggle(
+      "active",
+      endMode === "loop"
+    );
+
+    const loop =
+      endMode === "loop";
+
+    if (loop) {
+      headControl.setValue(0);
+      fadeInControl.setValue(0);
+      fadeOutControl.setValue(0);
+    }
+
+    headControl.setDisabled(
+      working || loop
+    );
+    fadeInControl.setDisabled(
+      working || loop
+    );
+    fadeOutControl.setDisabled(
+      working || loop
+    );
+
+    targetSong.disabled = working;
+    targetPart.disabled = working;
+    endTail.disabled = working;
+    endLoop.disabled = working;
+    exportAction.disabled = working;
+    cancel.textContent =
+      working
+        ? "cancel"
+        : "close";
+  }
+
+  targetSong.addEventListener(
+    "click",
+    () => {
+      target = "song";
+      applyState();
+    }
+  );
+  targetPart.addEventListener(
+    "click",
+    () => {
+      target = "part";
+      applyState();
+    }
+  );
+  endTail.addEventListener(
+    "click",
+    () => {
+      endMode = "tail";
+      applyState();
+    }
+  );
+  endLoop.addEventListener(
+    "click",
+    () => {
+      endMode = "loop";
+      applyState();
+    }
+  );
+
+  cancel.addEventListener(
+    "click",
+    close
+  );
+
+  overlay.addEventListener(
+    "pointerdown",
+    event => {
+      if (
+        event.target === overlay &&
+        !working
+      ) {
+        close();
+      }
+    }
+  );
+
+  exportAction.addEventListener(
+    "click",
+    async () => {
+      working = true;
+      signal = { cancelled: false };
+      progress.hidden = false;
+      progressText.textContent =
+        "exporting 0%";
+      progressBar.style.width = "0%";
+      applyState();
+
+      try {
+        const result =
+          await renderExportWav({
+            target,
+            endMode,
+            headSeconds:
+              headControl.getValue(),
+            fadeInSeconds:
+              fadeInControl.getValue(),
+            fadeOutSeconds:
+              fadeOutControl.getValue(),
+            bpm:
+              Number(bpmInput.value) ||
+              120,
+            masterVolume:
+              Number(volumeInput.value) ||
+              70,
+            signal,
+            onProgress:
+              value => {
+                const percent =
+                  clamp(
+                    Math.round(value),
+                    0,
+                    100
+                  );
+                progressText.textContent =
+                  `exporting ${percent}%`;
+                progressBar.style.width =
+                  `${percent}%`;
+              }
+          });
+
+        if (signal.cancelled) {
+          return;
+        }
+
+        const meta =
+          await getCurrentProjectMeta();
+        const baseName =
+          safeExportFileName(
+            meta?.name ??
+            "project"
+          );
+
+        const suffix =
+          target === "part"
+            ? `-${String(
+                state.selectedPatternIndex +
+                1
+              ).padStart(2, "0")}`
+            : "";
+
+        await shareOrDownloadExport(
+          result.blob,
+          `${baseName}${suffix}.wav`
+        );
+      } catch (error) {
+        if (
+          error?.name !==
+            "ExportCancelledError"
+        ) {
+          console.error(
+            "mono82 export failed:",
+            error
+          );
+          progressText.textContent =
+            "export failed";
+        }
+      } finally {
+        working = false;
+        signal = null;
+        applyState();
+      }
+    }
+  );
+
+  applyState();
+}
+
 async function initializeApp() {
   applyTheme(
     themeSelector.value
@@ -1472,10 +2805,6 @@ async function initializeApp() {
 
   initializeAutosave();
 
-  window.addEventListener(
-    "historychange",
-    scheduleAutosave
-  );
 }
 
 void initializeApp();

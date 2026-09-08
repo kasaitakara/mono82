@@ -579,7 +579,11 @@ document.addEventListener("keydown", event => {
       ? eventTarget
       : activeElement;
 
-  if (editingTarget?.closest?.(".export-overlay")) {
+  if (
+    editingTarget?.closest?.(
+      ".export-overlay, .global-overlay, .global-confirm-layer"
+    )
+  ) {
     return;
   }
 

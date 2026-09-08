@@ -1,14 +1,15 @@
 import {
+  STEP_COUNT,
   patterns,
-  fills,
-  sections,
+  soundBank,
   song,
   state,
-  clamp
+  clamp,
+  soundIsAudible
 } from "./sequencer.js";
 
 import {
-  playTrackStep,
+  playSequenceStep,
   beginOfflineAudioRender
 } from "./audio.js";
 
@@ -54,188 +55,175 @@ function assertNotCancelled(signal) {
 }
 
 function sourceData(type, index) {
-  return type === "fill"
-    ? fills[index]
-    : patterns[index];
+  return patterns[index] ?? null;
 }
 
 function sourceLength(source) {
-  const tracks = source?.tracks ?? [];
-  return Math.max(
-    1,
-    ...tracks.map(track =>
-      clamp(
-        Math.round(Number(track.stepLength) || 1),
-        1,
-        64
-      )
-    )
-  );
+  return STEP_COUNT;
 }
 
 function sourceDuration(item, bpm) {
   const source = sourceData(item.type, item.index);
-  return (
-    sourceLength(source) *
-    ((60 / Math.max(1, bpm)) / 4)
-  );
-}
-
-function flattenSection(sectionIndex) {
-  const section = sections[sectionIndex];
-  if (!section?.sequence?.length) return [];
-
-  return section.sequence
-    .map(item => ({
-      type: item.type,
-      index: item.index
-    }))
-    .filter(item =>
-      sourceData(item.type, item.index)
-    );
+  return source
+    ? sourceLength(source) *
+        ((60 / Math.max(1, bpm)) / 4)
+    : 0;
 }
 
 function flattenTarget(target) {
   if (target === "song") {
-    const result = [];
+    const order = Array.isArray(song.order)
+      ? song.order
+      : [];
 
-    song.sequence.forEach(part => {
-      if (part.type === "section") {
-        result.push(
-          ...flattenSection(part.index)
-        );
-        return;
-      }
-
-      if (
-        sourceData(
-          part.type,
-          part.index
-        )
-      ) {
-        result.push({
-          type: part.type,
-          index: part.index
-        });
-      }
-    });
-
-    return result;
+    return order
+      .filter(index =>
+        Number.isInteger(index) &&
+        patterns[index]
+      )
+      .map(index => ({
+        type: "pattern",
+        index
+      }));
   }
 
-  if (
-    state.selectedPlaybackType ===
-    "section"
-  ) {
-    return flattenSection(
-      state.selectedSectionIndex
-    );
-  }
+  const selectedIndex =
+    Number.isInteger(
+      state.selectedPatternIndex
+    )
+      ? state.selectedPatternIndex
+      : 0;
 
-  return [{
-    type: state.selectedSourceType,
-    index:
-      state.selectedSourceType === "fill"
-        ? state.selectedFillIndex ?? 0
-        : state.selectedPatternIndex
-  }].filter(item =>
-    sourceData(item.type, item.index)
-  );
+  return patterns[selectedIndex]
+    ? [{
+        type: "pattern",
+        index: selectedIndex
+      }]
+    : [];
 }
 
-function resolvedSoundValue(
-  track,
-  stepIndex,
-  id,
-  min,
-  max
+function layerOnlyStep(
+  layer,
+  performanceData
 ) {
-  const offset =
-    Number(
-      track.offsets[id]?.[stepIndex]
-    ) || 0;
-
-  return clamp(
-    Number(track.base[id]) + offset,
-    min,
-    max
-  );
+  return {
+    melodic:
+      layer === "melodic"
+        ? performanceData
+        : null,
+    rhythm:
+      layer === "rhythm"
+        ? performanceData
+        : null
+  };
 }
 
-function subVelocityScale(
-  crescendo,
-  hitIndex,
-  hitCount
+function layerProbabilityPass(
+  performanceData
 ) {
-  const amount =
+  const probability =
     clamp(
-      Math.round(
-        Number(crescendo) || 0
-      ),
-      -3,
-      3
-    );
-
-  if (
-    amount === 0 ||
-    hitCount <= 1
-  ) {
-    return 1;
-  }
-
-  const progress =
-    hitIndex / (hitCount - 1);
-
-  const depth =
-    Math.abs(amount) * 0.25;
-
-  return amount > 0
-    ? 1 - depth * (1 - progress)
-    : 1 - depth * progress;
-}
-
-function timingOffsetSeconds(
-  track,
-  stepIndex,
-  bpm
-) {
-  const quarterSeconds =
-    60 / Math.max(1, bpm);
-
-  const unitSeconds =
-    quarterSeconds / 64;
-
-  const swingValue =
-    clamp(
-      Number(track.swing) || 0,
-      -8,
-      8
-    );
-
-  const nudgeValue =
-    clamp(
-      Math.round(
-        (Number(track.base.nudge) || 0) +
-        (
-          Number(
-            track.offsets.nudge?.[
-              stepIndex
-            ]
-          ) || 0
-        )
-      ),
-      -4,
-      4
+      Number(
+        performanceData?.probability
+      ) || 0,
+      0,
+      100
     );
 
   return (
-    (
-      stepIndex % 2 === 1
-        ? swingValue * unitSeconds
-        : 0
-    ) +
-    nudgeValue * unitSeconds
+    probability >= 100 ||
+    Math.random() * 100 <
+      probability
   );
+}
+
+async function scheduleLayer({
+  layer,
+  performanceData,
+  baseStart,
+  stepSeconds,
+  bpm
+}) {
+  if (
+    !performanceData?.soundId ||
+    !soundIsAudible(
+      layer,
+      performanceData.soundId
+    ) ||
+    !layerProbabilityPass(
+      performanceData
+    )
+  ) {
+    return;
+  }
+
+  const patternIndex =
+    Math.round(
+      Number(
+        performanceData.subPattern
+      ) || -1
+    );
+
+  const pattern =
+    patternIndex >= 0
+      ? SUB_PATTERNS[patternIndex]
+      : null;
+
+  const playAt = async (
+    eventTime
+  ) => {
+    await playSequenceStep(
+      layerOnlyStep(
+        layer,
+        performanceData
+      ),
+      soundBank,
+      Math.max(0, eventTime),
+      {
+        bpm,
+        ignoreProbability: true
+      }
+    );
+  };
+
+  if (!pattern) {
+    await playAt(baseStart);
+    return;
+  }
+
+  if (layer === "rhythm") {
+    const subProbability =
+      clamp(
+        Number(
+          performanceData
+            .subProbability
+        ) || 0,
+        0,
+        100
+      );
+
+    if (
+      subProbability < 100 &&
+      Math.random() * 100 >=
+        subProbability
+    ) {
+      await playAt(baseStart);
+      return;
+    }
+  }
+
+  for (
+    const subIndex of pattern.hits
+  ) {
+    await playAt(
+      baseStart +
+      stepSeconds *
+        (
+          subIndex /
+          pattern.divisions
+        )
+    );
+  }
 }
 
 function timingGuardSeconds(bpm) {
@@ -246,26 +234,6 @@ function timingGuardSeconds(bpm) {
   );
 }
 
-function audibleTracks(source) {
-  const sourceTracks =
-    source?.tracks ?? [];
-
-  const hasSolo =
-    sourceTracks.some(
-      track => track.solo
-    );
-
-  return sourceTracks.filter(
-    track =>
-      !track.muted &&
-      (!hasSolo || track.solo)
-  );
-}
-
-/*
- * H/D基準のtail safety。
- * 旧gate参照は完全に廃止。
- */
 function estimateTailSafetySeconds(
   sources,
   bpm,
@@ -276,30 +244,14 @@ function estimateTailSafetySeconds(
       ? 2.7
       : EXPORT_TAIL_MIN_SECONDS;
 
-  const inspectSound = (
-    sound,
-    track,
-    stepIndex
-  ) => {
-    if (!sound?.base) {
-      return;
-    }
-
-    const offset = id =>
-      Number(
-        track.offsets?.[id]?.[
-          stepIndex
-        ]
-      ) || 0;
+  const inspectSound = sound => {
+    if (!sound) return;
 
     const holdDecayValue =
       clamp(
-        (
-          Number(
-            sound.base.holdDecay
-          ) || 0
-        ) +
-        offset("holdDecay"),
+        Number(
+          sound.holdDecay
+        ) || 0,
         -50,
         50
       );
@@ -334,39 +286,25 @@ function estimateTailSafetySeconds(
         item.index
       );
 
-    audibleTracks(source)
-      .forEach(track => {
-        const length =
-          clamp(
-            Math.round(
-              Number(
-                track.stepLength
-              ) || 1
-            ),
-            1,
-            64
-          );
-
-        for (
-          let stepIndex = 0;
-          stepIndex < length;
-          stepIndex++
-        ) {
-          if (
-            !track.steps?.[
-              stepIndex
-            ]
-          ) {
-            continue;
-          }
-
+    source?.sequence?.forEach(
+      step => {
+        if (step?.melodic?.soundId) {
           inspectSound(
-            track,
-            track,
-            stepIndex
+            soundBank.melodic?.[
+              step.melodic.soundId
+            ]
           );
         }
-      });
+
+        if (step?.rhythm?.soundId) {
+          inspectSound(
+            soundBank.rhythm?.[
+              step.rhythm.soundId
+            ]
+          );
+        }
+      }
+    );
   });
 
   return clamp(
@@ -387,175 +325,47 @@ async function scheduleSource({
   const stepSeconds =
     (60 / Math.max(1, bpm)) / 4;
 
-  const length =
-    sourceLength(source);
-
-  const sourceTracks =
-    audibleTracks(source);
-
   for (
     let tick = 0;
-    tick < length;
+    tick < STEP_COUNT;
     tick++
   ) {
     assertNotCancelled(signal);
 
-    for (
-      const track of sourceTracks
-    ) {
-      const trackStepIndex =
-        tick %
-        clamp(
-          Math.round(
-            Number(
-              track.stepLength
-            ) || 1
-          ),
-          1,
-          64
-        );
+    const step =
+      source?.sequence?.[tick];
 
-      if (
-        !track.steps?.[
-          trackStepIndex
-        ]
-      ) {
-        continue;
-      }
-
-      const probability =
-        resolvedSoundValue(
-          track,
-          trackStepIndex,
-          "probability",
-          0,
-          100
-        );
-
-      if (
-        Math.random() * 100 >=
-        probability
-      ) {
-        continue;
-      }
-
-      const baseStart =
-        guardSeconds +
-        headSeconds +
-        sourceStartSeconds +
-        tick * stepSeconds +
-        timingOffsetSeconds(
-          track,
-          trackStepIndex,
-          bpm
-        );
-
-      const patternIndex =
-        Math.round(
-          resolvedSoundValue(
-            track,
-            trackStepIndex,
-            "subPattern",
-            -1,
-            6
-          )
-        );
-
-      const pattern =
-        patternIndex >= 0
-          ? SUB_PATTERNS[
-              patternIndex
-            ]
-          : null;
-
-      if (!pattern) {
-        await playTrackStep(
-          track,
-          trackStepIndex,
-          Math.max(
-            0,
-            baseStart
-          ),
-          { bpm }
-        );
-        continue;
-      }
-
-      const subProbability =
-        resolvedSoundValue(
-          track,
-          trackStepIndex,
-          "subProbability",
-          0,
-          100
-        );
-
-      if (
-        Math.random() * 100 >=
-        subProbability
-      ) {
-        await playTrackStep(
-          track,
-          trackStepIndex,
-          Math.max(
-            0,
-            baseStart
-          ),
-          { bpm }
-        );
-        continue;
-      }
-
-      const crescendo =
-        resolvedSoundValue(
-          track,
-          trackStepIndex,
-          "subCrescendo",
-          -3,
-          3
-        );
-
-      for (
-        let hitIndex = 0;
-        hitIndex <
-        pattern.hits.length;
-        hitIndex++
-      ) {
-        const subIndex =
-          pattern.hits[
-            hitIndex
-          ];
-
-        const eventTime =
-          baseStart +
-          stepSeconds *
-          (
-            subIndex /
-            pattern.divisions
-          );
-
-        await playTrackStep(
-          track,
-          trackStepIndex,
-          Math.max(
-            0,
-            eventTime
-          ),
-          {
-            bpm,
-            velocityScale:
-              subVelocityScale(
-                crescendo,
-                hitIndex,
-                pattern.hits.length
-              )
-          }
-        );
-      }
+    if (!step) {
+      continue;
     }
+
+    const baseStart =
+      guardSeconds +
+      headSeconds +
+      sourceStartSeconds +
+      tick * stepSeconds;
+
+    await scheduleLayer({
+      layer: "melodic",
+      performanceData:
+        step.melodic,
+      baseStart,
+      stepSeconds,
+      bpm
+    });
+
+    await scheduleLayer({
+      layer: "rhythm",
+      performanceData:
+        step.rhythm,
+      baseStart,
+      stepSeconds,
+      bpm
+    });
   }
 
-  return length * stepSeconds;
+  return STEP_COUNT *
+    stepSeconds;
 }
 
 function findTailEndFrame(
@@ -830,8 +640,7 @@ function buildSongChunks(
     }
 
     current.push(item);
-    currentDuration +=
-      duration;
+    currentDuration += duration;
   });
 
   if (current.length > 0) {
@@ -841,13 +650,6 @@ function buildSongChunks(
   return chunks;
 }
 
-/*
- * SONG chunkを1個だけrenderする。
- *
- * 各chunkの末尾にtailSafety分を持たせる。
- * 次chunkの先頭音は別contextでrenderされるため、
- * H/D / Reverb tailはPCM上で次chunkへ重ねて合成する。
- */
 async function renderSongChunk({
   items,
   bpm,
@@ -1005,13 +807,6 @@ async function renderSongChunk({
   }
 }
 
-/*
- * chunk PCMをSong全体の時間軸へ加算する。
- *
- * chunk本体は順番に並べ、各chunkのtailだけ次chunkへ重なる。
- * これでHold / Decay / Master Reverbの余韻をchunk境界で
- * 途中切断せず残す。
- */
 async function renderSongChunked({
   sources,
   bpm,
@@ -1151,11 +946,6 @@ async function renderSongChunked({
     bodyWriteSeconds +=
       rendered.bodyDuration;
 
-    /*
-     * 25〜90%を実chunk進捗として通知。
-     * ui側の擬似progress timerが動いていても
-     * 値は単調増加する。
-     */
     onProgress?.(
       25 +
       Math.round(
@@ -1168,10 +958,6 @@ async function renderSongChunked({
       "rendering"
     );
 
-    /*
-     * SafariへGC / UI更新の機会を渡す。
-     * 次のOfflineAudioContextを即時連続生成しない。
-     */
     await new Promise(
       resolve =>
         setTimeout(
@@ -1208,9 +994,6 @@ async function renderSongChunked({
         )
       );
 
-    /*
-     * PCM配列版のtail silence scan。
-     */
     const holdFrames =
       Math.max(
         1,
@@ -1237,18 +1020,14 @@ async function renderSongChunked({
       outputLength;
 
     for (
-      let start =
-        bodyEndFrame;
-      start <
-      outputLength;
-      start +=
-        blockFrames
+      let start = bodyEndFrame;
+      start < outputLength;
+      start += blockFrames
     ) {
       const end =
         Math.min(
           outputLength,
-          start +
-          blockFrames
+          start + blockFrames
         );
 
       let peak = 0;

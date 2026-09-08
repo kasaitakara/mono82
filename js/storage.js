@@ -28,6 +28,9 @@ const RECOVERY_STORE = "recoveries";
 const CURRENT_PROJECT_ID_KEY =
   "sprooto-current-project-id-v1";
 
+const CURRENT_PROJECT_NAME_KEY =
+  "mono82-current-project-name-v1";
+
 /*
  * 旧autosaveを一度Project化したことを示す。
  * 旧autosave自体は残すが、二重Importはしない。
@@ -50,6 +53,7 @@ let autosaveTimer = null;
 let databasePromise = null;
 let dirty = false;
 let recoveryDirty = false;
+let suspendDirtyTracking = false;
 
 function requestToPromise(request) {
   return new Promise((resolve, reject) => {
@@ -315,41 +319,50 @@ function localDateCode(
   return `${year}${month}${day}`;
 }
 
-async function makeAutomaticProjectName() {
+async function makeUniqueProjectName(
+  requestedName = null,
+  excludeProjectId = null
+) {
   const records =
     await readAllProjectRecords();
 
-  const todayCode =
+  const base =
+    String(
+      requestedName ?? ""
+    )
+      .trim()
+      .toLowerCase() ||
     localDateCode();
 
-  const usedNumbers =
+  const used = new Set(
     records
-      .map(record => {
-        const match =
-          String(record?.name ?? "")
-            .match(
-              new RegExp(
-                `^${todayCode}-(\\d+)$`
-              )
-            );
+      .filter(
+        record =>
+          record.id !==
+          excludeProjectId
+      )
+      .map(record =>
+        String(
+          record?.name ?? ""
+        ).toLowerCase()
+      )
+  );
 
-        return match
-          ? Number(match[1])
-          : null;
-      })
-      .filter(Number.isFinite);
-
-  let nextNumber = 1;
-
-  while (
-    usedNumbers.includes(
-      nextNumber
-    )
-  ) {
-    nextNumber += 1;
+  if (!used.has(base)) {
+    return base;
   }
 
-  return `${todayCode}-${nextNumber}`;
+  let suffix = 2;
+
+  while (
+    used.has(
+      `${base}-${suffix}`
+    )
+  ) {
+    suffix += 1;
+  }
+
+  return `${base}-${suffix}`;
 }
 
 function currentProjectSettings() {
@@ -540,12 +553,9 @@ async function createProjectRecord({
     id,
 
     name:
-      (
-        typeof name === "string" &&
-        name.trim()
-      )
-        ? name.trim()
-        : await makeAutomaticProjectName(),
+      await makeUniqueProjectName(
+        name
+      ),
 
     createdAt:
       createdAt ?? now,
@@ -594,6 +604,49 @@ export function getCurrentProjectId() {
   );
 }
 
+function setCurrentProjectName(
+  name
+) {
+  const value =
+    String(name ?? "")
+      .trim()
+      .toLowerCase();
+
+  if (!value) {
+    localStorage.removeItem(
+      CURRENT_PROJECT_NAME_KEY
+    );
+    return;
+  }
+
+  localStorage.setItem(
+    CURRENT_PROJECT_NAME_KEY,
+    value
+  );
+}
+
+export function getCurrentProjectName() {
+  return (
+    localStorage.getItem(
+      CURRENT_PROJECT_NAME_KEY
+    ) ||
+    null
+  );
+}
+
+export async function currentProjectExists() {
+  const id =
+    getCurrentProjectId();
+
+  if (!id) {
+    return false;
+  }
+
+  return Boolean(
+    await readProjectRecord(id)
+  );
+}
+
 export async function getProjectList() {
   const records =
     await readAllProjectRecords();
@@ -617,25 +670,42 @@ export async function getProjectList() {
 }
 
 export async function getCurrentProjectMeta() {
-  const record =
-    await readProjectRecord(
-      getCurrentProjectId()
-    );
+  const id =
+    getCurrentProjectId();
 
-  if (!record) {
+  if (!id) {
     return null;
   }
 
-  return {
-    id:
-      record.id,
-    name:
-      record.name,
-    createdAt:
-      record.createdAt,
-    updatedAt:
-      record.updatedAt
-  };
+  const record =
+    await readProjectRecord(id);
+
+  if (record) {
+    setCurrentProjectName(
+      record.name
+    );
+
+    return {
+      id: record.id,
+      name: record.name,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+      exists: true
+    };
+  }
+
+  const name =
+    getCurrentProjectName();
+
+  return name
+    ? {
+        id,
+        name,
+        createdAt: null,
+        updatedAt: null,
+        exists: false
+      }
+    : null;
 }
 
 async function saveRecoveryNow() {
@@ -650,6 +720,8 @@ async function saveRecoveryNow() {
     id,
     updatedAt:
       new Date().toISOString(),
+    name:
+      getCurrentProjectName(),
     settings:
       currentProjectSettings(),
     data:
@@ -671,6 +743,7 @@ function writeEmergencyRecovery() {
       JSON.stringify({
         id,
         updatedAt: new Date().toISOString(),
+        name: getCurrentProjectName(),
         settings: currentProjectSettings(),
         data: createProjectSnapshot()
       })
@@ -701,34 +774,92 @@ function recordTime(record) {
   return Number.isFinite(time) ? time : 0;
 }
 
-export function hasUnsavedChanges() { return dirty; }
+export function hasUnsavedChanges() {
+  return dirty;
+}
 export async function saveCurrentProject() {
   try {
-    const id = getCurrentProjectId();
-    const old = await readProjectRecord(id);
-    if (!old) return false;
-    const record = { ...old, updatedAt: new Date().toISOString(), settings: currentProjectSettings(), data: createProjectSnapshot() };
-    await writeProjectRecord(record);
-await writeRecoveryRecord({
-  id,
-  updatedAt: record.updatedAt,
-  settings: record.settings,
-  data: record.data
-});
+    const id =
+      getCurrentProjectId();
 
-clearTimeout(
-  autosaveTimer
-);
+    if (!id) {
+      return false;
+    }
 
-autosaveTimer = null;
-recoveryDirty = false;
-dirty = false;
-    dispatchProjectChange("save", record);
+    const old =
+      await readProjectRecord(id);
+
+    const now =
+      new Date().toISOString();
+
+    const name =
+      old?.name ??
+      getCurrentProjectName() ??
+      await makeUniqueProjectName();
+
+    const record = {
+      schemaVersion:
+        PROJECT_SCHEMA_VERSION,
+      id,
+      name,
+      createdAt:
+        old?.createdAt ?? now,
+      updatedAt:
+        now,
+      settings:
+        currentProjectSettings(),
+      data:
+        createProjectSnapshot()
+    };
+
+    await writeProjectRecord(
+      record
+    );
+
+    setCurrentProjectName(
+      record.name
+    );
+
+    await writeRecoveryRecord({
+      id,
+      name: record.name,
+      updatedAt:
+        record.updatedAt,
+      settings:
+        record.settings,
+      data:
+        record.data
+    });
+
+    clearTimeout(
+      autosaveTimer
+    );
+
+    autosaveTimer = null;
+    recoveryDirty = false;
+    dirty = false;
+
+    dispatchProjectChange(
+      "save",
+      record
+    );
+
     return true;
-  } catch (e) { console.error("sprooto save failed:", e); return false; }
+  } catch (error) {
+    console.error(
+      "mono82 save failed:",
+      error
+    );
+    return false;
+  }
 }
+
 export async function saveAutosave() { try { return await saveRecoveryNow(); } catch(e) { console.error("sprooto recovery autosave failed:",e); return false; } }
 export function scheduleAutosave() {
+  if (suspendDirtyTracking) {
+    return;
+  }
+
   dirty = true;
   recoveryDirty = true;
 
@@ -835,6 +966,9 @@ async function importLegacyAutosave() {
     setCurrentProjectId(
       record.id
     );
+    setCurrentProjectName(
+      record.name
+    );
 
     localStorage.setItem(
       PROJECT_MIGRATION_KEY,
@@ -866,6 +1000,9 @@ async function createInitialProject() {
 
   setCurrentProjectId(
     record.id
+  );
+  setCurrentProjectName(
+    record.name
   );
 
   return record;
@@ -903,6 +1040,12 @@ export async function restoreAutosave() {
         const restored = restoreProjectSnapshot(newest.record.data);
         if (restored) {
           restoreProjectSettings(newest.record.settings);
+          setCurrentProjectName(
+            currentRecord?.name ??
+            newest.record?.name ??
+            getCurrentProjectName() ??
+            localDateCode()
+          );
 
           /*
            * Rewrite the restored snapshot immediately. This permanently
@@ -945,6 +1088,9 @@ export async function restoreAutosave() {
         setCurrentProjectId(
           migratedRecord.id
         );
+        setCurrentProjectName(
+          migratedRecord.name
+        );
 
         return true;
       }
@@ -981,6 +1127,9 @@ export async function restoreAutosave() {
       setCurrentProjectId(
         latest.id
       );
+      setCurrentProjectName(
+        latest.name
+      );
 
       return true;
     }
@@ -1001,48 +1150,66 @@ export async function restoreAutosave() {
   }
 }
 
-export async function createNewProject() {
+export async function createNewProject(
+  name = null
+) {
   try {
-    const previousId = getCurrentProjectId();
-    if (previousId) await removeRecoveryRecord(previousId);
+    const previousId =
+      getCurrentProjectId();
+
+    if (previousId) {
+      await removeRecoveryRecord(
+        previousId
+      );
+    }
 
     const record =
       await createProjectRecord({
+        name,
         data:
           createNewProjectSnapshot(),
-
         settings: {
           bpm: 120,
           masterVolume: 70
         }
       });
 
-    if (
-      !restoreProjectRecord(
-        record
-      )
-    ) {
-      return null;
+    suspendDirtyTracking = true;
+
+    try {
+      if (
+        !restoreProjectRecord(
+          record
+        )
+      ) {
+        return null;
+      }
+    } finally {
+      suspendDirtyTracking = false;
     }
 
     setCurrentProjectId(
       record.id
     );
+    setCurrentProjectName(
+      record.name
+    );
 
     await writeRecoveryRecord({
-  id: record.id,
-  updatedAt: record.updatedAt,
-  settings: record.settings,
-  data: record.data
-});
+      id: record.id,
+      name: record.name,
+      updatedAt: record.updatedAt,
+      settings: record.settings,
+      data: record.data
+    });
 
-clearTimeout(
-  autosaveTimer
-);
+    clearTimeout(
+      autosaveTimer
+    );
 
-autosaveTimer = null;
-recoveryDirty = false;
-dirty = false;
+    autosaveTimer = null;
+    recoveryDirty = false;
+    dirty = false;
 
     dispatchProjectChange(
       "new",
@@ -1052,7 +1219,7 @@ dirty = false;
     return record.id;
   } catch (error) {
     console.error(
-      "sprooto new project failed:",
+      "mono82 new project failed:",
       error
     );
 
@@ -1060,71 +1227,131 @@ dirty = false;
   }
 }
 
-export async function openProject(projectId) {
+export async function openProject(
+  projectId
+) {
   try {
-    const target = await readProjectRecord(projectId);
-    if (!target) return false;
-    const previousId = getCurrentProjectId();
-    if (previousId) await removeRecoveryRecord(previousId);
-    if (!restoreProjectRecord(target)) return false;
-    setCurrentProjectId(projectId);
+    const target =
+      await readProjectRecord(
+        projectId
+      );
+
+    if (!target) {
+      return false;
+    }
+
+    const previousId =
+      getCurrentProjectId();
+
+    if (previousId) {
+      await removeRecoveryRecord(
+        previousId
+      );
+    }
+
+    suspendDirtyTracking = true;
+
+    try {
+      if (
+        !restoreProjectRecord(
+          target
+        )
+      ) {
+        return false;
+      }
+    } finally {
+      suspendDirtyTracking = false;
+    }
+
+    setCurrentProjectId(
+      target.id
+    );
+    setCurrentProjectName(
+      target.name
+    );
+
     await writeRecoveryRecord({
-  id: target.id,
-  updatedAt: target.updatedAt,
-  settings: target.settings,
-  data: target.data
-});
+      id: target.id,
+      name: target.name,
+      updatedAt: target.updatedAt,
+      settings: target.settings,
+      data: target.data
+    });
 
-clearTimeout(
-  autosaveTimer
-);
+    clearTimeout(
+      autosaveTimer
+    );
 
-autosaveTimer = null;
-recoveryDirty = false;
-dirty = false;
+    autosaveTimer = null;
+    recoveryDirty = false;
+    dirty = false;
 
-clearHistory();
-dispatchProjectChange("open", target); return true;
-  } catch(e) { console.error("sprooto open project failed:",e); return false; }
+    dispatchProjectChange(
+      "open",
+      target
+    );
+
+    return true;
+  } catch (error) {
+    console.error(
+      "mono82 open project failed:",
+      error
+    );
+    return false;
+  }
 }
 
 export async function saveAsProject(
   name = null
 ) {
   try {
-    const previousId = getCurrentProjectId();
+    const previousId =
+      getCurrentProjectId();
 
     const record =
-  await createProjectRecord({
-    name,
+      await createProjectRecord({
+        name,
+        data:
+          createProjectSnapshot(),
+        settings:
+          currentProjectSettings()
+      });
 
-    data:
-      createProjectSnapshot(),
+    if (previousId) {
+      await removeRecoveryRecord(
+        previousId
+      );
+    }
 
-    settings:
-      currentProjectSettings()
-  });
+    setCurrentProjectId(
+      record.id
+    );
+    setCurrentProjectName(
+      record.name
+    );
 
-if (previousId) await removeRecoveryRecord(previousId);
+    await writeRecoveryRecord({
+      id: record.id,
+      name: record.name,
+      updatedAt: record.updatedAt,
+      settings: record.settings,
+      data: record.data
+    });
 
-setCurrentProjectId(record.id);
+    clearTimeout(
+      autosaveTimer
+    );
 
-await writeRecoveryRecord({
-  id: record.id,
-  updatedAt: record.updatedAt,
-  settings: record.settings,
-  data: record.data
-});
+    autosaveTimer = null;
+    recoveryDirty = false;
+    dirty = false;
 
-clearTimeout(
-  autosaveTimer
-);
-
-autosaveTimer = null;
-recoveryDirty = false;
-dirty = false;
-
-    clearHistory();
+    suspendDirtyTracking = true;
+    try {
+      clearHistory();
+    } finally {
+      suspendDirtyTracking = false;
+    }
 
     dispatchProjectChange(
       "saveas",
@@ -1134,7 +1361,7 @@ dirty = false;
     return record.id;
   } catch (error) {
     console.error(
-      "sprooto save as failed:",
+      "mono82 save as failed:",
       error
     );
 
@@ -1147,12 +1374,7 @@ export async function renameProject(
   newName
 ) {
   try {
-    const name =
-      String(
-        newName ?? ""
-      ).trim();
-
-    if (!name) {
+    if (!projectId) {
       return false;
     }
 
@@ -1161,8 +1383,40 @@ export async function renameProject(
         projectId
       );
 
+    const name =
+      await makeUniqueProjectName(
+        newName,
+        record?.id ??
+        projectId
+      );
+
     if (!record) {
-      return false;
+      if (
+        getCurrentProjectId() !==
+        projectId
+      ) {
+        return false;
+      }
+
+      setCurrentProjectName(
+        name
+      );
+      dirty = true;
+      recoveryDirty = true;
+      void saveAutosave();
+
+      dispatchProjectChange(
+        "rename",
+        {
+          id: projectId,
+          name,
+          createdAt: null,
+          updatedAt:
+            new Date().toISOString()
+        }
+      );
+
+      return true;
     }
 
     record.name =
@@ -1175,6 +1429,15 @@ export async function renameProject(
       record
     );
 
+    if (
+      getCurrentProjectId() ===
+      projectId
+    ) {
+      setCurrentProjectName(
+        name
+      );
+    }
+
     dispatchProjectChange(
       "rename",
       record
@@ -1183,7 +1446,7 @@ export async function renameProject(
     return true;
   } catch (error) {
     console.error(
-      "sprooto rename project failed:",
+      "mono82 rename project failed:",
       error
     );
 
@@ -1208,83 +1471,42 @@ export async function deleteProject(
       getCurrentProjectId() ===
       projectId;
 
-    await removeProjectRecord(projectId);
-    await removeRecoveryRecord(projectId);
-
-    if (!wasCurrent) {
-      dispatchProjectChange(
-        "delete",
-        null
-      );
-
-      return true;
-    }
-
-    setCurrentProjectId(
-      null
+    await removeProjectRecord(
+      projectId
+    );
+    await removeRecoveryRecord(
+      projectId
     );
 
-    const records =
-      await readAllProjectRecords();
-
-    const nextRecord =
-      records
-        .sort(
-          (a, b) =>
-            new Date(b.updatedAt) -
-            new Date(a.updatedAt)
-        )[0];
-
-    if (
-      nextRecord &&
-      restoreProjectRecord(
-        nextRecord
-      )
-    ) {
-      setCurrentProjectId(
-        nextRecord.id
+    if (wasCurrent) {
+      setCurrentProjectName(
+        record.name
       );
 
-      clearTimeout(
-  autosaveTimer
-);
+      dirty = true;
+      recoveryDirty = true;
 
-autosaveTimer = null;
-recoveryDirty = false;
-dirty = false;
-
-      dispatchProjectChange(
-        "delete",
-        nextRecord
-      );
-
-      return true;
+      /*
+       * Keep the current in-memory project exactly as-is.
+       * A later save recreates the deleted Project under the same id/name.
+       */
+      await saveRecoveryNow();
     }
 
-    const created =
-  await createInitialProject();
+    dispatchProjectChange(
+      "delete",
+      wasCurrent
+        ? {
+            ...record,
+            deleted: true
+          }
+        : null
+    );
 
-restoreProjectRecord(
-  created
-);
-
-clearTimeout(
-  autosaveTimer
-);
-
-autosaveTimer = null;
-recoveryDirty = false;
-dirty = false;
-
-dispatchProjectChange(
-  "delete",
-  created
-);
-
-return true;
+    return true;
   } catch (error) {
     console.error(
-      "sprooto delete project failed:",
+      "mono82 delete project failed:",
       error
     );
 
@@ -1314,7 +1536,14 @@ export function initializeAutosave() {
    */
   window.addEventListener(
     "projectchange",
-    () => {
+    event => {
+      if (
+        event instanceof CustomEvent &&
+        event.detail?.type
+      ) {
+        return;
+      }
+
       scheduleAutosave();
     }
   );
