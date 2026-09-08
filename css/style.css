@@ -87,9 +87,9 @@
 }
 
 :root.theme-electro {
-  --bg: #979494;
-  --text: #4a4d4d;
-  --accent: #54959a;
+  --bg: #85c04a;
+  --text: #52762d;
+  --accent: #dbdbdb;
 }
 
 :root.theme-game {
@@ -5824,4 +5824,14 @@ body {
 .export-value-control button {
   padding-left: 2px !important;
   padding-right: 2px !important;
+}
+
+/* =========================================================
+   Utility UI font unification 2026-09-08 f
+   ========================================================= */
+.global-panel,
+.global-confirm-panel,
+.operation-notice,
+.export-modal {
+  font-size: 9px !important;
 }
