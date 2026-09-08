@@ -1709,8 +1709,7 @@ function showConfirm(
 
     layer.append(panel);
     document.body.append(layer);
-    noButton.focus();
-  });
+    });
 }
 
 function sortProjectRecords(
@@ -2575,7 +2574,7 @@ async function openExportModal() {
   const targetSong =
     makeExportChoice("song", "song");
   const targetPart =
-    makeExportChoice("part", "part");
+    makeExportChoice("pattern", "part");
   targetGroup.append(
     targetSong,
     targetPart
@@ -2667,18 +2666,11 @@ async function openExportModal() {
     document.createElement("div");
   actions.className =
     "export-actions";
-  const cancel =
-    document.createElement("button");
-  cancel.type = "button";
-  cancel.textContent = "close";
   const exportAction =
     document.createElement("button");
   exportAction.type = "button";
   exportAction.textContent = "export";
-  actions.append(
-    cancel,
-    exportAction
-  );
+  actions.append(exportAction);
 
   modal.append(
     title,
@@ -2766,10 +2758,6 @@ async function openExportModal() {
     endTail.disabled = working;
     endLoop.disabled = working;
     exportAction.disabled = working;
-    cancel.textContent =
-      working
-        ? "cancel"
-        : "close";
   }
 
   targetSong.addEventListener(
@@ -2799,11 +2787,6 @@ async function openExportModal() {
       endMode = "loop";
       applyState();
     }
-  );
-
-  cancel.addEventListener(
-    "click",
-    close
   );
 
   overlay.addEventListener(

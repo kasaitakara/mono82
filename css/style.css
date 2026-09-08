@@ -87,7 +87,7 @@
 }
 
 :root.theme-electro {
-  --bg: #acabab;
+  --bg: #b8b8b8;
   --text: #646666;
   --accent: #65a3a8;
 }
@@ -5589,4 +5589,135 @@ body {
   background: var(--bg) !important;
   text-align: center;
   line-height: 1.45;
+}
+
+
+/* =========================================================
+   Save / export layout refinements 2026-09-08 c
+   ========================================================= */
+
+/* Draw the menu glyph at the same actual 13 x 13px visual size as the
+   palette icon. The text glyph itself varies too much by font. */
+.global-menu-button {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  overflow: hidden;
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+.global-menu-button::before {
+  content: "";
+  display: block;
+  width: 13px;
+  height: 13px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 1px / 13px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 6px / 13px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 11px / 13px 2px no-repeat;
+  color: var(--text);
+}
+
+.global-menu-button:active::before,
+.global-menu-button.active::before {
+  color: var(--accent);
+}
+
+/* Utility UI follows the app's real base size: 7px. */
+.global-panel,
+.export-modal,
+.global-confirm-panel,
+.operation-notice {
+  font-size: var(--mokton-ui-font-size, 7px) !important;
+}
+
+/* Remove browser focus decoration from confirm buttons. It can render as
+   short stray lines on mobile bitmap-font layouts. */
+.global-confirm-actions button,
+.global-confirm-actions button:focus,
+.global-confirm-actions button:focus-visible {
+  outline: 0 !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+}
+
+/* Project list can be much narrower than the generic utility panel. */
+.project-list-panel {
+  width: min(calc(100% - 28px), 214px) !important;
+}
+
+.project-list-toolbar button {
+  min-height: 24px !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+.project-list-row,
+.project-list-item,
+.project-delete-button {
+  min-height: 30px !important;
+}
+
+/* Export: slightly wider than the previous pass, but keep the editable
+   right-hand controls compact so labels never collide. */
+.export-modal {
+  width: min(calc(100% - 28px), 258px) !important;
+  padding: 8px !important;
+  gap: 5px !important;
+}
+
+.export-row {
+  grid-template-columns: 56px minmax(0, 138px) !important;
+  justify-content: space-between;
+  gap: 6px !important;
+  min-height: 24px !important;
+}
+
+.export-choice-group,
+.export-value-control {
+  width: 138px !important;
+  justify-self: end;
+}
+
+.export-choice,
+.export-value-control button,
+.export-actions button {
+  min-height: 22px !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  padding-left: 3px !important;
+  padding-right: 3px !important;
+}
+
+.export-choice.active {
+  border: 0 !important;
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+.export-value-control {
+  grid-template-columns: 24px minmax(0, 1fr) 24px !important;
+}
+
+/* No ruler before the final action; one centered export action only. */
+.export-actions {
+  grid-auto-flow: initial !important;
+  grid-template-columns: auto !important;
+  justify-content: center !important;
+  width: 100% !important;
+  margin-top: 3px !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+.export-actions button {
+  min-width: 54px;
+  text-align: center !important;
 }
