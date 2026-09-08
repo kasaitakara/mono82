@@ -4902,8 +4902,8 @@ body {
 }
 
 #theme-button .mono82-theme-paint-icon {
-  width: 13px !important;
-  height: 13px !important;
+  width: 14px !important;
+  height: 15px !important;
   overflow: visible;
   shape-rendering: crispEdges;
 }
@@ -5846,3 +5846,5 @@ body.global-confirm-open #theme-button,
 body.global-confirm-open #global-menu-button {
   visibility: hidden !important;
 }
+
+
