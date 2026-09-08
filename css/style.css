@@ -87,9 +87,9 @@
 }
 
 :root.theme-electro {
-  --bg: #646666;
-  --text: #b8b8b8;
-  --accent: #91d0d4;
+  --bg: #b1afac;
+  --text: #575a5a;
+  --accent: #65a3a8;
 }
 
 :root.theme-game {
@@ -5720,4 +5720,80 @@ body {
 .export-actions button {
   min-width: 54px;
   text-align: center !important;
+}
+
+/* =========================================================
+   Save / export layout refinements 2026-09-08 d
+   ========================================================= */
+
+/* Restore utility text to the visual size used before the 7px pass.
+   Export stays one step smaller so it matches the surrounding app UI
+   without looking oversized. */
+.global-panel,
+.global-confirm-panel,
+.operation-notice {
+  font-size: 10px !important;
+}
+
+.export-modal {
+  font-size: 8px !important;
+}
+
+.export-label,
+.export-modal button,
+.export-modal output {
+  font-size: inherit !important;
+}
+
+/* Thin 13px hamburger: same footprint as the palette icon, lighter stroke. */
+.global-menu-button::before {
+  width: 13px !important;
+  height: 13px !important;
+  background:
+    linear-gradient(currentColor, currentColor) 0 2px / 13px 1px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 6px / 13px 1px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 10px / 13px 1px no-repeat !important;
+}
+
+/* Remove every remaining native button decoration around yes / no. */
+.global-confirm-actions button,
+.global-confirm-actions button:hover,
+.global-confirm-actions button:active,
+.global-confirm-actions button:focus,
+.global-confirm-actions button:focus-visible {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: var(--bg) !important;
+  text-decoration: none !important;
+  padding: 0 !important;
+}
+
+.global-confirm-actions button::before,
+.global-confirm-actions button::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* The progress track was visually appearing above EXPORT because the
+   author display:grid rule overrode the browser's [hidden] rule. */
+.export-progress[hidden] {
+  display: none !important;
+}
+
+.export-actions,
+.export-actions::before,
+.export-actions::after {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+.export-actions::before,
+.export-actions::after {
+  content: none !important;
+  display: none !important;
 }
