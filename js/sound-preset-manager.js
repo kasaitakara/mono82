@@ -226,6 +226,47 @@ export function saveUserPreset({
   return clonePreset(preset);
 }
 
+
+export function renameUserPreset({
+  id,
+  name
+}) {
+  const normalizedName =
+    String(name || "")
+      .trim()
+      .toLowerCase();
+
+  if (
+    !id ||
+    !normalizedName
+  ) {
+    return null;
+  }
+
+  const presets =
+    getUserPresets();
+
+  const index =
+    presets.findIndex(
+      preset =>
+        preset.id === id
+    );
+
+  if (index < 0) {
+    return null;
+  }
+
+  presets[index] = {
+    ...presets[index],
+    name: normalizedName
+  };
+
+  writeUserPresets(presets);
+  return clonePreset(
+    presets[index]
+  );
+}
+
 export function deleteUserPreset(id) {
   const presets =
     getUserPresets();

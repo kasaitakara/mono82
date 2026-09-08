@@ -5888,13 +5888,13 @@ body.global-confirm-open #global-menu-button {
   border: 0 !important;
   background: var(--bg) !important;
   color: var(--text) !important;
-  font-size: var(--mokton-ui-font-size, 7px) !important;
+  font-size: 9px !important;
 }
 
 .sound-preset-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 6px;
   min-height: 24px;
 }
@@ -5909,7 +5909,6 @@ body.global-confirm-open #global-menu-button {
 }
 
 .sound-preset-tab,
-.sound-preset-close,
 .sound-preset-action,
 .sound-preset-save-mode,
 .sound-preset-confirm-actions button,
@@ -5933,10 +5932,6 @@ body.global-confirm-open #global-menu-button {
   color: var(--bg) !important;
 }
 
-.sound-preset-close {
-  min-width: 22px;
-  text-align: center;
-}
 
 .sound-preset-content {
   display: flex;
@@ -5957,6 +5952,41 @@ body.global-confirm-open #global-menu-button {
 
 .sound-preset-list::-webkit-scrollbar {
   display: none;
+}
+
+.sound-preset-row {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 28px;
+  flex: 0 0 auto;
+}
+
+.sound-preset-row .sound-preset-item {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: 28px;
+  background: var(--bg) !important;
+  transition: transform 100ms linear;
+  touch-action: pan-y;
+}
+
+.sound-preset-delete-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 0 auto;
+  width: 62px;
+  min-height: 28px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--text) !important;
+  color: var(--bg) !important;
+  padding: 0 !important;
+  font: inherit !important;
+  text-align: center;
 }
 
 .sound-preset-item {

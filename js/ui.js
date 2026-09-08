@@ -50,6 +50,7 @@ import {
   getFactoryPresets,
   getUserPresets,
   saveUserPreset,
+  renameUserPreset,
   deleteUserPreset,
   captureSoundPreset,
   applySoundPreset,
@@ -1234,17 +1235,6 @@ function openSoundPresetModal() {
       "sound-preset-tab"
     );
 
-  const closeButton =
-    createSoundPresetButton(
-      "×",
-      "sound-preset-close"
-    );
-
-  closeButton.setAttribute(
-    "aria-label",
-    "close preset"
-  );
-
   const tabs =
     document.createElement(
       "div"
@@ -1258,10 +1248,7 @@ function openSoundPresetModal() {
     userTab
   );
 
-  header.append(
-    tabs,
-    closeButton
-  );
+  header.append(tabs);
 
   const content =
     document.createElement(
@@ -1286,23 +1273,6 @@ function openSoundPresetModal() {
 
   actions.className =
     "sound-preset-actions";
-
-  const saveButton =
-    createSoundPresetButton(
-      "save",
-      "sound-preset-action"
-    );
-
-  const deleteButton =
-    createSoundPresetButton(
-      "delete",
-      "sound-preset-action"
-    );
-
-  actions.append(
-    saveButton,
-    deleteButton
-  );
 
   content.append(
     list,
@@ -1392,13 +1362,225 @@ function openSoundPresetModal() {
   }
 
   function currentPresets() {
-    return library === "factory"
-      ? getFactoryPresets(
-          category
-        )
-      : getUserPresets(
-          category
+    const presets =
+      library === "factory"
+        ? getFactoryPresets(
+            category
+          )
+        : getUserPresets(
+            category
+          );
+
+    /*
+     * Manager already filters by category, but keep the UI boundary too.
+     * A melodic preset must never appear in rhythm, and vice versa.
+     */
+    return presets.filter(
+      preset =>
+        preset.category === category
+    );
+  }
+
+  function makeUserPresetRow(
+    preset
+  ) {
+    const row =
+      document.createElement(
+        "div"
+      );
+
+    row.className =
+      "sound-preset-row";
+
+    const deleteButton =
+      createSoundPresetButton(
+        "delete",
+        "sound-preset-delete-button"
+      );
+
+    const item =
+      createSoundPresetButton(
+        preset.name,
+        "sound-preset-item"
+      );
+
+    item.classList.toggle(
+      "active",
+      selected.type === "user" &&
+      selected.id === preset.id
+    );
+
+    let pointerId = null;
+    let startX = 0;
+    let currentX = 0;
+    let swiped = false;
+
+    item.addEventListener(
+      "pointerdown",
+      event => {
+        if (
+          event.pointerType ===
+            "mouse" &&
+          event.button !== 0
+        ) {
+          return;
+        }
+
+        pointerId =
+          event.pointerId;
+        startX =
+          event.clientX;
+        currentX =
+          event.clientX;
+        swiped = false;
+
+        item.setPointerCapture?.(
+          pointerId
         );
+      }
+    );
+
+    item.addEventListener(
+      "pointermove",
+      event => {
+        if (
+          event.pointerId !==
+            pointerId
+        ) {
+          return;
+        }
+
+        currentX =
+          event.clientX;
+
+        const delta =
+          Math.min(
+            0,
+            currentX - startX
+          );
+
+        if (delta < -8) {
+          event.preventDefault();
+        }
+
+        item.style.transform =
+          `translateX(${Math.max(
+            -62,
+            delta
+          )}px)`;
+      }
+    );
+
+    const finishSwipe =
+      event => {
+        if (
+          event.pointerId !==
+            pointerId
+        ) {
+          return;
+        }
+
+        const delta =
+          currentX - startX;
+
+        swiped =
+          delta < -28;
+
+        item.style.transform =
+          swiped
+            ? "translateX(-62px)"
+            : "translateX(0)";
+
+        pointerId = null;
+      };
+
+    item.addEventListener(
+      "pointerup",
+      finishSwipe
+    );
+
+    item.addEventListener(
+      "pointercancel",
+      () => {
+        pointerId = null;
+        item.style.transform =
+          "translateX(0)";
+      }
+    );
+
+    item.addEventListener(
+      "click",
+      event => {
+        if (swiped) {
+          event.preventDefault();
+          swiped = false;
+          return;
+        }
+
+        applySelection(
+          preset,
+          "user"
+        );
+      }
+    );
+
+    deleteButton.addEventListener(
+      "click",
+      () =>
+        openDeleteView(
+          preset
+        )
+    );
+
+    row.append(
+      deleteButton,
+      item
+    );
+
+    return row;
+  }
+
+  function renderActions() {
+    actions.replaceChildren();
+
+    if (selected.type === "now") {
+      const saveButton =
+        createSoundPresetButton(
+          "save",
+          "sound-preset-action"
+        );
+
+      saveButton.addEventListener(
+        "click",
+        openSaveView
+      );
+
+      actions.append(
+        saveButton
+      );
+      return;
+    }
+
+    if (
+      library === "user" &&
+      selected.type === "user" &&
+      selected.id
+    ) {
+      const renameButton =
+        createSoundPresetButton(
+          "rename",
+          "sound-preset-action"
+        );
+
+      renameButton.addEventListener(
+        "click",
+        openRenameView
+      );
+
+      actions.append(
+        renameButton
+      );
+    }
   }
 
   function renderList() {
@@ -1428,6 +1610,15 @@ function openSoundPresetModal() {
 
     currentPresets()
       .forEach(preset => {
+        if (library === "user") {
+          list.append(
+            makeUserPresetRow(
+              preset
+            )
+          );
+          return;
+        }
+
         const button =
           createSoundPresetButton(
             preset.name,
@@ -1436,7 +1627,7 @@ function openSoundPresetModal() {
 
         button.classList.toggle(
           "active",
-          selected.type === library &&
+          selected.type === "factory" &&
           selected.id === preset.id
         );
 
@@ -1445,21 +1636,14 @@ function openSoundPresetModal() {
           () =>
             applySelection(
               preset,
-              library
+              "factory"
             )
         );
 
         list.append(button);
       });
 
-    deleteButton.hidden =
-      library !== "user";
-
-    deleteButton.disabled =
-      !(
-        selected.type === "user" &&
-        selected.id
-      );
+    renderActions();
   }
 
   function restoreLibraryView() {
@@ -1470,9 +1654,11 @@ function openSoundPresetModal() {
     renderList();
   }
 
-  function saveAsView(
-    initialValue = ""
-  ) {
+  function openSaveView() {
+    if (selected.type !== "now") {
+      return;
+    }
+
     const saveView =
       document.createElement(
         "div"
@@ -1489,9 +1675,9 @@ function openSoundPresetModal() {
     label.className =
       "sound-preset-current";
     label.textContent =
-      `current preset ${selected.name}`;
+      "save now";
 
-    const finishSaveAs = value => {
+    const finishSave = value => {
       const saved =
         saveUserPreset({
           category,
@@ -1530,26 +1716,14 @@ function openSoundPresetModal() {
 
     const nameEditor =
       createSoundPresetNameInput({
-        initialValue,
+        initialValue: "",
         onSubmit:
-          finishSaveAs
+          finishSave
       });
-
-    const cancel =
-      createSoundPresetButton(
-        "cancel",
-        "sound-preset-action"
-      );
-
-    cancel.addEventListener(
-      "click",
-      restoreLibraryView
-    );
 
     saveView.append(
       label,
-      nameEditor.root,
-      cancel
+      nameEditor.root
     );
 
     content.replaceChildren(
@@ -1567,24 +1741,20 @@ function openSoundPresetModal() {
     );
   }
 
-  function openSaveView() {
+  function openRenameView() {
     if (
-      selected.type !== "user"
+      selected.type !== "user" ||
+      !selected.id
     ) {
-      saveAsView(
-        selected.type === "now"
-          ? ""
-          : selected.name
-      );
       return;
     }
 
-    const saveView =
+    const renameView =
       document.createElement(
         "div"
       );
 
-    saveView.className =
+    renameView.className =
       "sound-preset-save-view";
 
     const label =
@@ -1595,92 +1765,70 @@ function openSoundPresetModal() {
     label.className =
       "sound-preset-current";
     label.textContent =
-      `current preset ${selected.name}`;
+      `rename ${selected.name}`;
 
-    const choices =
-      document.createElement(
-        "div"
-      );
-
-    choices.className =
-      "sound-preset-save-modes";
-
-    const overwrite =
-      createSoundPresetButton(
-        "overwrite",
-        "sound-preset-save-mode"
-      );
-
-    const saveAs =
-      createSoundPresetButton(
-        "save as",
-        "sound-preset-save-mode"
-      );
-
-    const cancel =
-      createSoundPresetButton(
-        "cancel",
-        "sound-preset-action"
-      );
-
-    overwrite.addEventListener(
-      "click",
-      () => {
-        const saved =
-          saveUserPreset({
+    const finishRename =
+      value => {
+        const renamed =
+          renameUserPreset({
             id: selected.id,
-            category,
-            name: selected.name,
-            sound: targetSound
+            name: value
           });
 
-        if (!saved) {
+        if (!renamed) {
           return;
         }
 
+        ensureHistory();
+
         selected = {
           type: "user",
-          id: saved.id,
-          name: saved.name
+          id: renamed.id,
+          name: renamed.name
         };
 
+        /*
+         * The selected preset is already applied to this Sound.
+         * Rename changes the label only; timbre data is never re-saved.
+         */
+        targetSound.name =
+          renamed.name;
+
+        renderEditor();
         restoreLibraryView();
-      }
-    );
+      };
 
-    saveAs.addEventListener(
-      "click",
-      () =>
-        saveAsView(
-          selected.name
-        )
-    );
+    const nameEditor =
+      createSoundPresetNameInput({
+        initialValue:
+          selected.name,
+        onSubmit:
+          finishRename
+      });
 
-    cancel.addEventListener(
-      "click",
-      restoreLibraryView
-    );
-
-    choices.append(
-      overwrite,
-      saveAs
-    );
-
-    saveView.append(
+    renameView.append(
       label,
-      choices,
-      cancel
+      nameEditor.root
     );
 
     content.replaceChildren(
-      saveView
+      renameView
+    );
+
+    requestAnimationFrame(
+      () => {
+        nameEditor.input.focus();
+        nameEditor.input.select();
+      }
     );
   }
 
-  function openDeleteView() {
+  function openDeleteView(
+    preset
+  ) {
     if (
-      selected.type !== "user" ||
-      !selected.id
+      !preset ||
+      preset.category !== category
     ) {
       return;
     }
@@ -1699,7 +1847,7 @@ function openSoundPresetModal() {
       );
 
     message.textContent =
-      `delete ${selected.name}?`;
+      `delete ${preset.name}?`;
 
     const confirmActions =
       document.createElement(
@@ -1729,21 +1877,26 @@ function openSoundPresetModal() {
       () => {
         if (
           !deleteUserPreset(
-            selected.id
+            preset.id
           )
         ) {
           return;
         }
 
-        selected = {
-          type: "custom",
-          id: null,
-          name:
-            String(
-              targetSound.name ||
-              "now"
-            )
-        };
+        if (
+          selected.type === "user" &&
+          selected.id === preset.id
+        ) {
+          selected = {
+            type: "custom",
+            id: null,
+            name:
+              String(
+                targetSound.name ||
+                "now"
+              )
+          };
+        }
 
         restoreLibraryView();
       }
@@ -1801,21 +1954,6 @@ function openSoundPresetModal() {
       )
   );
 
-  saveButton.addEventListener(
-    "click",
-    openSaveView
-  );
-
-  deleteButton.addEventListener(
-    "click",
-    openDeleteView
-  );
-
-  closeButton.addEventListener(
-    "click",
-    closePreset
-  );
-
   overlay.addEventListener(
     "pointerdown",
     event => {
@@ -1836,7 +1974,7 @@ function openSoundPresetModal() {
   );
 
   renderList();
-  closeButton.focus();
+  factoryTab.focus();
 }
 
 function formatParameterValue(
