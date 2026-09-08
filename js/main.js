@@ -1612,6 +1612,16 @@ function makePanel(
 function showConfirm(
   message
 ) {
+  // Remove focus from the command/list control that opened the confirm.
+  // On iOS/WebKit a focused transparent/native control can leave a tiny
+  // underline-like focus artifact visible behind the transparent confirm layer.
+  if (
+    document.activeElement &&
+    typeof document.activeElement.blur === "function"
+  ) {
+    document.activeElement.blur();
+  }
+
   return new Promise(resolve => {
     const layer =
       document.createElement(

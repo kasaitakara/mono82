@@ -87,9 +87,9 @@
 }
 
 :root.theme-electro {
-  --bg: #8baa43;
-  --text: #486828;
-  --accent: #c5c5c5;
+  --bg: #eeeeee;
+  --text: #575757;
+  --accent: #9a225a;
 }
 
 :root.theme-game {
