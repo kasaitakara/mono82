@@ -5885,7 +5885,7 @@ body.global-confirm-open #global-menu-button {
   width: min(calc(100% - 28px), 238px) !important;
   max-height: min(62dvh, 420px);
   padding: 8px !important;
-  border: 0 !important;
+  border: 1px solid var(--text) !important;
   background: var(--bg) !important;
   color: var(--text) !important;
   font-size: 9px !important;
@@ -5970,6 +5970,11 @@ body.global-confirm-open #global-menu-button {
   background: var(--bg) !important;
   transition: transform 100ms linear;
   touch-action: pan-y;
+}
+
+.sound-preset-row .sound-preset-item.active {
+  background: var(--text) !important;
+  color: var(--bg) !important;
 }
 
 .sound-preset-delete-button {

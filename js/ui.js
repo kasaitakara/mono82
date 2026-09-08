@@ -1142,12 +1142,20 @@ function openSoundPresetModal() {
     selectedSound();
 
   const category =
-    state.selectedLayer ===
-      "rhythm"
+    RHYTHM_SOUND_IDS.includes(
+      state.selectedSoundId
+    )
       ? "rhythm"
-      : "melodic";
+      : MELODIC_SOUND_IDS.includes(
+          state.selectedSoundId
+        )
+        ? "melodic"
+        : null;
 
-  if (!targetSound) {
+  if (
+    !targetSound ||
+    !category
+  ) {
     return;
   }
 
