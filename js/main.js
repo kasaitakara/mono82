@@ -1669,6 +1669,7 @@ function showConfirm(
 
     const finish = value => {
       layer.remove();
+      document.body.classList.remove("global-confirm-open");
       resolve(value);
     };
 
@@ -1718,6 +1719,7 @@ function showConfirm(
     }
 
     layer.append(panel);
+    document.body.classList.add("global-confirm-open");
     document.body.append(layer);
     });
 }

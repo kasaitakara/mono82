@@ -87,9 +87,9 @@
 }
 
 :root.theme-electro {
-  --bg: #eeeeee;
-  --text: #575757;
-  --accent: #9a225a;
+  --bg: #acabab;
+  --text: #646666;
+  --accent: #65a3a8;
 }
 
 :root.theme-game {
@@ -5834,4 +5834,15 @@ body {
 .operation-notice,
 .export-modal {
   font-size: 9px !important;
+}
+
+
+/* =========================================================
+   Confirm overlay: hide header action glyphs underneath.
+   Their 1px bottom SVG/pseudo-element edges can peek through the
+   intentionally transparent confirm layer on iOS/WebKit.
+   ========================================================= */
+body.global-confirm-open #theme-button,
+body.global-confirm-open #global-menu-button {
+  visibility: hidden !important;
 }
