@@ -1,5 +1,5 @@
 import {
-  STEP_COUNT,
+  patternStepLength,
   patterns,
   soundBank,
   song,
@@ -59,7 +59,7 @@ function sourceData(type, index) {
 }
 
 function sourceLength(source) {
-  return STEP_COUNT;
+  return patternStepLength(source);
 }
 
 function sourceDuration(item, bpm) {
@@ -382,7 +382,7 @@ async function scheduleSource({
 
   for (
     let tick = 0;
-    tick < STEP_COUNT;
+    tick < sourceLength(source);
     tick++
   ) {
     assertNotCancelled(signal);
@@ -440,7 +440,7 @@ async function scheduleSource({
     });
   }
 
-  return STEP_COUNT *
+  return sourceLength(source) *
     stepSeconds;
 }
 

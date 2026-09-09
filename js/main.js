@@ -1,5 +1,5 @@
 import {
-  STEP_COUNT,
+  patternStepLength,
   patterns,
   soundBank,
   song,
@@ -191,7 +191,9 @@ function resyncPlaybackClockAfterBackground() {
     state.playbackTickIndex === null
       ? null
       : state.playbackTickIndex %
-        STEP_COUNT
+        patternStepLength(
+          currentPlaybackPattern()
+        )
   );
 
   scheduleNextTick();
@@ -329,6 +331,10 @@ const HELP_CONTENT = {
   patternEdit: {
     en: { title: "pattern edit", body: "opens the selected pattern in the sequencer for editing." },
     ja: { title: "パターン編集", body: "選択中のパターンをシーケンサーで編集します。" }
+  },
+  patternLength: {
+    en: { title: "pattern length", body: "sets the number of steps played in this pattern from 1 to 32. swipe up/down to change. steps beyond the selected length are kept and return when the length is increased again." },
+    ja: { title: "パターン長", body: "このパターンで再生するステップ数を1〜32で設定します。上下にスイープして変更します。設定した長さより後ろのステップ情報は消去されず、長さを戻すと再び使用できます。" }
   },
   patternLoop: {
     en: { title: "pattern loop", body: "loops the selected pattern. tap again to stop looping. if multiple patterns are selected, all selected patterns are looped." },
@@ -665,6 +671,7 @@ const HELP_TARGET_SELECTORS = [
   ".master-control",
   ".bpm-control",
   "#current-source-display",
+  "#pattern-length-control",
   "#sequence-grid",
   ".mokton-sequence-tools > button",
   "#pattern-edit-button",
@@ -819,6 +826,8 @@ function refreshHelpTargets() {
             element.dataset.helpKey = element.title === "solo" ? "solo" : "mute";
           } else if (element.id === "current-source-display") {
             element.dataset.helpKey = "pattern";
+          } else if (element.id === "pattern-length-control") {
+            element.dataset.helpKey = "patternLength";
           } else if (element.id === "pattern-edit-button") {
             element.dataset.helpKey = "patternEdit";
           } else if (element.id === "pattern-loop-button") {
@@ -1377,9 +1386,12 @@ function playStepAtTick(
     return;
   }
 
+  const patternLength =
+    patternStepLength(pattern);
+
   const stepIndex =
     playbackTickIndex %
-    STEP_COUNT;
+    patternLength;
 
   /*
    * Swing:
@@ -1542,10 +1554,15 @@ function scheduleAudioAhead(
   const stepDurationMs =
     duration();
 
+  const sourceLength =
+    patternStepLength(
+      currentPlaybackPattern()
+    );
+
   const remainingSteps =
     Math.max(
       0,
-      STEP_COUNT -
+      sourceLength -
         1 -
         currentPlayingStepIndex
     );
@@ -1648,9 +1665,14 @@ function tick() {
   const nextStepIndex =
     state.playingStepIndex + 1;
 
+  const sourceLength =
+    patternStepLength(
+      currentPlaybackPattern()
+    );
+
   if (
     nextStepIndex >=
-    STEP_COUNT
+    sourceLength
   ) {
     const perfSwitchStartedAt =
       performance.now();

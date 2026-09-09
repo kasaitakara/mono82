@@ -199,6 +199,7 @@ function makePatternData(id) {
   return {
     id,
     repeat: 1,
+    length: STEP_COUNT,
     sequence: createPatternSequence()
   };
 }
@@ -335,6 +336,46 @@ export function selectSound(soundId) {
 
 export function currentPattern() {
   return patterns[state.selectedPatternIndex] ?? null;
+}
+
+export function patternStepLength(pattern = currentPattern()) {
+  return clamp(
+    Math.round(Number(pattern?.length) || STEP_COUNT),
+    1,
+    STEP_COUNT
+  );
+}
+
+export function currentPatternStepLength() {
+  return patternStepLength(currentPattern());
+}
+
+export function setCurrentPatternStepLength(length) {
+  const pattern = currentPattern();
+  if (!pattern) return false;
+
+  const next = clamp(
+    Math.round(Number(length) || STEP_COUNT),
+    1,
+    STEP_COUNT
+  );
+
+  if (patternStepLength(pattern) === next) {
+    pattern.length = next;
+    return false;
+  }
+
+  pattern.length = next;
+  state.patternLength = next;
+  return true;
+}
+
+function activeStepIndex(stepIndex) {
+  return (
+    Number.isInteger(stepIndex) &&
+    stepIndex >= 0 &&
+    stepIndex < currentPatternStepLength()
+  );
 }
 
 export function currentSequence() {
@@ -776,6 +817,7 @@ export function setStepLayer(stepIndex, layer, data) {
 }
 
 export function clearStepLayer(stepIndex, layer) {
+  if (!activeStepIndex(stepIndex)) return false;
   const step = currentStep(stepIndex);
   if (!step || !["melodic", "rhythm"].includes(layer)) {
     return false;
@@ -792,6 +834,7 @@ export function clearStepLayer(stepIndex, layer) {
 }
 
 export function clearStep(stepIndex) {
+  if (!activeStepIndex(stepIndex)) return false;
   const sequence = currentSequence();
   if (!sequence[stepIndex]) return false;
 
@@ -801,6 +844,7 @@ export function clearStep(stepIndex) {
 }
 
 export function placeSelectedSound(stepIndex) {
+  if (!activeStepIndex(stepIndex)) return false;
   const step = currentStep(stepIndex);
   if (!step) return false;
 
@@ -847,6 +891,7 @@ export function currentSourceLabel() {
 let editClipboard = null;
 
 export function copyStepToEditClipboard(stepIndex) {
+  if (!activeStepIndex(stepIndex)) return false;
   const step = currentStep(stepIndex);
   if (!step) return false;
 
@@ -866,7 +911,7 @@ export function copyStepToEditClipboard(stepIndex) {
 }
 
 export function pasteStepFromEditClipboard(stepIndex) {
-  if (!editClipboard?.step) return false;
+  if (!editClipboard?.step || !activeStepIndex(stepIndex)) return false;
 
   const sequence = currentSequence();
   if (!sequence[stepIndex]) return false;
@@ -899,8 +944,9 @@ export function clearEditClipboard() {
 
 export function copyStepRangeToEditClipboard(startIndex, endIndex) {
   const sequence = currentSequence();
-  const start = clamp(Math.min(startIndex, endIndex), 0, STEP_COUNT - 1);
-  const end = clamp(Math.max(startIndex, endIndex), 0, STEP_COUNT - 1);
+  const limit = currentPatternStepLength();
+  const start = clamp(Math.min(startIndex, endIndex), 0, limit - 1);
+  const end = clamp(Math.max(startIndex, endIndex), 0, limit - 1);
 
   patternClipboard = null;
   layerClipboards.melodic = null;
@@ -917,7 +963,9 @@ export function pasteStepClipboardAt(stepIndex) {
   if (!editClipboard) return false;
 
   const sequence = currentSequence();
-  const start = clamp(stepIndex, 0, STEP_COUNT - 1);
+  const limit = currentPatternStepLength();
+  if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= limit) return false;
+  const start = stepIndex;
 
   if (editClipboard.type === "step") {
     if (!editClipboard.step || !sequence[start]) return false;
@@ -940,7 +988,7 @@ export function pasteStepClipboardAt(stepIndex) {
 
     steps.forEach((step, offset) => {
       const targetIndex = start + offset;
-      if (targetIndex >= STEP_COUNT || !sequence[targetIndex]) return;
+      if (targetIndex >= limit || !sequence[targetIndex]) return;
 
       sequence[targetIndex] = normalizeSequenceStep(
         structuredClone(step)
@@ -1002,8 +1050,9 @@ export function pastePatternClipboardAt(patternIndex) {
 export function copyLayerRangeToClipboard(layer, startIndex, endIndex) {
   if (!(layer in layerClipboards)) return false;
   const sequence = currentSequence();
-  const start = clamp(Math.min(startIndex, endIndex), 0, STEP_COUNT - 1);
-  const end = clamp(Math.max(startIndex, endIndex), 0, STEP_COUNT - 1);
+  const limit = currentPatternStepLength();
+  const start = clamp(Math.min(startIndex, endIndex), 0, limit - 1);
+  const end = clamp(Math.max(startIndex, endIndex), 0, limit - 1);
 
   /*
    * A new Offset clip replaces every previous clip,
@@ -1027,12 +1076,14 @@ export function pasteLayerClipboardAt(layer, stepIndex) {
   const clip = layerClipboards[layer];
   if (!clip?.items?.length) return false;
   const sequence = currentSequence();
-  const start = clamp(stepIndex, 0, STEP_COUNT - 1);
+  const limit = currentPatternStepLength();
+  if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= limit) return false;
+  const start = stepIndex;
   if (!sequence[start]) return false;
   saveHistory();
   clip.items.forEach((item, offset) => {
     const targetIndex = start + offset;
-    if (!sequence[targetIndex]) return;
+    if (targetIndex >= limit || !sequence[targetIndex]) return;
     sequence[targetIndex][layer] = structuredClone(item);
   });
   return true;
@@ -1079,26 +1130,31 @@ export function clearSourceClipboard() {
 
 export function shiftSequence(direction) {
   const sequence = currentSequence();
-  if (!sequence.length) return false;
+  const length = currentPatternStepLength();
+  if (!sequence.length || length < 1) return false;
 
   saveHistory();
 
+  const active = sequence.slice(0, length);
+
   if (direction < 0) {
-    sequence.push(sequence.shift());
+    active.push(active.shift());
   } else {
-    sequence.unshift(sequence.pop());
+    active.unshift(active.pop());
   }
 
+  sequence.splice(0, length, ...active);
   return true;
 }
 
 export function randomizeSequence() {
   const sequence = currentSequence();
-  if (!sequence.length) return false;
+  const length = currentPatternStepLength();
+  if (!sequence.length || length < 1) return false;
 
   saveHistory();
 
-  for (let i = sequence.length - 1; i > 0; i--) {
+  for (let i = length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [sequence[i], sequence[j]] = [sequence[j], sequence[i]];
   }
@@ -1197,6 +1253,12 @@ function normalizePattern(
     Math.round(Number(pattern.repeat) || 1),
     1,
     99
+  );
+
+  pattern.length = clamp(
+    Math.round(Number(pattern.length) || STEP_COUNT),
+    1,
+    STEP_COUNT
   );
 
   const oldSequence = Array.isArray(pattern.sequence)
@@ -1488,7 +1550,7 @@ export function getMaxTrackLength() {
 }
 
 export function syncPatternLength() {
-  state.patternLength = STEP_COUNT;
+  state.patternLength = currentPatternStepLength();
 }
 
 export function selectedTrack() {

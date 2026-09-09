@@ -6258,3 +6258,36 @@ body.help-mode #global-menu-button:active::before,
 body.help-mode #global-menu-button.active::before {
   color: var(--text) !important;
 }
+
+
+/* =========================================================
+   mono82 v64: per-Pattern Step Length
+   ========================================================= */
+
+.sequence-section #pattern-length-control {
+  min-width: 0 !important;
+  min-height: 22px !important;
+  margin: 0 0 0 6px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-family: inherit !important;
+  font-size: 7px !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  touch-action: none !important;
+}
+
+.sequence-section #pattern-length-control > span {
+  color: inherit !important;
+  font: inherit !important;
+}
+
+/* Keep all 32 preview cells geometrically present; Length-excluded cells are silent/hidden. */
+.mokton-pattern-preview-step.inactive {
+  visibility: hidden !important;
+}

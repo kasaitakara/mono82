@@ -10,6 +10,9 @@ import {
   selectPattern,
   queuePattern,
   currentPattern,
+  currentPatternStepLength,
+  patternStepLength,
+  setCurrentPatternStepLength,
   currentStep,
   placeSelectedSound,
   clearStepLayer,
@@ -92,6 +95,16 @@ const currentProjectName =
 const currentSourceDisplay =
   document.getElementById(
     "current-source-display"
+  );
+
+const patternLengthControl =
+  document.getElementById(
+    "pattern-length-control"
+  );
+
+const patternLengthValue =
+  document.getElementById(
+    "pattern-length-value"
   );
 
 const sequenceGrid =
@@ -445,6 +458,18 @@ function patternLabel(
 }
 
 
+function playbackPatternStepLength() {
+  const index =
+    state.playingPatternIndex ??
+    state.selectedPatternIndex ??
+    0;
+
+  return patternStepLength(
+    patterns[index] ?? currentPattern()
+  );
+}
+
+
 function renderCurrentSourceDisplay() {
   if (!currentSourceDisplay) {
     return;
@@ -457,6 +482,75 @@ function renderCurrentSourceDisplay() {
     patternLabel();
 }
 
+function renderPatternLengthControl() {
+  if (!patternLengthValue) return;
+  patternLengthValue.textContent =
+    String(currentPatternStepLength());
+}
+
+function enablePatternLengthVerticalSwipe() {
+  if (!patternLengthControl) return;
+
+  let pointerId = null;
+  let startY = 0;
+  let startValue = STEP_COUNT;
+  let historySaved = false;
+
+  patternLengthControl.addEventListener("pointerdown", event => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+
+    event.preventDefault();
+    pointerId = event.pointerId;
+    startY = event.clientY;
+    startValue = currentPatternStepLength();
+    historySaved = false;
+    patternLengthControl.setPointerCapture?.(event.pointerId);
+  });
+
+  patternLengthControl.addEventListener("pointermove", event => {
+    if (event.pointerId !== pointerId) return;
+    event.preventDefault();
+
+    const next = clamp(
+      Math.round(startValue + (startY - event.clientY) / 2),
+      1,
+      STEP_COUNT
+    );
+
+    if (next === currentPatternStepLength()) return;
+
+    if (!historySaved) {
+      saveHistory();
+      historySaved = true;
+    }
+
+    setCurrentPatternStepLength(next);
+    renderPatternLengthControl();
+    renderSequence();
+    renderPatternManager();
+    renderSequenceTools();
+  });
+
+  const finish = event => {
+    if (event.pointerId !== pointerId) return;
+
+    if (patternLengthControl.hasPointerCapture?.(event.pointerId)) {
+      patternLengthControl.releasePointerCapture(event.pointerId);
+    }
+
+    pointerId = null;
+
+    if (historySaved) {
+      window.dispatchEvent(new CustomEvent("sequencechange"));
+      window.dispatchEvent(new Event("projectchange"));
+    }
+  };
+
+  patternLengthControl.addEventListener("pointerup", finish);
+  patternLengthControl.addEventListener("pointercancel", finish);
+}
+
+enablePatternLengthVerticalSwipe();
 
 
 const SVG_NS =
@@ -5730,7 +5824,7 @@ function createStepButton(
       null
       ? -1
       : state.playbackTickIndex %
-        STEP_COUNT;
+        playbackPatternStepLength();
 
   button.classList.toggle(
     "playing",
@@ -6157,7 +6251,7 @@ function createStepButton(
             targetIndex
           ) &&
           targetIndex >= 0 &&
-          targetIndex < STEP_COUNT
+          targetIndex < currentPatternStepLength()
         ) {
           clipGesture.endIndex =
             targetIndex;
@@ -6524,7 +6618,7 @@ export function renderSequence() {
   for (
     let stepIndex = 0;
     stepIndex <
-      STEP_COUNT;
+      currentPatternStepLength();
     stepIndex++
   ) {
     wrapper.appendChild(
@@ -7031,12 +7125,21 @@ function createPatternButton(
     miniStep.dataset.stepIndex =
       String(stepIndex);
 
+    const active =
+      stepIndex < patternStepLength(pattern);
+
+    miniStep.classList.toggle(
+      "inactive",
+      !active
+    );
+
     /*
      * Song preview deliberately ignores Layer/Sound identity.
-     * Any content in either layer = one foreground square.
+     * Length-excluded STEP data is retained internally but hidden here.
      */
     miniStep.classList.toggle(
       "occupied",
+      active &&
       Boolean(
         step?.melodic?.soundId ||
         step?.rhythm?.soundId
@@ -7772,10 +7875,10 @@ export function resetPlayingStepDisplay(
 export function updatePlayingStep() {
   const fallbackStep =
     state.playbackTickIndex ===
-    null
+      null
       ? null
       : state.playbackTickIndex %
-        STEP_COUNT;
+        playbackPatternStepLength();
 
   paintPlayingStep(
     visualPlayingStepIndex ??
@@ -8043,6 +8146,7 @@ export function render() {
   void refreshProjectName();
 
   renderCurrentSourceDisplay();
+  renderPatternLengthControl();
   renderSequenceTools();
   renderEditor();
   renderSequence();
