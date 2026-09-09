@@ -1773,11 +1773,12 @@ function enableRelativeVolumeDrag({
   min = 0,
   max = 100,
   step = 1,
+  pixelsPerStep = 2,
   onStart,
   onFinish
 }) {
   let pointerId = null;
-  let startX = 0;
+  let startY = 0;
   let startValue = 0;
   let currentValue = 0;
   let moved = false;
@@ -1795,30 +1796,13 @@ function enableRelativeVolumeDrag({
         return;
       }
 
-      /*
-       * スライダー表示部分を触った場合だけ
-       * ボリューム操作を開始する。
-       */
-      const sliderRect =
-        slider.getBoundingClientRect();
-
-      const insideSlider =
-        event.clientX >= sliderRect.left &&
-        event.clientX <= sliderRect.right &&
-        event.clientY >= sliderRect.top &&
-        event.clientY <= sliderRect.bottom;
-
-      if (!insideSlider) {
-        return;
-      }
-
       event.preventDefault();
 
       pointerId =
         event.pointerId;
 
-      startX =
-        event.clientX;
+      startY =
+        event.clientY;
 
       startValue =
         clamp(
@@ -1852,30 +1836,16 @@ function enableRelativeVolumeDrag({
 
       event.preventDefault();
 
-      const sliderRect =
-        slider.getBoundingClientRect();
-
-      /*
-       * 58pxで0～100だと敏感すぎるため、
-       * スライダー幅の約2倍を全変化幅にする。
-       */
-      const dragWidth =
-        Math.max(
-          1,
-          sliderRect.width * 2
-        );
-
-      const movementX =
-        event.clientX -
-        startX;
+      const movementY =
+        startY -
+        event.clientY;
 
       const rawValue =
         startValue +
         (
-          movementX /
-          dragWidth
-        ) *
-        (max - min);
+          movementY /
+          Math.max(1, pixelsPerStep)
+        ) * step;
 
       const steppedValue =
         Math.round(
@@ -1998,6 +1968,7 @@ enableRelativeVolumeDrag({
   min: 0,
   max: 100,
   step: 1,
+  pixelsPerStep: 2,
 
   onFinish: (
     startValue,

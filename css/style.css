@@ -6217,3 +6217,28 @@ body.help-mode .mokton-selected-sound-name:active {
 body.help-mode #mini-eq-meter {
   pointer-events: auto !important;
 }
+
+
+/* mono82 v50: VOL/BPM interaction cleanup.
+   Keep their appearance unchanged while touching/focusing. */
+.master-control,
+.bpm-control,
+.master-control *,
+.bpm-control * {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.master-control:active,
+.bpm-control:active,
+.master-control *:active,
+.bpm-control *:active {
+  opacity: 1 !important;
+}
+
+#bpm-input:focus,
+#bpm-input:focus-visible,
+#bpm-input:active {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
