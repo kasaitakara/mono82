@@ -39,6 +39,8 @@ const PROJECT_MIGRATION_KEY =
   "sprooto-project-migration-idb-v1";
 
 const PROJECT_SCHEMA_VERSION = 1;
+const PROJECT_FILE_FORMAT = "mono82-project";
+const PROJECT_FILE_VERSION = 1;
 const AUTOSAVE_DELAY = 250;
 const EMERGENCY_RECOVERY_KEY = "mono82-emergency-recovery-v1";
 
@@ -706,6 +708,154 @@ export async function getCurrentProjectMeta() {
         exists: false
       }
     : null;
+}
+
+/* =========================
+ * Portable .mono project files
+ * ========================= */
+
+export function createProjectBackupPackage() {
+  return {
+    format: PROJECT_FILE_FORMAT,
+    formatVersion: PROJECT_FILE_VERSION,
+    exportedAt:
+      new Date().toISOString(),
+    project: {
+      name:
+        getCurrentProjectName() ??
+        localDateCode(),
+      settings:
+        currentProjectSettings(),
+      data:
+        createProjectSnapshot()
+    }
+  };
+}
+
+export async function importProjectBackupText(
+  text
+) {
+  try {
+    const packageData =
+      JSON.parse(String(text ?? ""));
+
+    if (
+      packageData?.format !==
+        PROJECT_FILE_FORMAT ||
+      Number(packageData?.formatVersion) !==
+        PROJECT_FILE_VERSION ||
+      !packageData?.project ||
+      !projectDataIsValid(
+        packageData.project.data
+      )
+    ) {
+      return null;
+    }
+
+    const previousId =
+      getCurrentProjectId();
+
+    const record =
+      await createProjectRecord({
+        name:
+          packageData.project.name,
+        data:
+          structuredClone(
+            packageData.project.data
+          ),
+        settings:
+          structuredClone(
+            packageData.project.settings ??
+            {
+              bpm: 120,
+              masterVolume: 70
+            }
+          )
+      });
+
+    suspendDirtyTracking = true;
+
+    let restored = false;
+
+    try {
+      restored =
+        restoreProjectRecord(
+          record
+        );
+    } finally {
+      suspendDirtyTracking = false;
+    }
+
+    if (!restored) {
+      await removeProjectRecord(
+        record.id
+      );
+      return null;
+    }
+
+    if (
+      previousId &&
+      previousId !== record.id
+    ) {
+      await removeRecoveryRecord(
+        previousId
+      );
+    }
+
+    /*
+     * Store the normalized in-memory form produced by
+     * restoreProjectSnapshot(). This also migrates any compatible legacy
+     * values contained in an older .mono file.
+     */
+    record.data =
+      createProjectSnapshot();
+    record.settings =
+      currentProjectSettings();
+    record.updatedAt =
+      new Date().toISOString();
+
+    await writeProjectRecord(
+      record
+    );
+
+    setCurrentProjectId(
+      record.id
+    );
+    setCurrentProjectName(
+      record.name
+    );
+
+    await writeRecoveryRecord({
+      id: record.id,
+      name: record.name,
+      updatedAt: record.updatedAt,
+      settings: record.settings,
+      data: record.data
+    });
+
+    clearTimeout(
+      autosaveTimer
+    );
+
+    autosaveTimer = null;
+    recoveryDirty = false;
+    dirty = false;
+
+    clearHistory();
+
+    dispatchProjectChange(
+      "import",
+      record
+    );
+
+    return record.id;
+  } catch (error) {
+    console.error(
+      "mono82 project import failed:",
+      error
+    );
+    return null;
+  }
 }
 
 async function saveRecoveryNow() {

@@ -50,7 +50,9 @@ import {
   hasUnsavedChanges,
   saveAsProject,
   renameProject,
-  deleteProject
+  deleteProject,
+  createProjectBackupPackage,
+  importProjectBackupText
 } from "./storage.js";
 
 import {
@@ -231,11 +233,11 @@ const HELP_CONTENT = {
   menu: {
     en: {
       title: "menu",
-      body: "opens the project menu for creating, loading, saving, duplicating, and exporting songs."
+      body: "opens the project menu for creating, loading, saving, duplicating, importing, backing up, and exporting songs."
     },
     ja: {
       title: "メニュー",
-      body: "曲の新規作成、読み込み、保存、複製保存、書き出しを行うメニューを開きます。"
+      body: "曲の新規作成、読み込み、保存、複製保存、.monoファイルの読み込み／バックアップ、音声書き出しを行うメニューを開きます。"
     }
   },
   play: {
@@ -3025,6 +3027,173 @@ async function beginNewProjectFlow() {
   await showProjectList("new");
 }
 
+function safeProjectBackupFileName(
+  name
+) {
+  const cleaned =
+    String(name || "project")
+      .trim()
+      .replace(
+        /[\\/:*?"<>|\x00-\x1f]/g,
+        "-"
+      )
+      .replace(/\.+$/g, "")
+      .trim();
+
+  return cleaned || "project";
+}
+
+function downloadCurrentProjectBackup() {
+  try {
+    const packageData =
+      createProjectBackupPackage();
+
+    const fileName =
+      `${safeProjectBackupFileName(
+        packageData.project?.name
+      )}.mono`;
+
+    const blob =
+      new Blob(
+        [
+          JSON.stringify(
+            packageData
+          )
+        ],
+        {
+          type:
+            "application/octet-stream"
+        }
+      );
+
+    const url =
+      URL.createObjectURL(
+        blob
+      );
+
+    const anchor =
+      document.createElement(
+        "a"
+      );
+
+    anchor.href = url;
+    anchor.download =
+      fileName;
+    anchor.style.display =
+      "none";
+
+    document.body.append(
+      anchor
+    );
+    anchor.click();
+    anchor.remove();
+
+    window.setTimeout(
+      () =>
+        URL.revokeObjectURL(
+          url
+        ),
+      1000
+    );
+
+    closeGlobalOverlay();
+    showNotice("backup…");
+  } catch (error) {
+    console.error(
+      "mono82 project backup failed:",
+      error
+    );
+    showNotice("backup failed");
+  }
+}
+
+function chooseProjectImportFile() {
+  const input =
+    document.createElement(
+      "input"
+    );
+
+  input.type = "file";
+  input.accept =
+    ".mono,application/octet-stream,application/json";
+  input.style.display =
+    "none";
+
+  input.addEventListener(
+    "change",
+    async () => {
+      const file =
+        input.files?.[0];
+
+      input.remove();
+
+      if (!file) {
+        return;
+      }
+
+      if (
+        !file.name
+          .toLowerCase()
+          .endsWith(".mono")
+      ) {
+        showNotice("invalid file");
+        return;
+      }
+
+      if (
+        file.size >
+        20 * 1024 * 1024
+      ) {
+        showNotice("file too large");
+        return;
+      }
+
+      if (hasUnsavedChanges()) {
+        const confirmed =
+          await showConfirm(
+            "unsaved changes. continue?"
+          );
+
+        if (!confirmed) {
+          return;
+        }
+      }
+
+      try {
+        const text =
+          await file.text();
+
+        const id =
+          await importProjectBackupText(
+            text
+          );
+
+        if (!id) {
+          showNotice("invalid file");
+          return;
+        }
+
+        closeGlobalOverlay();
+        render();
+        updateHistoryButtons();
+        showNotice("imported…");
+      } catch (error) {
+        console.error(
+          "mono82 project import failed:",
+          error
+        );
+        showNotice("import failed");
+      }
+    },
+    { once: true }
+  );
+
+  document.body.append(
+    input
+  );
+  input.click();
+}
+
 function openGlobalMenu() {
   const overlay =
     makeOverlay();
@@ -3047,6 +3216,8 @@ function openGlobalMenu() {
       }
     }],
     ["save as", () => void showProjectList("saveas")],
+    ["import", () => chooseProjectImportFile()],
+    ["backup", () => downloadCurrentProjectBackup()],
     ["export", () => void openExportModal()]
   ];
 
