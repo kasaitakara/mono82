@@ -6242,3 +6242,9 @@ body.help-mode #mini-eq-meter {
   outline-offset: 0 !important;
   box-shadow: none !important;
 }
+
+/* Help v60: opening Help for the global menu must not flash the accent color. */
+body.help-mode #global-menu-button:active::before,
+body.help-mode #global-menu-button.active::before {
+  color: var(--text) !important;
+}

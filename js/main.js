@@ -225,6 +225,16 @@ const HELP_LANGUAGE_STORAGE_KEY =
   "mono82-help-language";
 
 const HELP_CONTENT = {
+  menu: {
+    en: {
+      title: "menu",
+      body: "opens the project menu for creating, loading, saving, duplicating, and exporting songs."
+    },
+    ja: {
+      title: "メニュー",
+      body: "曲の新規作成、読み込み、保存、複製保存、書き出しを行うメニューを開きます。"
+    }
+  },
   play: {
     en: {
       title: "play",
@@ -310,7 +320,69 @@ const HELP_CONTENT = {
   sound: {
     en: { title: "sound", body: "shows the selected sound. tap to open sound management, where you can choose factory presets, save user presets, and load saved presets." },
     ja: { title: "サウンド", body: "選択中のサウンドを表示します。タップするとサウンド管理画面が開き、Factoryプリセットへの切り替え、ユーザープリセットの登録、登録したプリセットへの切り替えができます。" }
-  }
+  },
+  pattern: {
+    en: { title: "pattern", body: "shows the current pattern. tap to return to the song." },
+    ja: { title: "パターン", body: "現在のパターンを表示します。タップするとソング画面に戻ります。" }
+  },
+  patternEdit: {
+    en: { title: "pattern edit", body: "opens the selected pattern in the sequencer for editing." },
+    ja: { title: "パターン編集", body: "選択中のパターンをシーケンサーで編集します。" }
+  },
+  patternLoop: {
+    en: { title: "pattern loop", body: "loops the selected pattern. tap again to stop looping. if multiple patterns are selected, all selected patterns are looped." },
+    ja: { title: "パターンループ", body: "選択中のパターンを繰り返し再生します。もう一度タップすると繰り返し再生を解除します。複数のパターンが選択されている場合は、選択中のすべてのパターンをループします。" }
+  },
+  patternList: {
+    en: { title: "pattern list", body: "shows the patterns used in the song. tap to select a pattern, or swipe to select a range. double-tap, or double-tap and swipe, to copy the selected range, then tap any position to paste. long-press and drag a pattern to move it to another position." },
+    ja: { title: "パターンリスト", body: "ソングで使用するパターンの一覧です。タップでパターンを選択、スイープで範囲選択します。ダブルタップ、またはダブルタップしたままスイープすると選択範囲をコピーし、任意の場所をタップして貼り付けできます。長押ししてドラッグすると、対象のパターンを任意の場所へ移動できます。" }
+    },
+  sequenceGridBoth: {
+    en: { title: "sequence grid", body: "tapping a step places or removes the currently selected sound. melodic sounds are shown by the long block at the top of each step, and rhythm sounds by the square at the lower left. each step can contain one sound from the Melodic Sound Bank and one sound from the Rhythm Sound Bank. double-tap, or double-tap and swipe, to select steps for copying. all step data in the selected range from both Sound Banks, including sound on/off and all offset data, is copied. tap another step to paste." },
+    ja: { title: "シーケンサー", body: "ステップをタップすると、現在選択中のサウンドを配置／解除します。各ステップでは、上側の横長ブロックがメロディックサウンド、左下の正方形がリズムサウンドを示します。1ステップには、Melodic Sound Bankから1サウンド、Rhythm Sound Bankから1サウンドの合計2サウンドを配置できます。ダブルタップ、またはダブルタップしたままスイープするとコピーするステップ範囲を選択します。選択範囲にある両方のSound BankのON／OFFと、すべてのオフセット情報がまとめてコピーされます。任意のステップをタップして貼り付けできます。" }
+  },
+  sequenceGridBank: {
+    en: { title: "offset sequence", body: "edits the selected offset parameter for each step. swipe up/down on a step to change its value. double-tap, or double-tap and swipe, to copy step on/off and all offset data in the selected Sound Bank, then tap another step to paste." },
+    ja: { title: "オフセットシーケンサー", body: "各ステップの選択中のオフセットパラメータを編集します。ステップを上下にスイープして、そのステップの値を変更します。ダブルタップ、またはダブルタップしたままスイープすると、選択範囲にある選択中のSound BankのステップON／OFFと、すべてのオフセット情報をまとめてコピーし、任意のステップをタップして貼り付けできます。" }
+  },
+  melodicSounds: {
+    en: { title: "melodic sound bank", body: "Sounds 1–4 are designed for melodies and accompaniment using FM synthesis. their step offsets include Chord mode and Strum. only one sound in this bank can play on each step." },
+    ja: { title: "メロディックサウンドバンク", body: "Sound 1〜4で構成される、FMシンセによるメロディーや伴奏に適したSound Bankです。ステップごとのオフセットとしてChordモードとStrumを使用できます。同じステップでは、このSound Bankから1つのサウンドを再生できます。" }
+  },
+  rhythmSounds: {
+    en: { title: "rhythm sound bank", body: "Sounds a–d are designed for drums and percussion using sine synthesis and noise. their step offsets include Substep Probability. only one sound in this bank can play on each step." },
+    ja: { title: "リズムサウンドバンク", body: "Sound a〜dで構成される、サイン波とノイズによるドラムやパーカッションに適したSound Bankです。ステップごとのオフセットとしてSubstep Probabilityを使用できます。同じステップでは、このSound Bankから1つのサウンドを再生できます。" }
+  },
+  shiftLeftBoth: { en: { title: "shift left", body: "moves all step data in both Sound Banks one step to the left." }, ja: { title: "左シフト", body: "両方のSound Bankにあるすべてのステップ情報を、1ステップ左へ移動します。" } },
+  shiftRightBoth: { en: { title: "shift right", body: "moves all step data in both Sound Banks one step to the right." }, ja: { title: "右シフト", body: "両方のSound Bankにあるすべてのステップ情報を、1ステップ右へ移動します。" } },
+  shiftLeftBank: { en: { title: "shift left", body: "moves all step data in the selected Sound Bank one step to the left." }, ja: { title: "左シフト", body: "選択中のSound Bankにあるすべてのステップ情報を、1ステップ左へ移動します。" } },
+  shiftRightBank: { en: { title: "shift right", body: "moves all step data in the selected Sound Bank one step to the right." }, ja: { title: "右シフト", body: "選択中のSound Bankにあるすべてのステップ情報を、1ステップ右へ移動します。" } },
+  randomBoth: { en: { title: "random", body: "randomizes the positions of the existing steps in both Sound Banks." }, ja: { title: "ランダム", body: "両方のSound Bankに現在配置されているステップをランダムに並べ替えます。" } },
+  randomBank: { en: { title: "random", body: "randomizes the positions of the existing steps in the selected Sound Bank." }, ja: { title: "ランダム", body: "選択中のSound Bankに現在配置されているステップをランダムに並べ替えます。" } },
+  clip: { en: { title: "clip", body: "shows that copied step data is being held. tap to clear the copied data." }, ja: { title: "クリップ", body: "コピーしたステップ情報を保持している状態を示します。タップすると保持中のコピーを解除します。" } },
+  stepNote: { en: { title: "note", body: "sets the pitch for each step. tap Note to switch between Note and Chord mode. the step shows both note and chord values, and the marker indicates which one is currently being edited. swipe up/down on a step to change the selected value." }, ja: { title: "ノート", body: "各ステップの音程を設定します。NoteをタップするとNoteモードとChordモードを切り替えます。ステップにはノートとコードの値が2段で表示され、マークが付いている側が現在の編集対象です。ステップを上下にスイープして、選択中の値を変更します。" } },
+  stepLevel: { en: { title: "level", body: "sets the volume of each step. swipe up/down on a step to change." }, ja: { title: "レベル", body: "各ステップの音量を設定します。ステップを上下にスイープして変更します。" } },
+  stepPan: { en: { title: "pan", body: "sets the stereo position of each step. swipe up/down on a step to move the sound left or right." }, ja: { title: "パン", body: "各ステップの左右の定位を設定します。ステップを上下にスイープして左右に移動します。" } },
+  stepNudge: { en: { title: "nudge", body: "shifts the timing of each step slightly forward or backward. swipe up/down on a step to change." }, ja: { title: "ナッジ", body: "各ステップの発音タイミングを前後にずらします。ステップを上下にスイープして変更します。" } },
+  stepProbability: { en: { title: "probability", body: "sets the probability that each step will play. swipe up/down on a step to change." }, ja: { title: "発音確率", body: "各ステップが発音する確率を設定します。ステップを上下にスイープして変更します。" } },
+  stepSub: { en: { title: "substep", body: "repeats the sound within a single step. swipe up/down on a step to change the number of substeps." }, ja: { title: "サブステップ", body: "1ステップの中でサウンドを繰り返し発音させます。ステップを上下にスイープしてサブステップ数を変更します。" } },
+  stepStrum: { en: { title: "strum", body: "spreads the notes of a chord over time instead of playing them simultaneously. swipe up/down on a step to change the amount." }, ja: { title: "ストラム", body: "コードの構成音を同時ではなく時間差で発音させます。ステップを上下にスイープしてずれ幅を変更します。" } },
+  stepSubProbability: { en: { title: "substep probability", body: "sets the probability that each substep will play. swipe up/down on a step to change." }, ja: { title: "サブステップ確率", body: "各サブステップが発音する確率を設定します。ステップを上下にスイープして変更します。" }
+  },
+  soundLevel: { en: { title: "level", body: "sets the volume of this sound. swipe up/down to change." }, ja: { title: "レベル", body: "このサウンドの音量を設定します。上下にスイープして変更します。" } },
+  soundAttack: { en: { title: "attack", body: "sets how quickly the sound reaches its full level after it starts. swipe up/down to change." }, ja: { title: "アタック", body: "発音開始から音量が最大になるまでの速さを設定します。上下にスイープして変更します。" } },
+  soundHoldDecay: { en: { title: "hold / decay", body: "sets how the sound ends. 0 is the center. swipe upward from 0 for Decay, which gradually reduces the sound level. swipe downward from 0 for Hold, which keeps the sound level before ending." }, ja: { title: "ホールド／ディケイ", body: "音の終わり方を設定します。0を中心に、上方向でDecay、下方向でHoldを設定します。Decayは徐々に音量を下げ、Holdは音量を保ったまま終了します。上下にスイープして長さを変更します。" } },
+  soundFilter: { en: { title: "filter", body: "sets the filter cutoff. the upper value controls the high-pass filter and the lower value controls the low-pass filter. swipe up/down on each value to change." }, ja: { title: "フィルター", body: "フィルターのカットオフを設定します。上段がハイパスフィルター、下段がローパスフィルターです。それぞれ上下にスイープして変更します。" } },
+  soundResonance: { en: { title: "resonance", body: "emphasizes frequencies around the filter cutoff. swipe up/down to change." }, ja: { title: "レゾナンス", body: "フィルターのカットオフ付近を強調します。上下にスイープして変更します。" } },
+  soundFmDepth: { en: { title: "FM depth", body: "sets the amount of FM modulation. swipe up/down to change." }, ja: { title: "FMデプス", body: "FM変調の深さを設定します。上下にスイープして変更します。" } },
+  soundFmRatio: { en: { title: "FM ratio", body: "sets the frequency ratio of the FM modulator. swipe up/down to change." }, ja: { title: "FMレシオ", body: "FMモジュレーターの周波数比を設定します。上下にスイープして変更します。" } },
+  soundNoise: { en: { title: "noise", body: "mixes noise into the sound. swipe up/down to change the amount." }, ja: { title: "ノイズ", body: "サウンドにノイズをミックスします。上下にスイープして量を変更します。" } },
+  soundNote: { en: { title: "note", body: "sets the pitch of this sound. swipe up/down to change." }, ja: { title: "ノート", body: "このサウンドの音程を設定します。上下にスイープして変更します。" } },
+  lfoTarget: { en: { title: "target", body: "selects the parameter controlled by the LFO. swipe up/down to change. the Melodic Sound Bank provides Level, Pitch, Pan, FM, and Filter. the Rhythm Sound Bank provides Level, Pitch, Pan, and Filter." }, ja: { title: "ターゲット", body: "LFOで変化させるパラメータを選択します。上下にスイープして変更します。Melodic Sound BankではLevel、Pitch、Pan、FM、Filter、Rhythm Sound BankではLevel、Pitch、Pan、Filterから選択できます。" } },
+  lfoWave: { en: { title: "wave", body: "selects the LFO waveform. swipe up/down to choose the waveform." }, ja: { title: "ウェーブ", body: "LFOの波形を選択します。上下にスイープして波形を変更します。" } },
+  lfoDepth: { en: { title: "depth", body: "sets the amount of LFO modulation. swipe up/down to change." }, ja: { title: "デプス", body: "LFOによる変化の深さを設定します。上下にスイープして変更します。" } },
+  lfoRate: { en: { title: "rate", body: "sets the speed of the LFO. swipe up/down to change." }, ja: { title: "レート", body: "LFOの変化する速さを設定します。上下にスイープして変更します。" } },
+  lfoSync: { en: { title: "sync mode", body: "selects how the LFO rate is controlled. BPM synchronizes the LFO to the song tempo, while Free sets the rate independently in Hz. tap to switch between BPM and Free." }, ja: { title: "シンクモード", body: "LFOの速さの設定方法を切り替えます。BPMでは曲のテンポに同期し、Freeではテンポと同期せずHzで速さを設定します。タップしてBPM／Freeを切り替えます。" } }
 };
 
 function getHelpLanguage() {
@@ -417,19 +489,50 @@ function positionHelpPanel(
     roomBelow >= panelRect.height + gap ||
     roomBelow >= roomAbove;
 
-  const top = useBelow
-    ? Math.min(
-        viewportHeight -
-          panelRect.height -
+  const isSequenceGridHelp =
+    target?.dataset?.helpKey === "sequenceGridBoth" ||
+    target?.dataset?.helpKey === "sequenceGridBank";
+
+  let top;
+
+  const isSoundParameterHelp =
+    target?.matches?.(".mokton-direct-value-pad:not(.mokton-lfo-inline-value)");
+  const isLfoParameterHelp =
+    target?.matches?.(".mokton-lfo-target-cell, .mokton-lfo-wave-cycle, .mokton-lfo-inline-value, .mokton-lfo-sync-button");
+
+  if (isSoundParameterHelp || isLfoParameterHelp) {
+    // Sound parameter Help is always shown above its parameter so lower rows
+    // do not push the panel outside the mono82 app.
+    const appTop = Math.max(gap, appRect.top + gap);
+    top = Math.max(
+      appTop,
+      targetRect.top - panelRect.height - gap
+    );
+  } else if (isSequenceGridHelp) {
+    // The sequence Help can be taller than the free space around the grid.
+    // Keep the whole panel inside the mono82 app first, even if it overlaps the grid.
+    const appTop = Math.max(gap, appRect.top + gap);
+    const appBottom = Math.min(viewportHeight - gap, appRect.bottom - gap);
+    const maxTop = Math.max(appTop, appBottom - panelRect.height);
+    const preferredTop = useBelow
+      ? targetRect.bottom + gap
+      : targetRect.top - panelRect.height - gap;
+    top = Math.min(maxTop, Math.max(appTop, preferredTop));
+  } else {
+    top = useBelow
+      ? Math.min(
+          viewportHeight -
+            panelRect.height -
+            gap,
+          targetRect.bottom + gap
+        )
+      : Math.max(
           gap,
-        targetRect.bottom + gap
-      )
-    : Math.max(
-        gap,
-        targetRect.top -
-          panelRect.height -
-          gap
-      );
+          targetRect.top -
+            panelRect.height -
+            gap
+        );
+  }
 
   panel.style.top = `${top}px`;
 }
@@ -618,6 +721,7 @@ function createHelpGroupOverlay(
     "help-target-group-overlay";
   overlay.dataset.helpTarget = "true";
   overlay.dataset.helpGroup = groupId;
+  overlay.dataset.helpKey = groupId === "melodic-sounds" ? "melodicSounds" : "rhythmSounds";
 
   overlay.style.left = `${left}px`;
   overlay.style.top = `${top}px`;
@@ -699,6 +803,8 @@ function refreshHelpTargets() {
             element.dataset.helpKey = "songTitle";
           } else if (element.id === "theme-button") {
             element.dataset.helpKey = "color";
+          } else if (element.id === "global-menu-button") {
+            element.dataset.helpKey = "menu";
           } else if (element.id === "undo-button") {
             element.dataset.helpKey = "undo";
           } else if (element.id === "redo-button") {
@@ -709,6 +815,14 @@ function refreshHelpTargets() {
             element.dataset.helpKey = "reverbSend";
           } else if (element.matches(".mokton-ms-controls > button")) {
             element.dataset.helpKey = element.title === "solo" ? "solo" : "mute";
+          } else if (element.id === "current-source-display") {
+            element.dataset.helpKey = "pattern";
+          } else if (element.id === "pattern-edit-button") {
+            element.dataset.helpKey = "patternEdit";
+          } else if (element.id === "pattern-loop-button") {
+            element.dataset.helpKey = "patternLoop";
+          } else if (element.id === "pattern-grid") {
+            element.dataset.helpKey = "patternList";
           } else if (
             element.id ===
             "play-button"
@@ -741,6 +855,49 @@ function refreshHelpTargets() {
           ) {
             element.dataset.helpKey =
               "audioSpectrum";
+          } else if (element.id === "sequence-grid") {
+            element.dataset.helpKey = element.dataset.helpScope === "bank" ? "sequenceGridBank" : "sequenceGridBoth";
+          } else if (element.matches(".mokton-sequence-tools > button")) {
+            const tool = element.dataset.helpTool;
+            const scope = element.closest(".mokton-sequence-tools")?.dataset.helpScope === "bank" ? "Bank" : "Both";
+            if (tool === "clip") element.dataset.helpKey = "clip";
+            else if (tool === "shiftLeft") element.dataset.helpKey = `shiftLeft${scope}`;
+            else if (tool === "shiftRight") element.dataset.helpKey = `shiftRight${scope}`;
+            else if (tool === "random") element.dataset.helpKey = `random${scope}`;
+          } else if (element.matches(".mokton-step-parameter-button")) {
+            const parameterHelpKeys = {
+              gain: "stepLevel",
+              note: "stepNote",
+              pan: "stepPan",
+              nudge: "stepNudge",
+              probability: "stepProbability",
+              subPattern: "stepSub",
+              strum: "stepStrum",
+              subProbability: "stepSubProbability"
+            };
+            element.dataset.helpKey = parameterHelpKeys[element.dataset.parameterId] || "";
+          } else if (element.matches(".mokton-direct-value-pad:not(.mokton-lfo-inline-value)")) {
+            const soundParameterHelpKeys = {
+              gain: "soundLevel",
+              attack: "soundAttack",
+              holdDecay: "soundHoldDecay",
+              filterCutoff: "soundFilter",
+              filterResonance: "soundResonance",
+              fmDepth: "soundFmDepth",
+              fmRatio: "soundFmRatio",
+              noiseMix: "soundNoise",
+              note: "soundNote"
+            };
+            element.dataset.helpKey = soundParameterHelpKeys[element.dataset.parameterId] || "";
+          } else if (element.matches(".mokton-lfo-target-cell")) {
+            element.dataset.helpKey = "lfoTarget";
+          } else if (element.matches(".mokton-lfo-wave-cycle")) {
+            element.dataset.helpKey = "lfoWave";
+          } else if (element.matches(".mokton-lfo-inline-value")) {
+            const label = element.querySelector(".mokton-direct-value-label")?.textContent?.trim().toLowerCase();
+            element.dataset.helpKey = label === "dep" ? "lfoDepth" : label === "rat" ? "lfoRate" : "";
+          } else if (element.matches(".mokton-lfo-sync-button")) {
+            element.dataset.helpKey = "lfoSync";
           } else if (
             element.matches(
               "[data-parameter-id=\"swing\"], [data-parameter=\"swing\"], .swing-control"

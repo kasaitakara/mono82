@@ -3673,6 +3673,7 @@ function renderSequenceTools() {
 
   const tools = document.createElement("div");
   tools.className = "mokton-sequence-tools";
+  tools.dataset.helpScope = selectedStepParameterId ? "bank" : "both";
 
   tools.append(
     createMiniButton("", () => {
@@ -3715,6 +3716,7 @@ function renderSequenceTools() {
     );
 
   if (sequenceToolButtons[0]) {
+    sequenceToolButtons[0].dataset.helpTool = "shiftLeft";
     sequenceToolButtons[0].replaceChildren(
       createMono82Icon(
         "shift-left",
@@ -3724,12 +3726,17 @@ function renderSequenceTools() {
   }
 
   if (sequenceToolButtons[1]) {
+    sequenceToolButtons[1].dataset.helpTool = "shiftRight";
     sequenceToolButtons[1].replaceChildren(
       createMono82Icon(
         "shift-right",
         "mono82-shift-icon"
       )
     );
+  }
+
+  if (sequenceToolButtons[2]) {
+    sequenceToolButtons[2].dataset.helpTool = "random";
   }
 
   if (
@@ -3783,6 +3790,7 @@ function renderSequenceTools() {
     clipButton.classList.add(
       "mokton-clip-button"
     );
+    clipButton.dataset.helpTool = "clip";
 
     clipButton.replaceChildren(
       createMono82Icon(
@@ -3813,6 +3821,7 @@ function renderSequenceTools() {
     };
     const clipButton = createMiniButton("clip", clearLayerClipUi, { title: "clear layer clipboard" });
     clipButton.classList.add("mokton-clip-button");
+    clipButton.dataset.helpTool = "clip";
     clipButton.replaceChildren(createMono82Icon("clipboard", "mono82-clipboard-icon"));
     clipButton.addEventListener("pointerup", event => {
       event.preventDefault(); event.stopPropagation(); clearLayerClipUi();
@@ -4390,6 +4399,9 @@ function createDirectValuePad(
   button.className =
     `mokton-direct-value-pad ${extraClass}`
       .trim();
+
+  button.dataset.parameterId =
+    definition.id;
 
   const label =
     document.createElement(
@@ -5087,6 +5099,11 @@ function createLfoRow(
   targetValue.className =
     "mokton-lfo-cell-value";
 
+  const availableLfoTargets =
+    state.selectedLayer === "rhythm"
+      ? LFO_TARGETS.filter(target => target !== "fm")
+      : LFO_TARGETS;
+
   const normalizeTarget = value => {
     const legacyMap = {
       gain: "level",
@@ -5097,7 +5114,7 @@ function createLfoRow(
     const normalized =
       legacyMap[value] ?? value;
 
-    return LFO_TARGETS.includes(
+    return availableLfoTargets.includes(
       normalized
     )
       ? normalized
@@ -5107,7 +5124,7 @@ function createLfoRow(
   const renderTarget = () => {
     targetValue.textContent =
       shortTargetLabel(
-        lfo.target
+        normalizeTarget(lfo.target)
       );
   };
 
@@ -5120,8 +5137,8 @@ function createLfoRow(
 
   enableVerticalChoiceSweep({
     button: targetButton,
-    values: LFO_TARGETS,
-    getValue: () => lfo.target,
+    values: availableLfoTargets,
+    getValue: () => normalizeTarget(lfo.target),
     setValue: next => {
       lfo.target = next;
     },
@@ -5427,6 +5444,7 @@ function createStepParameterStrip() {
 
       button.className =
         "mokton-step-parameter-button";
+      button.dataset.parameterId = definition.id;
 
       const isMelodicNoteSlot =
         state.selectedLayer === "melodic" &&
@@ -6493,6 +6511,7 @@ export function renderSequence() {
 
   sequenceGrid.innerHTML =
     "";
+  sequenceGrid.dataset.helpScope = selectedStepParameterId ? "bank" : "both";
 
   const wrapper =
     document.createElement(
