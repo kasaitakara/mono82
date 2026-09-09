@@ -4,8 +4,13 @@ import {
   normalizeRhythmSound
 } from "./sound-defaults.js";
 
-const USER_PRESET_STORAGE_KEY =
-  "mono82-user-sound-presets-v1";
+const USER_PRESET_STORAGE_KEYS =
+  Object.freeze({
+    melodic:
+      "mono82-user-sound-presets-melodic-v1",
+    rhythm:
+      "mono82-user-sound-presets-rhythm-v1"
+  });
 
 const PRESET_CATEGORIES = Object.freeze([
   "melodic",
@@ -98,44 +103,88 @@ export function getUserPresets(
   const requested =
     normalizeCategory(category);
 
-  try {
-    const value =
-      JSON.parse(
-        localStorage.getItem(
-          USER_PRESET_STORAGE_KEY
-        ) || "[]"
-      );
+  /*
+   * mono82 keeps melodic / rhythm user presets in separate storage.
+   * This makes cross-layer display impossible by construction.
+   */
+  const categories =
+    requested
+      ? [requested]
+      : PRESET_CATEGORIES;
 
-    if (!Array.isArray(value)) {
-      return [];
+  const result = [];
+
+  for (const currentCategory of categories) {
+    try {
+      const value =
+        JSON.parse(
+          localStorage.getItem(
+            USER_PRESET_STORAGE_KEYS[
+              currentCategory
+            ]
+          ) || "[]"
+        );
+
+      if (!Array.isArray(value)) {
+        continue;
+      }
+
+      value
+        .filter(
+          item =>
+            item &&
+            typeof item.id === "string"
+        )
+        .map(item =>
+          clonePreset({
+            ...item,
+            category:
+              currentCategory
+          })
+        )
+        .filter(Boolean)
+        .forEach(preset =>
+          result.push(preset)
+        );
+    } catch {
+      // Ignore only the broken category store.
     }
-
-    return value
-      .filter(
-        item =>
-          item &&
-          typeof item.id ===
-            "string"
-      )
-      .map(clonePreset)
-      .filter(Boolean)
-      .filter(
-        preset =>
-          !requested ||
-          preset.category ===
-            requested
-      );
-  } catch {
-    return [];
   }
+
+  return result;
 }
 
 function writeUserPresets(
+  category,
   presets
 ) {
+  const normalizedCategory =
+    normalizeCategory(category);
+
+  if (!normalizedCategory) {
+    return;
+  }
+
+  const categoryPresets =
+    presets
+      .filter(
+        preset =>
+          preset?.category ===
+          normalizedCategory
+      )
+      .map(preset => ({
+        ...preset,
+        category:
+          normalizedCategory
+      }));
+
   localStorage.setItem(
-    USER_PRESET_STORAGE_KEY,
-    JSON.stringify(presets)
+    USER_PRESET_STORAGE_KEYS[
+      normalizedCategory
+    ],
+    JSON.stringify(
+      categoryPresets
+    )
   );
 }
 
@@ -199,7 +248,10 @@ export function saveUserPreset({
         )
     };
 
-    writeUserPresets(presets);
+    writeUserPresets(
+      normalizedCategory,
+      presets
+    );
     return clonePreset(
       presets[index]
     );
@@ -222,7 +274,10 @@ export function saveUserPreset({
   };
 
   presets.push(preset);
-  writeUserPresets(presets);
+  writeUserPresets(
+    normalizedCategory,
+    presets
+  );
   return clonePreset(preset);
 }
 
@@ -261,30 +316,46 @@ export function renameUserPreset({
     name: normalizedName
   };
 
-  writeUserPresets(presets);
+  writeUserPresets(
+    presets[index].category,
+    presets
+  );
   return clonePreset(
     presets[index]
   );
 }
 
 export function deleteUserPreset(id) {
-  const presets =
-    getUserPresets();
-
-  const next =
-    presets.filter(
-      preset =>
-        preset.id !== id
-    );
-
-  if (
-    next.length ===
-    presets.length
-  ) {
+  if (!id) {
     return false;
   }
 
-  writeUserPresets(next);
+  const presets =
+    getUserPresets();
+
+  const target =
+    presets.find(
+      preset =>
+        preset.id === id
+    );
+
+  if (!target) {
+    return false;
+  }
+
+  const categoryPresets =
+    presets.filter(
+      preset =>
+        preset.category ===
+          target.category &&
+        preset.id !== id
+    );
+
+  writeUserPresets(
+    target.category,
+    categoryPresets
+  );
+
   return true;
 }
 

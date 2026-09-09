@@ -18,6 +18,22 @@ let spectrumData;
 let outputTimeData;
 let fmVoiceWorkletReady = null;
 
+/*
+ * mono82 Sound peak guard.
+ * Each of the 8 Sounds gets one shared dynamics stage before mixInput.
+ * Voices belonging to the same Sound sum here first, so local overlap is
+ * controlled before the final Master limiter sees the whole mix.
+ */
+const soundPeakGuards = new Map();
+
+const SOUND_PEAK_GUARD = Object.freeze({
+  threshold: -4.5,
+  knee: 1,
+  ratio: 8,
+  attack: 0.0015,
+  release: 0.045
+});
+
 let audioClockReady = false;
 let audioClockReadyPromise = null;
 let offlineRenderMode = false;
@@ -945,6 +961,49 @@ const masterMixSettings = {
  */
 const activeTrackVoices =
   new Map();
+
+function soundPeakGuardNode(
+  soundKey
+) {
+  if (!context || !mixInput) {
+    return mixInput;
+  }
+
+  const key =
+    String(soundKey || "");
+
+  const existing =
+    soundPeakGuards.get(key);
+
+  if (existing) {
+    return existing;
+  }
+
+  const guard =
+    context.createDynamicsCompressor();
+
+  guard.threshold.value =
+    SOUND_PEAK_GUARD.threshold;
+  guard.knee.value =
+    SOUND_PEAK_GUARD.knee;
+  guard.ratio.value =
+    SOUND_PEAK_GUARD.ratio;
+  guard.attack.value =
+    SOUND_PEAK_GUARD.attack;
+  guard.release.value =
+    SOUND_PEAK_GUARD.release;
+
+  guard.connect(
+    mixInput
+  );
+
+  soundPeakGuards.set(
+    key,
+    guard
+  );
+
+  return guard;
+}
 
 async function ensureAudioClockReady() {
   if (!context) {
@@ -3527,6 +3586,16 @@ async function playLayerVoice({
       holdClickGuard;
   }
 
+  const soundKey =
+    `${layer}:${
+      performanceData.soundId
+    }`;
+
+  const soundOutput =
+    soundPeakGuardNode(
+      soundKey
+    );
+
   let exportFadeGain = null;
 
   const fadeEnvelope =
@@ -3621,11 +3690,11 @@ async function playLayerVoice({
     );
 
     exportFadeGain.connect(
-      mixInput
+      soundOutput
     );
   } else {
     outputNode.connect(
-      mixInput
+      soundOutput
     );
   }
 
@@ -3648,11 +3717,6 @@ async function playLayerVoice({
     cleanupSources,
     cleanupGains
   });
-
-  const soundKey =
-    `${layer}:${
-      performanceData.soundId
-    }`;
 
   const previousVoice =
     activeTrackVoices.get(
@@ -4431,6 +4495,7 @@ export async function resetAudioForForegroundPlayback() {
   stopPlaybackStartProbe();
 
   activeTrackVoices.clear();
+  soundPeakGuards.clear();
 
   const oldContext =
     context;
@@ -4499,7 +4564,8 @@ export async function beginOfflineAudioRender(
     audioClockReady,
     audioClockReadyPromise,
     offlineRenderMode,
-    activeTrackVoices: [...activeTrackVoices.entries()]
+    activeTrackVoices: [...activeTrackVoices.entries()],
+    soundPeakGuards: [...soundPeakGuards.entries()]
   };
 
   context = offlineContext;
@@ -4516,6 +4582,7 @@ export async function beginOfflineAudioRender(
   outputAnalyser = null;
 
   activeTrackVoices.clear();
+  soundPeakGuards.clear();
 
   master = sprootoDebugNode(context.createGain());
   master.gain.value = clamp(Number(masterVolume) || 0, 0, 100) / 100;
@@ -4588,6 +4655,12 @@ export async function beginOfflineAudioRender(
     backup.activeTrackVoices.forEach(([key, value]) => {
       activeTrackVoices.set(key, value);
     });
+
+    soundPeakGuards.clear();
+    backup.soundPeakGuards.forEach(([key, value]) => {
+      soundPeakGuards.set(key, value);
+    });
+
 context = backup.context;
 
     master = backup.master;
