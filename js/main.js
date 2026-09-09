@@ -839,7 +839,14 @@ for (const eventName of HELP_BLOCKED_EVENTS) {
         eventName === "pointerup" &&
         helpTarget
       ) {
-        showHelpPanel(helpTarget);
+        if (
+          helpPanel &&
+          currentHelpTarget === helpTarget
+        ) {
+          closeHelpPanel();
+        } else {
+          showHelpPanel(helpTarget);
+        }
       }
     },
     true

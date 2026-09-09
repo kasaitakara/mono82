@@ -6211,3 +6211,9 @@ body.help-mode [data-help-target] {
 body.help-mode .mokton-selected-sound-name:active {
   color: var(--text) !important;
 }
+
+
+/* Help v49: the spectrum is normally display-only, but becomes a Help tap target. */
+body.help-mode #mini-eq-meter {
+  pointer-events: auto !important;
+}
