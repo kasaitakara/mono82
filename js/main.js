@@ -234,6 +234,16 @@ const HELP_CONTENT = {
       title: "再生",
       body: "曲の再生／停止を切り替えます。"
     }
+  },
+  bpm: {
+    en: {
+      title: "bpm",
+      body: "sets the tempo. swipe up/down to change."
+    },
+    ja: {
+      title: "BPM",
+      body: "テンポを設定します。上下にスイープして変更します。"
+    }
   }
 };
 
@@ -625,6 +635,13 @@ function refreshHelpTargets() {
           ) {
             element.dataset.helpKey =
               "play";
+          } else if (
+            element.matches(
+              ".bpm-control"
+            )
+          ) {
+            element.dataset.helpKey =
+              "bpm";
           }
         });
     }
