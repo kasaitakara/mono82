@@ -6087,18 +6087,11 @@ body.global-confirm-open #global-menu-button {
 #help-button {
   display: grid !important;
   place-items: center !important;
-}
-
-#help-button .mono82-help-icon {
-  width: 15px !important;
-  height: 15px !important;
-  overflow: visible;
-  shape-rendering: crispEdges;
-}
-
-#help-button .mono82-help-icon rect {
-  fill: currentColor !important;
-  stroke: none !important;
+  font-size: 15px !important;
+  line-height: 1 !important;
+  font-family: inherit !important;
+  font-weight: inherit !important;
+  padding: 0 !important;
 }
 
 /* The ? itself deliberately does not change appearance while help is active. */
