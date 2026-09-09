@@ -6133,3 +6133,55 @@ body.help-mode [data-help-target] {
   background: transparent;
   pointer-events: auto;
 }
+
+
+@font-face {
+  font-family: "DotGothic16";
+  src: url("../fonts/DotGothic16-Regular.ttf")
+    format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* bilingual Help panel */
+.help-description-panel {
+  pointer-events: auto;
+}
+
+.help-description-panel[data-language="ja"] {
+  font-family: "DotGothic16", sans-serif;
+  font-size: 11px;
+}
+
+.help-language-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+  white-space: nowrap;
+}
+
+.help-language-control {
+  appearance: none;
+  border: 0;
+  padding: 0 2px;
+  margin: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  line-height: inherit;
+}
+
+.help-language-control.active {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.help-description-title {
+  margin-bottom: 5px;
+}
+
+.help-description-body {
+  white-space: normal;
+}

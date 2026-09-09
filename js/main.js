@@ -219,6 +219,46 @@ const redoButton = document.getElementById("redo-button");
 
 let helpModeActive = false;
 let helpPanel = null;
+let currentHelpTarget = null;
+
+const HELP_LANGUAGE_STORAGE_KEY =
+  "mono82-help-language";
+
+const HELP_CONTENT = {
+  play: {
+    en: {
+      title: "play",
+      body: "starts and stops playback."
+    },
+    ja: {
+      title: "再生",
+      body: "曲の再生／停止を切り替えます。"
+    }
+  }
+};
+
+function getHelpLanguage() {
+  const saved =
+    localStorage.getItem(
+      HELP_LANGUAGE_STORAGE_KEY
+    );
+
+  return saved === "ja" ? "ja" : "en";
+}
+
+function setHelpLanguage(language) {
+  const next =
+    language === "ja" ? "ja" : "en";
+
+  localStorage.setItem(
+    HELP_LANGUAGE_STORAGE_KEY,
+    next
+  );
+
+  if (currentHelpTarget) {
+    showHelpPanel(currentHelpTarget);
+  }
+}
 
 function setHelpModeNotice(active) {
   clearTimeout(noticeTimer);
@@ -259,42 +299,159 @@ function setHelpModeNotice(active) {
 function closeHelpPanel() {
   helpPanel?.remove();
   helpPanel = null;
+  currentHelpTarget = null;
 }
 
-function showHelpPanel(target) {
-  const text = target?.dataset?.helpText;
-  if (!text) return;
-
-  closeHelpPanel();
-
-  const panel = document.createElement("div");
-  panel.className = "help-description-panel";
-  panel.textContent = text;
-  document.body.append(panel);
-  helpPanel = panel;
-
-  const targetRect = target.getBoundingClientRect();
-  const panelRect = panel.getBoundingClientRect();
+function positionHelpPanel(
+  panel,
+  target
+) {
+  const targetRect =
+    target.getBoundingClientRect();
+  const panelRect =
+    panel.getBoundingClientRect();
   const gap = 8;
-  const viewportHeight = window.innerHeight;
+  const viewportHeight =
+    window.innerHeight;
 
-  const roomBelow = viewportHeight - targetRect.bottom;
-  const roomAbove = targetRect.top;
+  const roomBelow =
+    viewportHeight - targetRect.bottom;
+  const roomAbove =
+    targetRect.top;
   const useBelow =
     roomBelow >= panelRect.height + gap ||
     roomBelow >= roomAbove;
 
   const top = useBelow
     ? Math.min(
-        viewportHeight - panelRect.height - gap,
+        viewportHeight -
+          panelRect.height -
+          gap,
         targetRect.bottom + gap
       )
     : Math.max(
         gap,
-        targetRect.top - panelRect.height - gap
+        targetRect.top -
+          panelRect.height -
+          gap
       );
 
   panel.style.top = `${top}px`;
+}
+
+function showHelpPanel(target) {
+  const key =
+    target?.dataset?.helpKey;
+  const content =
+    HELP_CONTENT[key];
+
+  if (!content) return;
+
+  currentHelpTarget = target;
+  helpPanel?.remove();
+
+  const language =
+    getHelpLanguage();
+  const copy =
+    content[language] ??
+    content.en;
+
+  const panel =
+    document.createElement("div");
+
+  panel.className =
+    "help-description-panel";
+  panel.dataset.language =
+    language;
+
+  const languageRow =
+    document.createElement("div");
+  languageRow.className =
+    "help-language-row";
+
+  const langLabel =
+    document.createElement("span");
+  langLabel.textContent = "lang";
+
+  const enButton =
+    document.createElement("button");
+  enButton.type = "button";
+  enButton.className =
+    "help-language-control";
+  enButton.textContent = "en";
+
+  const slash =
+    document.createElement("span");
+  slash.textContent = "/";
+
+  const jaButton =
+    document.createElement("button");
+  jaButton.type = "button";
+  jaButton.className =
+    "help-language-control";
+  jaButton.textContent = "ja";
+
+  enButton.classList.toggle(
+    "active",
+    language === "en"
+  );
+  jaButton.classList.toggle(
+    "active",
+    language === "ja"
+  );
+
+  enButton.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+      event.stopPropagation();
+      setHelpLanguage("en");
+    }
+  );
+
+  jaButton.addEventListener(
+    "click",
+    event => {
+      event.preventDefault();
+      event.stopPropagation();
+      setHelpLanguage("ja");
+    }
+  );
+
+  languageRow.append(
+    langLabel,
+    enButton,
+    slash,
+    jaButton
+  );
+
+  const title =
+    document.createElement("div");
+  title.className =
+    "help-description-title";
+  title.textContent =
+    copy.title;
+
+  const body =
+    document.createElement("div");
+  body.className =
+    "help-description-body";
+  body.textContent =
+    copy.body;
+
+  panel.append(
+    languageRow,
+    title,
+    body
+  );
+
+  document.body.append(panel);
+  helpPanel = panel;
+
+  positionHelpPanel(
+    panel,
+    target
+  );
 }
 
 
@@ -416,6 +573,9 @@ function refreshHelpTargets() {
         element.removeAttribute(
           "data-help-target"
         );
+        element.removeAttribute(
+          "data-help-key"
+        );
       }
     });
 
@@ -439,6 +599,14 @@ function refreshHelpTargets() {
             "data-help-target",
             "true"
           );
+
+          if (
+            element.id ===
+            "play-button"
+          ) {
+            element.dataset.helpKey =
+              "play";
+          }
         });
     }
   );
@@ -509,7 +677,12 @@ for (const eventName of HELP_BLOCKED_EVENTS) {
           ? event.target
           : null;
 
-      if (target?.closest("#help-button")) {
+      if (
+        target?.closest("#help-button") ||
+        target?.closest(
+          ".help-language-control"
+        )
+      ) {
         return;
       }
 
