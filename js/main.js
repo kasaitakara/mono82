@@ -238,18 +238,22 @@ function setHelpModeNotice(active) {
     return;
   }
 
+  notice.textContent = "help mode · tap outlined controls";
+  notice.classList.add("show");
+
   const titleRect =
     currentProjectNameElement?.getBoundingClientRect();
 
   if (titleRect) {
+    const noticeRect = notice.getBoundingClientRect();
     notice.style.setProperty(
       "--notice-top",
-      `${Math.max(4, titleRect.top - 18)}px`
+      `${Math.max(
+        4,
+        titleRect.top - noticeRect.height - 4
+      )}px`
     );
   }
-
-  notice.textContent = "help mode · tap outlined controls";
-  notice.classList.add("show");
 }
 
 function closeHelpPanel() {
