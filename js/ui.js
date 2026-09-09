@@ -3986,7 +3986,7 @@ function createSoundReverbSendControl(sound) {
       );
 
     control.textContent =
-      `rev ${String(value).padStart(2, "0")}`;
+      `rev ${value}`;
     control.setAttribute(
       "aria-label",
       `reverb send ${value}`

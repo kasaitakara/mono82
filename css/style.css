@@ -6079,6 +6079,3 @@ body.global-confirm-open #global-menu-button {
   -webkit-user-select: none !important;
 }
 
-.mokton-sound-reverb-send:active {
-  color: var(--accent) !important;
-}
