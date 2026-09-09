@@ -6185,3 +6185,23 @@ body.help-mode [data-help-target] {
 .help-description-body {
   white-space: normal;
 }
+
+
+/* Help panel v45: stay inside the mono82 app width, not the desktop viewport. */
+.help-description-panel {
+  right: auto;
+  max-width: calc(100vw - 16px);
+}
+
+.help-language-row {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: var(--text) !important;
+}
+
+.help-language-row > * {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}

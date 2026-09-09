@@ -308,9 +308,28 @@ function positionHelpPanel(
 ) {
   const targetRect =
     target.getBoundingClientRect();
+  const appRoot =
+    document.querySelector(".app-shell") ??
+    document.querySelector("main") ??
+    document.body;
+  const appRect =
+    appRoot.getBoundingClientRect();
+  const gap = 8;
+
+  panel.style.left =
+    `${Math.max(8, appRect.left + 8)}px`;
+  panel.style.right = "auto";
+  panel.style.width =
+    `${Math.max(
+      180,
+      Math.min(
+        appRect.width - 16,
+        520
+      )
+    )}px`;
+
   const panelRect =
     panel.getBoundingClientRect();
-  const gap = 8;
   const viewportHeight =
     window.innerHeight;
 
@@ -694,7 +713,7 @@ for (const eventName of HELP_BLOCKED_EVENTS) {
       event.stopImmediatePropagation();
 
       if (
-        eventName === "click" &&
+        eventName === "pointerup" &&
         helpTarget
       ) {
         showHelpPanel(helpTarget);

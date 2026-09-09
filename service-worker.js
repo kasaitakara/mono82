@@ -1,4 +1,4 @@
-const CACHE_NAME = "mono82-cache-v44";
+const CACHE_NAME = "mono82-cache-v45";
 
 /*
  * mono82で現在必要なローカルファイルだけをApp Shellとして保持する。
