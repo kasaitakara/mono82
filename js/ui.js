@@ -512,7 +512,7 @@ function enablePatternLengthVerticalSwipe() {
     event.preventDefault();
 
     const next = clamp(
-      Math.round(startValue + (startY - event.clientY) / 2),
+      Math.round(startValue + (startY - event.clientY) / 7),
       1,
       STEP_COUNT
     );
