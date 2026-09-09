@@ -6087,6 +6087,7 @@ body.global-confirm-open #global-menu-button {
 #help-button {
   display: grid !important;
   place-items: center !important;
+  color: var(--text) !important;
   font-size: 15px !important;
   line-height: 1 !important;
   font-family: inherit !important;
