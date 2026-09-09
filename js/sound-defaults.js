@@ -179,6 +179,7 @@ export function createMelodicSound(
     name: `sound ${id}`,
     muted: false,
     solo: false,
+    rsend: 0,
 
     gain:
       MELODIC_SOUND_DEFAULTS.gain,
@@ -211,6 +212,7 @@ export function createRhythmSound(
     name: `sound ${id}`,
     muted: false,
     solo: false,
+    rsend: 0,
 
     gain:
       RHYTHM_SOUND_DEFAULTS.gain,
@@ -314,6 +316,7 @@ export function normalizeMelodicSound(
 
   [
     "name",
+    "rsend",
     "gain",
     "attack",
     "holdDecay",
@@ -331,6 +334,8 @@ export function normalizeMelodicSound(
     Boolean(source.muted);
   normalized.solo =
     Boolean(source.solo);
+  normalized.rsend =
+    Math.min(100, Math.max(0, Math.round(Number(normalized.rsend) || 0)));
   normalized.lfo1 =
     cloneLfo(source.lfo1);
   normalized.lfo2 =
@@ -353,6 +358,7 @@ export function normalizeRhythmSound(
 
   [
     "name",
+    "rsend",
     "gain",
     "noiseMix",
     "note",
@@ -370,6 +376,8 @@ export function normalizeRhythmSound(
     Boolean(source.muted);
   normalized.solo =
     Boolean(source.solo);
+  normalized.rsend =
+    Math.min(100, Math.max(0, Math.round(Number(normalized.rsend) || 0)));
   normalized.lfo1 =
     cloneLfo(source.lfo1);
   normalized.lfo2 =

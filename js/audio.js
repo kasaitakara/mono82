@@ -963,7 +963,8 @@ const activeTrackVoices =
   new Map();
 
 function soundPeakGuardNode(
-  soundKey
+  soundKey,
+  reverbSend = 0
 ) {
   if (!context || !mixInput) {
     return mixInput;
@@ -972,11 +973,25 @@ function soundPeakGuardNode(
   const key =
     String(soundKey || "");
 
+  const sendAmount =
+    clamp(
+      Number(reverbSend) || 0,
+      0,
+      100
+    ) / 100;
+
   const existing =
     soundPeakGuards.get(key);
 
   if (existing) {
-    return existing;
+    existing.sendGain?.gain
+      .setTargetAtTime(
+        sendAmount,
+        context.currentTime,
+        0.01
+      );
+
+    return existing.guard;
   }
 
   const guard =
@@ -993,13 +1008,36 @@ function soundPeakGuardNode(
   guard.release.value =
     SOUND_PEAK_GUARD.release;
 
+  const sendGain =
+    sprootoDebugNode(
+      context.createGain(),
+      "soundReverbSend"
+    );
+
+  sendGain.gain.value =
+    sendAmount;
+
+  /* Dry path always reaches the normal Master/EQ chain. */
   guard.connect(
     mixInput
   );
 
+  /* Wet path is Sound-specific, but all Sounds share one Master reverb. */
+  if (reverbConvolver) {
+    guard.connect(
+      sendGain
+    );
+    sendGain.connect(
+      reverbConvolver
+    );
+  }
+
   soundPeakGuards.set(
     key,
-    guard
+    {
+      guard,
+      sendGain
+    }
   );
 
   return guard;
@@ -1586,7 +1624,6 @@ export async function initializeAudio() {
     previousNode.connect(reverbDryGain);
 reverbDryGain.connect(mixGain);
 
-previousNode.connect(reverbConvolver);
 reverbWetGain.connect(mixGain);
 
 reverbPathConnected = false;
@@ -1817,6 +1854,27 @@ export function setMasterLimiterThreshold(value) {
 export function setMasterReverb(value) {
   masterMixSettings.reverb = clamp(Number(value) || 0, 0, 100);
   applyMasterMixSettings();
+}
+
+export function setSoundReverbSend(
+  layer,
+  soundId,
+  value
+) {
+  if (!context) return;
+
+  const key =
+    `${layer}:${soundId}`;
+  const bus =
+    soundPeakGuards.get(key);
+
+  if (!bus?.sendGain) return;
+
+  bus.sendGain.gain.setTargetAtTime(
+    clamp(Number(value) || 0, 0, 100) / 100,
+    context.currentTime,
+    0.01
+  );
 }
 
 export function getMasterMixMeterData() {
@@ -3593,7 +3651,8 @@ async function playLayerVoice({
 
   const soundOutput =
     soundPeakGuardNode(
-      soundKey
+      soundKey,
+      sound.rsend
     );
 
   let exportFadeGain = null;
@@ -4631,7 +4690,6 @@ export async function beginOfflineAudioRender(
   previousNode.connect(reverbDryGain);
   reverbDryGain.connect(mixGain);
 
-  previousNode.connect(reverbConvolver);
   reverbConvolver.connect(reverbWetGain);
   reverbWetGain.connect(mixGain);
 

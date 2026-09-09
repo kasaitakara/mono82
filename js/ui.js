@@ -62,7 +62,8 @@ import {
   setMasterMixEqBand,
   setMasterMixVolume,
   setMasterLimiterThreshold,
-  setMasterReverb
+  setMasterReverb,
+  setSoundReverbSend
 } from "./audio.js";
 
 
@@ -3964,6 +3965,138 @@ function createCompactSoundBank() {
   return bank;
 }
 
+function createSoundReverbSendControl(sound) {
+  const control =
+    document.createElement("button");
+
+  control.type = "button";
+  control.className =
+    "mokton-sound-reverb-send";
+  control.title =
+    "sound reverb send";
+
+  const renderValue = () => {
+    const value =
+      clamp(
+        Math.round(
+          Number(sound.rsend) || 0
+        ),
+        0,
+        100
+      );
+
+    control.textContent =
+      `rev ${String(value).padStart(2, "0")}`;
+    control.setAttribute(
+      "aria-label",
+      `reverb send ${value}`
+    );
+  };
+
+  renderValue();
+
+  let drag = null;
+
+  control.addEventListener(
+    "pointerdown",
+    event => {
+      if (
+        event.button !== undefined &&
+        event.button !== 0
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+
+      drag = {
+        pointerId: event.pointerId,
+        startY: event.clientY,
+        startValue:
+          clamp(
+            Math.round(
+              Number(sound.rsend) || 0
+            ),
+            0,
+            100
+          ),
+        saved: false
+      };
+
+      control.setPointerCapture?.(
+        event.pointerId
+      );
+    }
+  );
+
+  control.addEventListener(
+    "pointermove",
+    event => {
+      if (
+        !drag ||
+        drag.pointerId !== event.pointerId
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const delta =
+        drag.startY - event.clientY;
+      const units =
+        Math.round(delta / 7);
+
+      if (!units) return;
+
+      if (!drag.saved) {
+        saveHistory();
+        drag.saved = true;
+      }
+
+      sound.rsend =
+        clamp(
+          drag.startValue + units,
+          0,
+          100
+        );
+
+      setSoundReverbSend(
+        state.selectedLayer,
+        state.selectedSoundId,
+        sound.rsend
+      );
+
+      renderValue();
+    }
+  );
+
+  const finish = event => {
+    if (
+      !drag ||
+      drag.pointerId !== event.pointerId
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    control.releasePointerCapture?.(
+      event.pointerId
+    );
+    drag = null;
+  };
+
+  control.addEventListener(
+    "pointerup",
+    finish
+  );
+  control.addEventListener(
+    "pointercancel",
+    finish
+  );
+
+  return control;
+}
+
 function createSelectedSoundMuteSolo() {
   const sound =
     selectedSound();
@@ -4003,8 +4136,15 @@ function createSelectedSoundMuteSolo() {
     openSoundPresetModal
   );
 
+  const spacer =
+    document.createElement("span");
+  spacer.className =
+    "mokton-selected-sound-spacer";
+
   row.append(
     label,
+    spacer,
+    createSoundReverbSendControl(sound),
 
     createMuteSoloControls({
       muted:

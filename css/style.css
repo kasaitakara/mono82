@@ -6043,3 +6043,42 @@ body.global-confirm-open #global-menu-button {
   flex: 1 1 0;
   text-align: center;
 }
+
+
+/* =========================================================
+   mono82: per-Sound reverb send 2026-09-09
+   sound name ........ rev 00  m  s
+   ========================================================= */
+.mokton-selected-sound-info {
+  justify-content: flex-start !important;
+  gap: 0 !important;
+}
+
+.mokton-selected-sound-spacer {
+  flex: 1 1 auto !important;
+  min-width: 6px !important;
+}
+
+.mokton-sound-reverb-send {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  flex: 0 0 auto !important;
+  min-width: 48px !important;
+  min-height: 24px !important;
+  margin: 0 12px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font: inherit !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.mokton-sound-reverb-send:active {
+  color: var(--accent) !important;
+}
