@@ -479,7 +479,23 @@ helpButton?.addEventListener("click", (event) => {
  * Only the ? button and elements explicitly marked data-help-target
  * remain tappable. Normal app actions never fire while help mode is on.
  */
-for (const eventName of ["pointerdown", "click"]) {
+const HELP_BLOCKED_EVENTS = [
+  "pointerdown",
+  "pointerup",
+  "pointercancel",
+  "mousedown",
+  "mouseup",
+  "touchstart",
+  "touchend",
+  "touchcancel",
+  "click",
+  "dblclick",
+  "contextmenu",
+  "input",
+  "change"
+];
+
+for (const eventName of HELP_BLOCKED_EVENTS) {
   document.addEventListener(
     eventName,
     (event) => {
