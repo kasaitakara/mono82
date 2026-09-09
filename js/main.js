@@ -2,6 +2,7 @@ import {
   STEP_COUNT,
   patterns,
   soundBank,
+  song,
   state,
   clamp,
   undo,
@@ -668,6 +669,7 @@ const HELP_TARGET_SELECTORS = [
   ".mokton-sequence-tools > button",
   "#pattern-edit-button",
   "#master-reverb-control",
+  "#swing-control",
   "#pattern-loop-button",
   "#pattern-grid",
   ".mokton-selected-sound-name",
@@ -1379,9 +1381,43 @@ function playStepAtTick(
     playbackTickIndex %
     STEP_COUNT;
 
+  /*
+   * Swing:
+   *   0   = straight
+   *  +50  = odd STEP reaches the following even STEP
+   *  -50  = even STEP reaches the following odd STEP
+   *
+   * Only the event time moves; the base sequencer clock remains straight.
+   * This keeps Pattern/Song progression stable while allowing the extreme
+   * values to stack adjacent STEP events at exactly the same time.
+   */
+  const swing =
+    clamp(
+      Math.round(Number(song.swing) || 0),
+      -50,
+      50
+    );
+
+  const swingTarget =
+    swing > 0
+      ? stepIndex % 2 === 1
+      : swing < 0
+        ? stepIndex % 2 === 0
+        : false;
+
+  const swingOffsetMs =
+    swingTarget
+      ? duration() *
+        (Math.abs(swing) / 50)
+      : 0;
+
+  const swungPerformanceTime =
+    plannedPerformanceTime +
+    swingOffsetMs;
+
   schedulePlayingStepDisplay(
     stepIndex,
-    plannedPerformanceTime
+    swungPerformanceTime
   );
 
   const step =
@@ -1401,7 +1437,7 @@ function playStepAtTick(
     Math.max(
       0,
       (
-        plannedPerformanceTime -
+        swungPerformanceTime -
         performance.now()
       ) /
         1000

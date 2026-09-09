@@ -394,11 +394,32 @@ async function scheduleSource({
       continue;
     }
 
+    const swing =
+      clamp(
+        Math.round(Number(song.swing) || 0),
+        -50,
+        50
+      );
+
+    const swingTarget =
+      swing > 0
+        ? tick % 2 === 1
+        : swing < 0
+          ? tick % 2 === 0
+          : false;
+
+    const swingOffset =
+      swingTarget
+        ? stepSeconds *
+          (Math.abs(swing) / 50)
+        : 0;
+
     const baseStart =
       guardSeconds +
       headSeconds +
       sourceStartSeconds +
-      tick * stepSeconds;
+      tick * stepSeconds +
+      swingOffset;
 
     await scheduleLayer({
       layer: "melodic",

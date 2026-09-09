@@ -219,6 +219,7 @@ function makeSongData() {
    */
   return {
     order: Array.from({ length: PATTERN_SLOT_COUNT }, (_, index) => index),
+    swing: 0,
     masterMix: makeMasterMix()
   };
 }
@@ -1274,6 +1275,12 @@ function normalizeProjectSnapshot(snapshot) {
         index < PATTERN_SLOT_COUNT
       )
     : makeSongData().order;
+
+  data.song.swing = clamp(
+    Math.round(Number(data.song.swing) || 0),
+    -50,
+    50
+  );
 
   data.song.masterMix = {
     ...makeMasterMix(),

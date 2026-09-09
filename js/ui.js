@@ -7796,6 +7796,86 @@ const masterReverbControl =
   document.getElementById("master-reverb-control");
 const masterReverbValue =
   document.getElementById("master-reverb-value");
+const swingControl =
+  document.getElementById("swing-control");
+const swingValue =
+  document.getElementById("swing-value");
+
+function swingAmount() {
+  song.swing = clamp(
+    Math.round(Number(song.swing) || 0),
+    -50,
+    50
+  );
+  return song.swing;
+}
+
+function syncSwingUi() {
+  if (swingValue) {
+    swingValue.textContent = String(swingAmount());
+  }
+}
+
+function setSwingFromUi(value) {
+  song.swing = clamp(
+    Math.round(Number(value) || 0),
+    -50,
+    50
+  );
+
+  if (swingValue) {
+    swingValue.textContent = String(song.swing);
+  }
+}
+
+function enableSwingVerticalSwipe() {
+  if (!swingControl) return;
+
+  let pointerId = null;
+  let startY = 0;
+  let startValue = 0;
+  let historySaved = false;
+
+  swingControl.addEventListener("pointerdown", event => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+
+    event.preventDefault();
+    pointerId = event.pointerId;
+    startY = event.clientY;
+    startValue = swingAmount();
+    historySaved = false;
+    swingControl.setPointerCapture(event.pointerId);
+  });
+
+  swingControl.addEventListener("pointermove", event => {
+    if (event.pointerId !== pointerId) return;
+    event.preventDefault();
+
+    if (!historySaved) {
+      saveHistory();
+      historySaved = true;
+    }
+
+    setSwingFromUi(
+      startValue + (startY - event.clientY) / 2
+    );
+  });
+
+  const finish = event => {
+    if (event.pointerId !== pointerId) return;
+    if (swingControl.hasPointerCapture(event.pointerId)) {
+      swingControl.releasePointerCapture(event.pointerId);
+    }
+    pointerId = null;
+
+    if (historySaved) {
+      window.dispatchEvent(new Event("projectchange"));
+    }
+  };
+
+  swingControl.addEventListener("pointerup", finish);
+  swingControl.addEventListener("pointercancel", finish);
+}
 
 function masterMix() {
   song.masterMix ??= {
@@ -7932,6 +8012,7 @@ function ensureMiniEqMeterLoop() {
 }
 
 enableReverbVerticalSwipe();
+enableSwingVerticalSwipe();
 
 /* =========================================================
  * Main.js compatibility exports
@@ -7939,6 +8020,7 @@ enableReverbVerticalSwipe();
 
 export function renderSongMode() {
   syncMasterMixAudio();
+  syncSwingUi();
   ensureMiniEqMeterLoop();
 }
 

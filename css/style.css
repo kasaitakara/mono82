@@ -5006,7 +5006,8 @@ body {
   background: var(--accent);
 }
 
-.master-reverb-control {
+.master-reverb-control,
+.swing-control {
   flex: 0 0 auto;
   min-width: 48px;
   height: 24px;
@@ -5042,6 +5043,11 @@ body {
 }
 
 .pattern-section #master-reverb-control {
+  margin-left: 6px !important;
+  margin-right: 0 !important;
+}
+
+.pattern-section #swing-control {
   margin-left: 6px !important;
   margin-right: auto !important;
 }
