@@ -212,8 +212,157 @@ const volumeInput = document.getElementById("master-volume");
 const volumeValue = document.getElementById("master-volume-value");
 const themeSelector = document.getElementById("theme-selector");
 const themeButton = document.getElementById("theme-button");
+const helpButton = document.getElementById("help-button");
 const undoButton = document.getElementById("undo-button");
 const redoButton = document.getElementById("redo-button");
+
+
+let helpModeActive = false;
+let helpPanel = null;
+
+function setHelpModeNotice(active) {
+  clearTimeout(noticeTimer);
+
+  let notice =
+    document.getElementById("operation-notice");
+
+  if (!notice) {
+    notice = document.createElement("div");
+    notice.id = "operation-notice";
+    notice.className = "operation-notice";
+    document.body.append(notice);
+  }
+
+  if (!active) {
+    notice.classList.remove("show");
+    return;
+  }
+
+  const titleRect =
+    currentProjectNameElement?.getBoundingClientRect();
+
+  if (titleRect) {
+    notice.style.setProperty(
+      "--notice-top",
+      `${Math.max(4, titleRect.top - 18)}px`
+    );
+  }
+
+  notice.textContent = "help mode · tap outlined controls";
+  notice.classList.add("show");
+}
+
+function closeHelpPanel() {
+  helpPanel?.remove();
+  helpPanel = null;
+}
+
+function showHelpPanel(target) {
+  const text = target?.dataset?.helpText;
+  if (!text) return;
+
+  closeHelpPanel();
+
+  const panel = document.createElement("div");
+  panel.className = "help-description-panel";
+  panel.textContent = text;
+  document.body.append(panel);
+  helpPanel = panel;
+
+  const targetRect = target.getBoundingClientRect();
+  const panelRect = panel.getBoundingClientRect();
+  const gap = 8;
+  const viewportHeight = window.innerHeight;
+
+  const roomBelow = viewportHeight - targetRect.bottom;
+  const roomAbove = targetRect.top;
+  const useBelow =
+    roomBelow >= panelRect.height + gap ||
+    roomBelow >= roomAbove;
+
+  const top = useBelow
+    ? Math.min(
+        viewportHeight - panelRect.height - gap,
+        targetRect.bottom + gap
+      )
+    : Math.max(
+        gap,
+        targetRect.top - panelRect.height - gap
+      );
+
+  panel.style.top = `${top}px`;
+}
+
+function setHelpMode(active) {
+  helpModeActive = Boolean(active);
+  document.body.classList.toggle(
+    "help-mode",
+    helpModeActive
+  );
+  helpButton?.setAttribute(
+    "aria-pressed",
+    helpModeActive ? "true" : "false"
+  );
+
+  closeHelpPanel();
+  setHelpModeNotice(helpModeActive);
+}
+
+helpButton?.addEventListener("click", (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  setHelpMode(!helpModeActive);
+});
+
+/*
+ * Help mode owns interaction before the normal UI sees it.
+ * Only the ? button and elements explicitly marked data-help-target
+ * remain tappable. Normal app actions never fire while help mode is on.
+ */
+for (const eventName of ["pointerdown", "click"]) {
+  document.addEventListener(
+    eventName,
+    (event) => {
+      if (!helpModeActive) return;
+
+      const target =
+        event.target instanceof Element
+          ? event.target
+          : null;
+
+      if (target?.closest("#help-button")) {
+        return;
+      }
+
+      const helpTarget =
+        target?.closest("[data-help-target]");
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+
+      if (
+        eventName === "click" &&
+        helpTarget
+      ) {
+        showHelpPanel(helpTarget);
+      }
+    },
+    true
+  );
+}
+
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (!helpModeActive) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+  },
+  true
+);
+
 
 function updateHistoryButtons() {
   undoButton.disabled = !canUndo();

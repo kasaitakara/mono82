@@ -6079,3 +6079,53 @@ body.global-confirm-open #global-menu-button {
   -webkit-user-select: none !important;
 }
 
+
+
+/* =========================================================
+   Help mode foundation 2026-09-09
+   ========================================================= */
+#help-button {
+  display: grid !important;
+  place-items: center !important;
+}
+
+#help-button .mono82-help-icon {
+  width: 13px !important;
+  height: 15px !important;
+  overflow: visible;
+  shape-rendering: crispEdges;
+}
+
+#help-button .mono82-help-icon rect {
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+/* The ? itself deliberately does not change appearance while help is active. */
+#help-button[aria-pressed="true"] {
+  color: inherit !important;
+  background: transparent !important;
+}
+
+body.help-mode [data-help-target] {
+  outline: 1px solid var(--text) !important;
+  outline-offset: 1px !important;
+}
+
+.help-description-panel {
+  position: fixed;
+  z-index: 10020;
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  width: auto;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid var(--text);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 9px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow: visible;
+  pointer-events: none;
+}
