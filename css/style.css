@@ -6123,3 +6123,13 @@ body.help-mode [data-help-target] {
   overflow: visible;
   pointer-events: none;
 }
+
+
+/* Help-mode grouped Sound layer targets */
+.help-target-group-overlay {
+  position: fixed;
+  z-index: 10010;
+  box-sizing: border-box;
+  background: transparent;
+  pointer-events: auto;
+}

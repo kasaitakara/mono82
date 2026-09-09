@@ -297,8 +297,160 @@ function showHelpPanel(target) {
   panel.style.top = `${top}px`;
 }
 
+
+const HELP_TARGET_SELECTORS = [
+  "#current-project-name",
+  "#theme-button",
+  "#global-menu-button",
+  "#undo-button",
+  "#redo-button",
+  "#mini-eq-meter",
+  "#play-button",
+  ".master-control",
+  ".bpm-control",
+  "#current-source-display",
+  "#sequence-grid",
+  ".mokton-sequence-tools > button",
+  "#pattern-edit-button",
+  "#master-reverb-control",
+  "#pattern-loop-button",
+  "#pattern-grid",
+  ".mokton-selected-sound-name",
+  ".mokton-sound-reverb-send",
+  ".mokton-ms-controls > button",
+  ".mokton-step-parameter-button",
+  ".mokton-direct-value-pad",
+  ".mokton-lfo-access-button",
+  ".mokton-lfo-target-cell",
+  ".mokton-lfo-wave-cycle",
+  ".mokton-lfo-inline-value",
+  ".mokton-lfo-sync-button",
+  ".mokton-lfo-parameter-pads .mokton-parameter-pad"
+];
+
+function clearHelpGroupOverlays() {
+  document
+    .querySelectorAll(".help-target-group-overlay")
+    .forEach(element => element.remove());
+}
+
+function createHelpGroupOverlay(
+  buttons,
+  groupId
+) {
+  const elements =
+    [...buttons].filter(Boolean);
+
+  if (!elements.length) {
+    return;
+  }
+
+  const rects =
+    elements.map(element =>
+      element.getBoundingClientRect()
+    );
+
+  const left =
+    Math.min(...rects.map(rect => rect.left));
+  const top =
+    Math.min(...rects.map(rect => rect.top));
+  const right =
+    Math.max(...rects.map(rect => rect.right));
+  const bottom =
+    Math.max(...rects.map(rect => rect.bottom));
+
+  const overlay =
+    document.createElement("div");
+
+  overlay.className =
+    "help-target-group-overlay";
+  overlay.dataset.helpTarget = "true";
+  overlay.dataset.helpGroup = groupId;
+
+  overlay.style.left = `${left}px`;
+  overlay.style.top = `${top}px`;
+  overlay.style.width =
+    `${Math.max(1, right - left)}px`;
+  overlay.style.height =
+    `${Math.max(1, bottom - top)}px`;
+
+  document.body.append(overlay);
+}
+
+function createSoundLayerHelpGroups() {
+  const soundButtons =
+    [...document.querySelectorAll(
+      ".mokton-sound-button-compact"
+    )];
+
+  createHelpGroupOverlay(
+    soundButtons.filter(button =>
+      ["1", "2", "3", "4"].includes(
+        button.dataset.soundId
+      )
+    ),
+    "melodic-sounds"
+  );
+
+  createHelpGroupOverlay(
+    soundButtons.filter(button =>
+      ["a", "b", "c", "d"].includes(
+        button.dataset.soundId
+      )
+    ),
+    "rhythm-sounds"
+  );
+}
+
+function refreshHelpTargets() {
+  clearHelpGroupOverlays();
+
+  document
+    .querySelectorAll("[data-help-target]")
+    .forEach(element => {
+      if (
+        !element.classList.contains(
+          "help-target-group-overlay"
+        )
+      ) {
+        element.removeAttribute(
+          "data-help-target"
+        );
+      }
+    });
+
+  if (!helpModeActive) {
+    return;
+  }
+
+  HELP_TARGET_SELECTORS.forEach(
+    selector => {
+      document
+        .querySelectorAll(selector)
+        .forEach(element => {
+          if (
+            element.id ===
+            "help-button"
+          ) {
+            return;
+          }
+
+          element.setAttribute(
+            "data-help-target",
+            "true"
+          );
+        });
+    }
+  );
+
+  createSoundLayerHelpGroups();
+}
+
 function setHelpMode(active) {
   helpModeActive = Boolean(active);
+
+  refreshHelpTargets();
+
   document.body.classList.toggle(
     "help-mode",
     helpModeActive
@@ -310,6 +462,10 @@ function setHelpMode(active) {
 
   closeHelpPanel();
   setHelpModeNotice(helpModeActive);
+
+  if (!helpModeActive) {
+    clearHelpGroupOverlays();
+  }
 }
 
 helpButton?.addEventListener("click", (event) => {
