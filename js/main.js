@@ -276,14 +276,40 @@ const HELP_CONTENT = {
     }
   },
   audioSpectrum: {
-    en: {
-      title: "audio spectrum",
-      body: "shows the current sound spectrum. low sounds are on the left, high sounds on the right."
-    },
-    ja: {
-      title: "オーディオスペクトラム",
-      body: "現在鳴っている音の分布を表示します。左側が低音域、右側が高音域です。"
-    }
+    en: { title: "audio spectrum", body: "shows the current sound spectrum. low sounds are on the left, high sounds on the right." },
+    ja: { title: "オーディオスペクトラム", body: "現在鳴っている音の分布を表示します。左側が低音域、右側が高音域です。" }
+  },
+  songTitle: {
+    en: { title: "song title", body: "shows the song title. tap to rename." },
+    ja: { title: "曲名", body: "曲名を表示します。タップすると名前を変更できます。" }
+  },
+  undo: {
+    en: { title: "undo", body: "undoes the last edit." },
+    ja: { title: "取り消し", body: "直前の編集を取り消します。" }
+  },
+  redo: {
+    en: { title: "redo", body: "restores the last undone edit." },
+    ja: { title: "やり直し", body: "取り消した編集をやり直します。" }
+  },
+  color: {
+    en: { title: "color", body: "changes the app color theme." },
+    ja: { title: "カラー", body: "アプリのカラーテーマを変更します。" }
+  },
+  mute: {
+    en: { title: "mute", body: "mutes this sound." },
+    ja: { title: "ミュート", body: "このサウンドをミュートします。" }
+  },
+  solo: {
+    en: { title: "solo", body: "makes only this sound audible." },
+    ja: { title: "ソロ", body: "このサウンドだけが鳴る状態にします。" }
+  },
+  reverbSend: {
+    en: { title: "reverb send", body: "sets how much of this sound is sent to the reverb. swipe up/down to change." },
+    ja: { title: "リバーブセンド", body: "このサウンドをリバーブに送る量を設定します。上下にスイープして変更します。" }
+  },
+  sound: {
+    en: { title: "sound", body: "shows the selected sound. tap to open sound management, where you can choose factory presets, save user presets, and load saved presets." },
+    ja: { title: "サウンド", body: "選択中のサウンドを表示します。タップするとサウンド管理画面が開き、Factoryプリセットへの切り替え、ユーザープリセットの登録、登録したプリセットへの切り替えができます。" }
   }
 };
 
@@ -669,7 +695,21 @@ function refreshHelpTargets() {
             "true"
           );
 
-          if (
+          if (element.id === "current-project-name") {
+            element.dataset.helpKey = "songTitle";
+          } else if (element.id === "theme-button") {
+            element.dataset.helpKey = "color";
+          } else if (element.id === "undo-button") {
+            element.dataset.helpKey = "undo";
+          } else if (element.id === "redo-button") {
+            element.dataset.helpKey = "redo";
+          } else if (element.matches(".mokton-selected-sound-name")) {
+            element.dataset.helpKey = "sound";
+          } else if (element.matches(".mokton-sound-reverb-send")) {
+            element.dataset.helpKey = "reverbSend";
+          } else if (element.matches(".mokton-ms-controls > button")) {
+            element.dataset.helpKey = element.title === "solo" ? "solo" : "mute";
+          } else if (
             element.id ===
             "play-button"
           ) {

@@ -6205,3 +6205,9 @@ body.help-mode [data-help-target] {
   visibility: visible !important;
   opacity: 1 !important;
 }
+
+
+/* Help v48: Help taps never use the Sound-name accent press feedback. */
+body.help-mode .mokton-selected-sound-name:active {
+  color: var(--text) !important;
+}
