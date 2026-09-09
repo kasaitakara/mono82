@@ -481,11 +481,14 @@ helpButton?.addEventListener("click", (event) => {
  */
 const HELP_BLOCKED_EVENTS = [
   "pointerdown",
+  "pointermove",
   "pointerup",
   "pointercancel",
   "mousedown",
+  "mousemove",
   "mouseup",
   "touchstart",
+  "touchmove",
   "touchend",
   "touchcancel",
   "click",
