@@ -5002,6 +5002,10 @@ body {
   background: currentColor;
 }
 
+.mini-eq-meter i.peak {
+  background: var(--accent);
+}
+
 .master-reverb-control {
   flex: 0 0 auto;
   min-width: 48px;

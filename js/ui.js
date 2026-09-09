@@ -7895,6 +7895,8 @@ function enableReverbVerticalSwipe() {
   masterReverbControl.addEventListener("pointercancel", finish);
 }
 
+const MINI_EQ_PEAK_THRESHOLD = 0.94;
+
 function updateMiniEqMeter() {
   const data = getMasterMixMeterData();
   const meterActive = Boolean(state.isPlaying);
@@ -7904,9 +7906,15 @@ function updateMiniEqMeter() {
       ? clamp(Number(data.bands[index]) || 0, 0, 1)
       : 0;
     const activeCount = Math.round(level * 8);
+    const peak = meterActive && level >= MINI_EQ_PEAK_THRESHOLD;
+    const topBlockIndex = band.length - 1;
 
     band.forEach((block, blockIndex) => {
       block.classList.toggle("on", blockIndex < activeCount);
+      block.classList.toggle(
+        "peak",
+        peak && blockIndex === topBlockIndex
+      );
     });
   });
 
