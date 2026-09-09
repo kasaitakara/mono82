@@ -12,7 +12,7 @@ export const FACTORY_SOUND_PRESETS = [
     category: "melodic",
     name: "initialize tone",
     sound: {
-      gain: 100,
+      gain: 70,
       attack: 1,
       holdDecay: 0,
       filterCutoff: 0,
@@ -40,7 +40,7 @@ export const FACTORY_SOUND_PRESETS = [
     category: "rhythm",
     name: "initialize rhythm",
     sound: {
-      gain: 100,
+      gain: 70,
       noiseMix: 0,
       note: 0,
       attack: 1,

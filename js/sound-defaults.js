@@ -21,7 +21,7 @@ export const LFO_DEFAULTS = Object.freeze({
 });
 
 export const MELODIC_SOUND_DEFAULTS = Object.freeze({
-  gain: 100,
+  gain: 70,
   attack: 1,
   holdDecay: 0,
   filterCutoff: 0,
@@ -33,7 +33,7 @@ export const MELODIC_SOUND_DEFAULTS = Object.freeze({
 });
 
 export const RHYTHM_SOUND_DEFAULTS = Object.freeze({
-  gain: 100,
+  gain: 70,
   noiseMix: 0,
   note: 0,
   attack: 1,
