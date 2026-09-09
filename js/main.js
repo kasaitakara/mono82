@@ -244,6 +244,46 @@ const HELP_CONTENT = {
       title: "BPM",
       body: "テンポを設定します。上下にスイープして変更します。"
     }
+  },
+  volume: {
+    en: {
+      title: "volume",
+      body: "sets the master output level. swipe up/down to change."
+    },
+    ja: {
+      title: "ボリューム",
+      body: "アプリ全体の出力音量を設定します。上下にスイープして変更します。"
+    }
+  },
+  reverb: {
+    en: {
+      title: "reverb",
+      body: "sets the overall amount of reverb. swipe up/down to change."
+    },
+    ja: {
+      title: "リバーブ",
+      body: "アプリ全体のリバーブのかかり具合を設定します。上下にスイープして変更します。"
+    }
+  },
+  swing: {
+    en: {
+      title: "swing",
+      body: "adds a swinging feel to the rhythm. swipe up/down to change."
+    },
+    ja: {
+      title: "スウィング",
+      body: "リズムに跳ねるようなスウィング感を加えます。上下にスイープして変更します。"
+    }
+  },
+  audioSpectrum: {
+    en: {
+      title: "audio spectrum",
+      body: "shows the current sound spectrum. low sounds are on the left, high sounds on the right."
+    },
+    ja: {
+      title: "オーディオスペクトラム",
+      body: "現在鳴っている音の分布を表示します。左側が低音域、右側が高音域です。"
+    }
   }
 };
 
@@ -642,6 +682,32 @@ function refreshHelpTargets() {
           ) {
             element.dataset.helpKey =
               "bpm";
+          } else if (
+            element.matches(
+              ".master-control"
+            )
+          ) {
+            element.dataset.helpKey =
+              "volume";
+          } else if (
+            element.id ===
+            "master-reverb-control"
+          ) {
+            element.dataset.helpKey =
+              "reverb";
+          } else if (
+            element.id ===
+            "mini-eq-meter"
+          ) {
+            element.dataset.helpKey =
+              "audioSpectrum";
+          } else if (
+            element.matches(
+              "[data-parameter-id=\"swing\"], [data-parameter=\"swing\"], .swing-control"
+            )
+          ) {
+            element.dataset.helpKey =
+              "swing";
           }
         });
     }
