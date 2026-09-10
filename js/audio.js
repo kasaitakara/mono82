@@ -966,81 +966,18 @@ function soundPeakGuardNode(
   soundKey,
   reverbSend = 0
 ) {
-  if (!context || !mixInput) {
-    return mixInput;
-  }
-
-  const key =
-    String(soundKey || "");
-
-  const sendAmount =
-    clamp(
-      Number(reverbSend) || 0,
-      0,
-      100
-    ) / 100;
-
-  const existing =
-    soundPeakGuards.get(key);
-
-  if (existing) {
-    existing.sendGain?.gain
-      .setTargetAtTime(
-        sendAmount,
-        context.currentTime,
-        0.01
-      );
-
-    return existing.guard;
-  }
-
-  const guard =
-    context.createDynamicsCompressor();
-
-  guard.threshold.value =
-    SOUND_PEAK_GUARD.threshold;
-  guard.knee.value =
-    SOUND_PEAK_GUARD.knee;
-  guard.ratio.value =
-    SOUND_PEAK_GUARD.ratio;
-  guard.attack.value =
-    SOUND_PEAK_GUARD.attack;
-  guard.release.value =
-    SOUND_PEAK_GUARD.release;
-
-  const sendGain =
-    sprootoDebugNode(
-      context.createGain(),
-      "soundReverbSend"
-    );
-
-  sendGain.gain.value =
-    sendAmount;
-
-  /* Dry path always reaches the normal Master/EQ chain. */
-  guard.connect(
-    mixInput
-  );
-
-  /* Wet path is Sound-specific, but all Sounds share one Master reverb. */
-  if (reverbConvolver) {
-    guard.connect(
-      sendGain
-    );
-    sendGain.connect(
-      reverbConvolver
-    );
-  }
-
-  soundPeakGuards.set(
-    key,
-    {
-      guard,
-      sendGain
-    }
-  );
-
-  return guard;
+  /*
+   * SCREEN RECORDING DIAGNOSTIC
+   *
+   * 2026-09-08 22:54 was the last confirmed iPhone screen recording
+   * with captured app audio.  The per-Sound peak guard and reverb-send
+   * routing were added after that point.
+   *
+   * Temporarily bypass BOTH post-cutoff Sound output stages and restore
+   * the pre-change topology: each voice goes straight to mixInput.
+   * This is intentionally a diagnostic rollback, not the final fix.
+   */
+  return mixInput;
 }
 
 async function ensureAudioClockReady() {
