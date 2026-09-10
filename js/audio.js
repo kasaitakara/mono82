@@ -973,18 +973,27 @@ function soundPeakGuardNode(
   const key =
     String(soundKey || "");
 
+  const sendAmount =
+    clamp(
+      Number(reverbSend) || 0,
+      0,
+      100
+    ) / 100;
+
   const existing =
     soundPeakGuards.get(key);
 
   if (existing) {
+    existing.sendGain?.gain
+      .setTargetAtTime(
+        sendAmount,
+        context.currentTime,
+        0.01
+      );
+
     return existing.guard;
   }
 
-  /*
-   * SCREEN RECORDING DIAGNOSTIC #2
-   * Keep per-Sound peak guard ON, but remove ONLY the per-Sound
-   * reverb-send branch.
-   */
   const guard =
     context.createDynamicsCompressor();
 
@@ -999,15 +1008,35 @@ function soundPeakGuardNode(
   guard.release.value =
     SOUND_PEAK_GUARD.release;
 
+  const sendGain =
+    sprootoDebugNode(
+      context.createGain(),
+      "soundReverbSend"
+    );
+
+  sendGain.gain.value =
+    sendAmount;
+
+  /* Dry path always reaches the normal Master/EQ chain. */
   guard.connect(
     mixInput
   );
+
+  /* Wet path is Sound-specific, but all Sounds share one Master reverb. */
+  if (reverbConvolver) {
+    guard.connect(
+      sendGain
+    );
+    sendGain.connect(
+      reverbConvolver
+    );
+  }
 
   soundPeakGuards.set(
     key,
     {
       guard,
-      sendGain: null
+      sendGain
     }
   );
 
@@ -1593,11 +1622,19 @@ export async function initializeAudio() {
     previousNode.connect(spectrumAnalyser);
 
     previousNode.connect(reverbDryGain);
-reverbDryGain.connect(mixGain);
+    reverbDryGain.connect(mixGain);
 
-reverbWetGain.connect(mixGain);
+    /*
+     * iOS screen recording compatibility:
+     * Keep the shared reverb return permanently connected to the live
+     * destination graph. Per-Sound sends may feed this Convolver at any time,
+     * so leaving its output disconnected can create a dead-end branch in the
+     * Web Audio graph. The wet amount is controlled only by reverbWetGain.
+     */
+    reverbConvolver.connect(reverbWetGain);
+    reverbWetGain.connect(mixGain);
 
-reverbPathConnected = false;
+    reverbPathConnected = true;
 
     mixGain.connect(limiter);
 
@@ -1712,52 +1749,21 @@ function updateMasterReverbPath(reverbAmount) {
     return;
   }
 
+  /*
+   * Keep the Convolver return connected at all times.
+   * reverbWetGain controls audible wet level, including 0, so dynamic
+   * connect/disconnect is unnecessary and can break iOS screen capture when
+   * a per-Sound send is feeding the Convolver.
+   */
   if (reverbDisconnectTimer !== null) {
     clearTimeout(reverbDisconnectTimer);
     reverbDisconnectTimer = null;
   }
 
-  if (reverbAmount > 0) {
-    if (!reverbPathConnected) {
-      reverbConvolver.connect(reverbWetGain);
-      reverbPathConnected = true;
-    }
-
-    return;
-  }
-
   if (!reverbPathConnected) {
-    return;
+    reverbConvolver.connect(reverbWetGain);
+    reverbPathConnected = true;
   }
-
-const convolver =
-  reverbConvolver;
-
-const wetGain =
-  reverbWetGain;
-
-  /*
-   * Wet Gainの10msスムージングが終わってから
-   * Convolver経路を切る。
-   */
-  reverbDisconnectTimer = setTimeout(() => {
-    reverbDisconnectTimer = null;
-
-    if (
-      masterMixSettings.reverb > 0 ||
-      !reverbPathConnected
-    ) {
-      return;
-    }
-
-    try {
-      convolver.disconnect(wetGain);
-    } catch (_) {
-      // already disconnected
-    }
-
-    reverbPathConnected = false;
-  }, 50);
 }
 
 function applyMasterMixSettings() {
