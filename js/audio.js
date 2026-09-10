@@ -966,18 +966,52 @@ function soundPeakGuardNode(
   soundKey,
   reverbSend = 0
 ) {
+  if (!context || !mixInput) {
+    return mixInput;
+  }
+
+  const key =
+    String(soundKey || "");
+
+  const existing =
+    soundPeakGuards.get(key);
+
+  if (existing) {
+    return existing.guard;
+  }
+
   /*
-   * SCREEN RECORDING DIAGNOSTIC
-   *
-   * 2026-09-08 22:54 was the last confirmed iPhone screen recording
-   * with captured app audio.  The per-Sound peak guard and reverb-send
-   * routing were added after that point.
-   *
-   * Temporarily bypass BOTH post-cutoff Sound output stages and restore
-   * the pre-change topology: each voice goes straight to mixInput.
-   * This is intentionally a diagnostic rollback, not the final fix.
+   * SCREEN RECORDING DIAGNOSTIC #2
+   * Keep per-Sound peak guard ON, but remove ONLY the per-Sound
+   * reverb-send branch.
    */
-  return mixInput;
+  const guard =
+    context.createDynamicsCompressor();
+
+  guard.threshold.value =
+    SOUND_PEAK_GUARD.threshold;
+  guard.knee.value =
+    SOUND_PEAK_GUARD.knee;
+  guard.ratio.value =
+    SOUND_PEAK_GUARD.ratio;
+  guard.attack.value =
+    SOUND_PEAK_GUARD.attack;
+  guard.release.value =
+    SOUND_PEAK_GUARD.release;
+
+  guard.connect(
+    mixInput
+  );
+
+  soundPeakGuards.set(
+    key,
+    {
+      guard,
+      sendGain: null
+    }
+  );
+
+  return guard;
 }
 
 async function ensureAudioClockReady() {
