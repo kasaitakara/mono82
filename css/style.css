@@ -2975,7 +2975,10 @@ body,
 }
 
 /* Compress header spacing to fit the fixed field cleanly. */
-.app-header .header-actions,
+.app-header .header-actions {
+  gap: 7px !important;
+}
+
 .app-header .transport-left,
 .app-header .transport-right {
   gap: 5px !important;
