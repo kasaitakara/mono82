@@ -1,1431 +1,6293 @@
-body.theme-sprooto {
+/* =========================================================
+   mokton
+   3 colors / one timeline / calculator-like UI
+   ========================================================= */
 
-    /* 土・紙 */
-    --bg: #faf4e7;
+:root {
+  --background: var(--bg);
+  --selected-bg: var(--accent);
+  --selected-text: var(--bg);
+  --muted: color-mix(
+    in srgb,
+    var(--text) 48%,
+    transparent
+  );
+  --line: color-mix(
+    in srgb,
+    var(--text) 26%,
+    transparent
+  );
+  --cell: color-mix(
+    in srgb,
+    var(--text) 7%,
+    var(--bg)
+  );
+  --play: var(--accent);
+  --play-control: var(--accent);
 
-    /* 植物 */
-    --text: #4b6648;
-    --muted: #8d9586;
-    --line: #4b6648;
+  --font-main:
+  "Press Start 2P",
+  ui-monospace,
+  monospace;
 
-    /* セル */
-    --cell: #efe5d7;
-    --off: #efe5d7;
-    --on: #b2caa8;
-
-    /* 水 */
-    --selected-bg: #97d6d0;
-    --selected-text: #4b6648;
-
-    /* 芽 */
-    --fill-bg: #b2caa8;
-    --fill-text: #4b6648;
-
-    --edit-bg: #b2caa8;
-    --edit-text: #4b6648;
-
-    /* 紙 */
-    --chip-bg: #efe5d7;
-    --chip-text: #dbb682;
-
-    /* 太陽 */
-    --play: #ffe100;
-    --play-control: #ffe100;
-
-    /* Hover */
-    --hover-bg: #fff6c7;
-    --hover-text: #4b6648;
-
-    /* 水（予約） */
-    --queued: #97d6d0;
+  --app-width: 390px;
+  --gap: 8px;
+  --radius: 0px;
 }
 
-body.theme-kasai {
-    --bg: #fbf8ec;
-    --text: #858585;
-    --muted: #aaa;
-    --line: #525252;
+/* =========================================================
+   Stage 43: six 3-color palettes
+   ========================================================= */
 
-    --cell: #efefef;
-    --off: #efefef;
-    --on: #aaa;
-    --play-control: #54805c;
-    --play: #525252;
-
-    --selected-bg: #525252;
-    --selected-text: #171717;
-
-    --fill-bg: #aaa;
-    --fill-text: #ededed;
-
-    --edit-bg: #efefef;
-    --edit-text: #ededed;
-
-    --chip-bg: #efefef;
-    --chip-text: #ededed;
-
-    --hover-bg: #ededed;
-    --hover-text: #171717;
-
-    --queued: #9ff8fa;
+:root.theme-mono82 {
+  --bg: #0e0e0e;
+  --text: #fafafa;
+  --accent: #41c65a;
+}
+   :root.theme-sprooto {
+  --bg: #e8e2d9;
+  --text: #5f7e5c;
+  --accent: #7db8bd;
 }
 
-body.theme-ryuichi {
-    /* 漆黒ではなく静かな黒 */
-    --bg: #1c1c1c;
-
-    /* 白い紙 */
-    --text: #ababab;
-
-    /* 補助文字 */
-    --muted: #b3b3b3;
-
-    /* 線 */
-    --line: #ababab;
-
-    /* セル */
-    --cell: #303030;
-
-    /* OFF */
-    --off: #303030;
-
-    /* ON */
-    --on: #6a6a6a;
-
-    /* 再生ボタン */
-    --play-control: #ffffff;
-
-    /* 再生位置 */
-    --play: #ffffff;
-
-    /* 選択 */
-    --selected-bg: #f0f0f0;
-    --selected-text: #1c1c1c;
-
-    /* Fill */
-    --fill-bg: #575757;
-    --fill-text: #cacaca;
-
-    /* 編集 */
-    --edit-bg: #575757;
-    --edit-text: #cacaca;
-
-    /* Sectionチップ */
-    --chip-bg: #575757;
-    --chip-text: #cacaca;
-
-    /* Hover */
-    --hover-bg: #ffffff;
-    --hover-text: #1c1c1c;
-
-    /* 次回予約 */
-    --queued: #bcbcbc;
+:root.theme-kasai {
+  --bg: #363636;
+  --text: #f2f2f2;
+  --accent: #7ff4de;
 }
 
-body.theme-aya {
-    --bg: #ededed;
-    --text: #417d90;
-    --muted: #888;
-    --line: #be9cd7;
-
-    --cell: #d4d4d4;
-    --off: #c5c5c5;
-    --on: #ffc1b0;
-    --play-control: #51ff2a;
-    --play: #ff73ce;
-
-    --selected-bg: #51ff2a;
-    --selected-text: #417d90;
-
-    --fill-bg: #ffc1b0;
-    --fill-text: #417d90;
-
-    --edit-bg: #417d90;
-    --edit-text: #ededed;
-
-    --chip-bg: #ededed;
-    --chip-text: #417d90;
-
-    --hover-bg: #ff73ce;
-    --hover-text: #ededed;
-
-    --queued: #be9cd7;
+:root.theme-mei {
+  --bg: #e7e5df;
+  --text: #164d03;
+  --accent: #4d88b6;
 }
-* { box-sizing:border-box; }
+
+:root.theme-ryuichi {
+  --bg: #000000;
+  --text: #aaaaaa;
+  --accent: #ffffff;
+}
+
+:root.theme-aya {
+  --bg: #d4d4d4;
+  --text: #417d90;
+  --accent: #ff73ce;
+}
+
+:root.theme-tobokegao {
+  --bg: #ffffff;
+  --text: #116ea4;
+  --accent: #ffcc00;
+}
+
+:root.theme-hachi {
+  --bg: #e38417;
+  --text: #3f3f3f;
+  --accent: #b3b3b3;
+}
+
+:root.theme-electro {
+  --bg: #acabab;
+  --text: #646666;
+  --accent: #65a3a8;
+}
+
+:root.theme-game {
+  --bg: #ffffff;
+  --text: #711521;
+  --accent: #b09d42;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: var(--bg);
+}
+
 html {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
+  overscroll-behavior: none;
 }
 
 body {
-    width: 100%;
-    height: 100%;
+  min-height: 100dvh;
+  color: var(--text);
+  font-family: var(--font-main);
+  font-size: 10px;
+  line-height: 1.45;
 
-    margin: 0;
-    padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 
-    overflow: hidden;
-    overscroll-behavior: none;
-    touch-action: manipulation;
-
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-
-    background: var(--bg);
-    color: var(--text);
-
-    font-family: Arial, Helvetica, sans-serif;
+  overscroll-behavior: none;
 }
 
-/* フォーム部品もテーマ色を継承 */
 button,
 input,
 select,
 textarea,
 output {
-    color: var(--text);
-    -webkit-text-fill-color: var(--text);
-    font: inherit;
-}
-h1 { margin:0; font-size:16px; font-weight:400; letter-spacing:.02em; }
-.theme-control { display:flex; align-items:center; gap:6px; font-size:10px; }
-.theme-control select { border:0; background:transparent; font-size:11px; }
-.icon-button { border:0; background:transparent; padding:2px 4px; }
-.play-button.playing { color: var(--play-control);}
-.master-control { display:flex; align-items:center; gap:7px; font-size:11px; }
-
-.master-control input[type="range"]::-webkit-slider-runnable-track {
-    height: 0.1px;
-    background: var(--text);
+  color: inherit;
+  font: inherit;
 }
 
-.master-control input[type="range"]::-webkit-slider-thumb {
-    width: var(--master-slider-size);
-    height: var(--master-slider-size);
-
-    margin-top: calc(
-        (var(--master-slider-line) - var(--master-slider-size)) / 2
-    );
-
-    appearance: none;
-    -webkit-appearance: none;
-
-    border: 0;
-    border-radius: 50%;
-    background: var(--text);
+button {
+  -webkit-tap-highlight-color:
+    transparent;
 }
 
-.master-control input[type="range"]::-moz-range-track {
-    height: 1px;
-    background: var(--text);
+button:focus-visible,
+input:focus-visible {
+  outline:
+    1px solid
+    var(--accent);
+  outline-offset: 2px;
 }
 
-.master-control input[type="range"]::-moz-range-thumb {
-    width: 8px;
-    height: 8px;
 
-    border: 0;
-    border-radius: 50%;
-    background: var(--text);
-}
-.master-control output { width:20px; }
-.bpm-input {
-    width: 42px;
-
-    border: 0;
-    background: transparent;
-
-    font-size: 12px;
-    text-align: center;
-
-    outline: none;
-    padding: 0;
-}
-.sequence-section { margin-top:8px; }
-.sequence-toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-
-    gap: 6px;
-    min-height: 22px;
-}
-.sequence-toolbar-controls {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.current-source-display {
-    height: 22px;
-
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-
-    color: var(--text);
-
-    font-size: 11px;
-    line-height: 1;
-}
-
-.current-source-icon {
-    width: 17px;
-    height: 17px;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.current-source-icon svg {
-    display: block;
-    width: 100%;
-    height: 100%;
-}
-
-.current-source-label {
-    min-width: 18px;
-    text-align: left;
-    font-size: 11px;
-}
-.pattern-length-input {
-    width: 24px;
-    height: 24px;
-
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-
-    background: var(--cell);
-    color: var(--text);
-
-    text-align: center;
-    font-size: 11px;
-    line-height: 24px;
-
-    appearance: textfield;
-    -moz-appearance: textfield;
-}
-.pattern-length-input::-webkit-inner-spin-button,
-.pattern-length-input::-webkit-outer-spin-button {
-  margin:0;
-  appearance:none;
-  -webkit-appearance:none;
-}
-
-.pattern-cell.queued {
-    background: color-mix(
-        in srgb,
-        var(--queued) 22%,
-        var(--cell)
-    );
-
-    color: var(--text);
-}
-
-/*
- * 選択中と予約中が重なった場合も、
- * 予約表示を優先してぼんやり見せる。
- */
-.pattern-cell.active.queued {
-    background: color-mix(
-        in srgb,
-        var(--queued) 30%,
-        var(--selected-bg)
-    );
-
-    color: var(--selected-text);
-}
-.sequence-page-button[hidden] {
-  display:none;
-}
-.sequence-page-button {
-  width:24px;
-  height:22px;
-  padding:0;
-  border:0;
-  background:transparent;
-  color:var(--ui);
-  font:inherit;
-  font-size:20px;
-  line-height:1;
-  cursor:pointer;
-}
-.sequence-page-button:hover,
-.sequence-page-button:focus-visible {
-  color: var(--selected-bg);
-}
-.track-title,.track-cycle { border:0; background:transparent; padding:4px; font-size:13px; }
-.sequence-grid {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-
-    gap: 6px;
-    margin-top: 4px;
-
-    min-height: 177px;
-    align-content: start;
-}
-.sequence-step { display:grid; grid-template-rows:repeat(4,1fr); gap:2px; aspect-ratio:1/1; padding:0; border:3px solid transparent; background:transparent; }
-.sequence-step.playing {
-    background: color-mix(
-        in srgb,
-        var(--play) 18%,
-        transparent
-    );
-}
-.track-lane { display:block; background:var(--off); }
-.track-lane.on { background:var(--on); }
-.track-lane.on.selected-track {
-    background: var(--selected-bg);
-}
-.editor-section {
-    margin-top: 8px;
-    padding-top: 6px;
-
-    border-top: 1px solid var(--line);
-
-    height: 150px;
-    overflow: hidden;
-}
-.editor-header,.edit-toolbar { display:flex; align-items:center; gap:8px; min-height:34px; }
-.mini-button {
-    width: 28px;
-    height: 26px;
-    border: 0;
-    background: var(--cell);
-    font-size: 12px;
-}
-.mini-button.active { background:var(--text); color:var(--bg); }
-.parameter-menu {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows: repeat(2, 36px);
-
-    column-gap: 5px;
-    row-gap: 5px;
-
-    margin-top: 3px;
-
-    overflow: hidden;
-}
-
-.parameter-button {
-    width: 100%;
-    height: 36px;
-    min-height: 36px;
-
-    /* 正方形指定を解除 */
-    aspect-ratio: auto;
-
-    border: 0;
-    background: transparent;
-
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-
-    padding: 0;
-}
-.parameter-icon { font-size:13px; }
-.edit-icon { min-width:28px; text-align:center; }
-.child-tabs { display:flex; gap:4px; }
-.child-tabs button { height:28px; border:0; background:var(--cell); padding:0 9px; font-size:11px; }
-.child-tabs button.active {
-    background: var(--selected-bg);
-    color: var(--selected-text);
-}
-.value-control { margin-left:auto; display:flex; align-items:center; }
-.value-control button { height:28px; min-width:26px; border:0; background:transparent; }
-.base-input { width:52px; height:28px; text-align:center; border:1px solid var(--selected-bg); background:var(--cell); font-size: 11px; }
-.offset-grid {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    grid-template-rows: repeat(4, 22px);
-
-    column-gap: 5px;
-    row-gap: 3px;
-
-    margin-top: 3px;
-}
-
-.offset-step {
-    width: 100%;
-    height: 22px;
-    min-height: 22px;
-
-    border: 2px solid transparent;
-    background: var(--cell);
-
-    font-size: 9px;
-    line-height: 1;
-    padding: 0;
-}
-.offset-step.playing {
-    background: color-mix(
-        in srgb,
-        var(--play) 15%,
-        var(--cell)
-    );
-}
-.offset-step.note-on {
-    background: color-mix(
-        in srgb,
-        var(--selected-bg) 15%,
-        var(--cell)
-    );
-}
-button:focus-visible,input:focus-visible,select:focus-visible { outline:1px solid var(--text); outline-offset:-1px; }
-/* =========================
-   PC 1画面表示調整
-========================= */
-
-/* =========================
-   全端末共通：スマホ幅固定
-========================= */
+/* =========================================================
+   App shell
+   ========================================================= */
 
 .app {
-    width: 360px;
-    min-width: 360px;
-    max-width: 360px;
+  width: min(
+    100%,
+    var(--app-width)
+  );
 
-    height: 100dvh;
+  min-height: 100dvh;
 
-    margin: 0 auto;
+  margin: 0 auto;
 
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-
-    overflow: hidden;
-}
-
-.theme-control {
-    gap: 2px;
-}
-
-.theme-control select {
-    width: 62px;
-    padding: 0;
-}
-
-/* 再生ボタン */
-.icon-button {
-    padding: 2px;
-}
-
-/* 音量部分を縮小 */
-.master-control {
-    gap: 3px;
-}
-
-.master-control output {
-    width: 20px;
-}
-
-/* BPM */
-.bpm-input {
-    width: 34px;
-    padding: 0;
-}
-
-/* ヘッダーをスマホ幅に収める */
-.app-header {
-    display: grid;
-    align-items: center;
-
-    width: 100%;
-    margin: 0;
-
-    grid-template-columns:
-        minmax(0, 1fr)
-        28px
-        28px
-        28px
-        28px
-        minmax(88px, auto)
-        42px;
-
-    gap: 3px;
-
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--line);
-}
-
-.theme-control {
-    gap: 3px;
-    white-space: nowrap;
-}
-
-.icon-button {
-    padding: 2px;
-}
-
-.master-control {
-    gap: 3px;
-}
-
-.master-control input {
-    width: 58px;
-}
-
-.master-control output {
-    width: 18px;
-}
-
-.bpm-input {
-    width: 42px;
-    min-width: 42px;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-/* =========================
-   マスターボリューム
-========================= */
-
-.master-control input[type="range"] {
-    --master-thumb-size: 8px;
-    --master-track-height: 1px;
-
-    width: 40px;
-    height: 16px;
-
-    margin: 0;
-    padding: 0;
-
-    appearance: none;
-    -webkit-appearance: none;
-
-    border: 0;
-    background: transparent;
-
-    cursor: pointer;
-}
-
-/* Edge・Chrome：ライン */
-.master-control input[type="range"]::-webkit-slider-runnable-track {
-    width: 100%;
-    height: var(--master-track-height);
-
-    border: 0;
-    background: var(--text);
-}
-
-/* Edge・Chrome：丸 */
-.master-control input[type="range"]::-webkit-slider-thumb {
-    width: var(--master-thumb-size);
-    height: var(--master-thumb-size);
-
-    margin-top: calc(
-        (var(--master-track-height) - var(--master-thumb-size)) / 2
+  padding:
+    max(
+      10px,
+      env(safe-area-inset-top)
+    )
+    12px
+    max(
+      16px,
+      env(safe-area-inset-bottom)
     );
 
-    appearance: none;
-    -webkit-appearance: none;
-
-    border: 0;
-    border-radius: 50%;
-
-    background: var(--text);
+  background: var(--bg);
 }
 
-/* Firefox：ライン */
-.master-control input[type="range"]::-moz-range-track {
-    width: 100%;
-    height: var(--master-track-height);
-
-    border: 0;
-    background: var(--text);
+.app-header,
+.sequence-section,
+.editor-section,
+.pattern-section {
+  border-bottom:
+    1px solid
+    var(--line);
 }
 
-/* Firefox：丸 */
-.master-control input[type="range"]::-moz-range-thumb {
-    width: var(--master-thumb-size);
-    height: var(--master-thumb-size);
-
-    border: 0;
-    border-radius: 50%;
-
-    background: var(--text);
+.app-header {
+  padding-bottom: 10px;
 }
 
-/* =========================
-   Parameter SVG icons
-========================= */
-
-.parameter-icon,
-.edit-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    color: currentColor;
+.sequence-section,
+.editor-section,
+.pattern-section {
+  padding:
+    10px 0 12px;
 }
 
-.parameter-icon svg {
-    display: block;
-
-    width: 16px;
-    height: 16px;
+.pattern-section {
+  border-bottom: 0;
 }
 
-.edit-icon svg {
-    display: block;
 
-    width: 18px;
-    height: 18px;
+/* =========================================================
+   Header
+   ========================================================= */
+
+.brand-row,
+.transport-row,
+.section-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.parameter-value {
-    font-size: 9px;
-    line-height: 1;
-    color: var(--muted);
+.brand-row {
+  min-height: 28px;
 }
 
-.master-volume-icon {
-    width: 13px;
-    height: 13px;
+.current-project-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--accent);
 }
 
-.master-volume-icon svg {
-    display: block;
-
-    width: 100%;
-    height: 100%;
+.header-actions,
+.transport-left,
+.transport-right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
 }
 
+.transport-row {
+  min-height: 36px;
+  margin-top: 6px;
+}
+
+.transport-left,
+.transport-right {
+  flex: 1 1 0;
+}
+
+.transport-right {
+  justify-content: flex-end;
+}
+
+.transport-center {
+  flex: 0 0 auto;
+}
+
+.text-button,
 .play-button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    color: var(--text);
-}
-
-.play-button svg {
-    width: 16px;
-    height: 16px;
-
-    display: block;
-}
-
-.play-button.playing {
-    color: var(--play-control);
-}
-
-.track-title {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.track-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.track-icon svg {
-    width: 16px;
-    height: 16px;
-
-    display: block;
-}
-
-.track-number {
-    font-size: 13px;
-}
-
-.track-title,
-.track-cycle {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.track-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.track-icon svg {
-    display: block;
-    width: 16px;
-    height: 16px;
-}
-
-.track-number {
-    font-size: 13px;
-    line-height: 1;
-}
-
-.offset-input {
-  width: 100%;
-  height: 100%;
-
-  box-sizing: border-box;
-
   margin: 0;
   padding: 0;
 
-  border: none;
+  border: 0;
   border-radius: 0;
 
   background: transparent;
+  color: var(--text);
 
-  color: inherit;
-  font: inherit;
-  text-align: center;
-
-  outline: none;
+  cursor: pointer;
 }
 
-.base-input,
-.offset-input,
-.bpm-input {
+.text-button {
+  min-height: 24px;
+  font-size: 8px;
+}
+
+.text-button:active,
+.text-button.active {
+  color: var(--accent);
+}
+
+.text-button:disabled {
+  opacity: .22;
+}
+
+.play-button {
+  width: 34px;
+  height: 30px;
+
+  display: grid;
+  place-items: center;
+
+  font-size: 15px;
+  line-height: 1;
+}
+
+.play-button.playing {
+  color: var(--accent);
+}
+
+.theme-selector-hidden {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   Master / BPM
+   ========================================================= */
+
+.master-control,
+.bpm-control {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.control-label {
+  font-size: 7px;
+  color: var(--muted);
+}
+
+.master-control output {
+  width: 22px;
+  text-align: right;
+  font-size: 7px;
+}
+
+.master-control input[type="range"] {
+  width: 48px;
+  height: 18px;
+  margin: 0;
+  padding: 0;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  border: 0;
+  background: transparent;
+}
+
+.master-control
+input[type="range"]
+::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--text);
+}
+
+.master-control
+input[type="range"]
+::-webkit-slider-thumb {
+  width: 7px;
+  height: 7px;
+
+  margin-top: -3px;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  border: 0;
+  border-radius: 0;
+
+  background: var(--accent);
+}
+
+.master-control
+input[type="range"]
+::-moz-range-track {
+  height: 1px;
+  border: 0;
+  background: var(--text);
+}
+
+.master-control
+input[type="range"]
+::-moz-range-thumb {
+  width: 7px;
+  height: 7px;
+
+  border: 0;
+  border-radius: 0;
+
+  background: var(--accent);
+}
+
+#bpm-input {
+  width: 36px;
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+  border-radius: 0;
+
+  background: transparent;
+  color: var(--text);
+
+  text-align: right;
+
   appearance: textfield;
   -moz-appearance: textfield;
 }
 
-.base-input::-webkit-inner-spin-button,
-.base-input::-webkit-outer-spin-button,
-.offset-input::-webkit-inner-spin-button,
-.offset-input::-webkit-outer-spin-button,
-.bpm-input::-webkit-inner-spin-button,
-.bpm-input::-webkit-outer-spin-button {
+#bpm-input::-webkit-inner-spin-button,
+#bpm-input::-webkit-outer-spin-button {
   appearance: none;
   -webkit-appearance: none;
   margin: 0;
 }
 
-.edit-icon {
+
+/* =========================================================
+   Section toolbar
+   ========================================================= */
+
+.section-toolbar {
+  min-height: 22px;
+  margin-bottom: 7px;
+}
+
+.section-label {
+  font-size: 7px;
+  color: var(--muted);
+  text-transform: lowercase;
+}
+
+.current-source-display,
+.mokton-current-source {
+  min-height: 22px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  font-size: 9px;
+  color: var(--text);
+}
+
+.mokton-current-source::before {
+  content: none;
+  display: none;
+}
+
+.current-source-display,
+.mokton-current-source {
+  margin: 0;
+  padding: 0;
   border: 0;
   background: transparent;
+}
+
+
+/* =========================================================
+   ONE TIMELINE
+   ========================================================= */
+
+.sequence-grid,
+#sequence-grid {
+  display: block !important;
+
+  width: 100%;
+  height: 294px;
+
+  margin: 0;
   padding: 0;
 
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  border:
+    1px solid
+    var(--line);
+
+  scrollbar-width: thin;
+  scrollbar-color:
+    var(--accent)
+    transparent;
+
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mokton-sequence {
+  display: grid;
+  grid-template-columns: 1fr;
+  width: 100%;
+}
+
+.mokton-step {
+  position: relative;
+
+  display: grid;
+  grid-template-columns:
+    31px
+    minmax(0, 1fr)
+    24px;
+
+  align-items: center;
+
+  width: 100%;
+  min-height: 31px;
+
+  margin: 0;
+  padding: 0 7px;
+
+  border: 0;
+  border-bottom:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--text) 13%,
+      transparent
+    );
+
+  background: transparent;
+  color: var(--text);
+
+  text-align: left;
+  cursor: pointer;
+
+  touch-action: manipulation;
+}
+
+.mokton-step:nth-child(4n) {
+  border-bottom-color:
+    color-mix(
+      in srgb,
+      var(--text) 36%,
+      transparent
+    );
+}
+
+.mokton-step:last-child {
+  border-bottom: 0;
+}
+
+.mokton-step.selected {
+  background:
+    color-mix(
+      in srgb,
+      var(--accent) 8%,
+      transparent
+    );
+}
+
+.mokton-step.selected::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--accent);
+}
+
+.mokton-step.playing {
+  outline:
+    1px solid
+    var(--accent);
+  outline-offset: -1px;
+}
+
+.mokton-step-number {
+  font-size: 7px;
+  color: var(--muted);
+}
+
+.mokton-step-body {
+  position: relative;
+
+  display: grid;
+  grid-template-rows:
+    1fr
+    1fr;
+
+  align-items: center;
+
+  min-height: 24px;
+  padding: 4px 0;
+}
+
+.mokton-melodic-row,
+.mokton-rhythm-row {
+  position: relative;
+  height: 8px;
+}
+
+.mokton-melodic-mark {
+  position: absolute;
+  left: 0;
+  top: 3px;
+
+  width: 0;
+  height: 2px;
+
+  background: var(--accent);
+}
+
+.mokton-step.has-melodic
+.mokton-melodic-mark {
+  width: 100%;
+}
+
+.mokton-rhythm-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+
+  width: 7px;
+  height: 7px;
+
+  border:
+    1px solid
+    var(--muted);
+
+  background: transparent;
+}
+
+.mokton-step.has-rhythm
+.mokton-rhythm-mark {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.mokton-step-sounds {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+
+  gap: 2px;
+
+  font-size: 6px;
+  line-height: 1;
+}
+
+.mokton-step-sound {
+  min-height: 7px;
+  color: var(--muted);
+}
+
+.mokton-step-sound.filled {
+  color: var(--accent);
+}
+
+
+/* =========================================================
+   EDITOR
+   ========================================================= */
+
+#editor,
+.editor-section #editor {
+  display: block !important;
+  min-height: 0;
+  height: auto !important;
+  overflow: visible;
+}
+
+.mokton-editor {
+  display: grid;
+  gap: 9px;
+}
+
+.mokton-sound-group {
+  display: grid;
+  grid-template-columns:
+    62px
+    minmax(0, 1fr);
+
+  gap: 7px;
+  align-items: center;
+}
+
+.mokton-layer-label {
+  margin: 0;
+  font-size: 7px;
+  color: var(--muted);
+}
+
+.mokton-sound-row {
+  display: grid;
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  gap: 5px;
+}
+
+.mokton-sound-button {
+  min-height: 30px;
+
+  padding: 0;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 0;
+
+  background: transparent;
+  color: var(--text);
+
+  cursor: pointer;
+}
+
+.mokton-sound-button.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.mokton-selected-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  min-height: 20px;
+
+  padding-top: 1px;
+
+  font-size: 7px;
+  color: var(--muted);
+}
+
+.mokton-stage-note {
+  font-size: 6px;
+  color: var(--muted);
+}
+
+
+/* =========================================================
+   Sound / STEP editors
+   ========================================================= */
+
+.mokton-sound-editor,
+.mokton-step-editor {
+  display: grid;
+  gap: 6px;
+
+  padding-top: 8px;
+
+  border-top:
+    1px solid
+    var(--line);
+}
+
+.mokton-sound-editor-title,
+.mokton-step-editor-title,
+.mokton-lfo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 20px;
+
+  font-size: 7px;
+}
+
+.mokton-sound-editor-title strong,
+.mokton-step-editor-title strong {
+  color: var(--accent);
+  font-weight: 400;
+}
+
+.mokton-param-row {
+  display: grid;
+  grid-template-columns:
+    68px
+    minmax(0, 1fr)
+    40px;
+
+  gap: 7px;
+  align-items: center;
+
+  min-height: 26px;
+
+  font-size: 7px;
+}
+
+.mokton-param-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--muted);
+}
+
+.mokton-param-value {
+  text-align: right;
+  color: var(--text);
+}
+
+.mokton-param-range {
+  width: 100%;
+  height: 18px;
+
+  margin: 0;
+  padding: 0;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  border: 0;
+  background: transparent;
+}
+
+.mokton-param-range
+::-webkit-slider-runnable-track {
+  height: 2px;
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 30%,
+      transparent
+    );
+}
+
+.mokton-param-range
+::-webkit-slider-thumb {
+  width: 8px;
+  height: 12px;
+
+  margin-top: -5px;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  border: 0;
+  border-radius: 0;
+
+  background: var(--accent);
+}
+
+.mokton-param-range
+::-moz-range-track {
+  height: 2px;
+  border: 0;
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 30%,
+      transparent
+    );
+}
+
+.mokton-param-range
+::-moz-range-thumb {
+  width: 8px;
+  height: 12px;
+
+  border: 0;
+  border-radius: 0;
+
+  background: var(--accent);
+}
+
+.mokton-lfo-card {
+  display: grid;
+  gap: 5px;
+
+  padding-top: 7px;
+
+  border-top:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--text) 14%,
+      transparent
+    );
+}
+
+.mokton-lfo-target {
+  font-size: 6px;
+  color: var(--muted);
+}
+
+.mokton-choice-row,
+.mokton-readonly-row {
+  display: grid;
+  grid-template-columns:
+    68px
+    minmax(0, 1fr);
+
+  gap: 7px;
+  align-items: center;
+
+  min-height: 26px;
+
+  font-size: 7px;
+}
+
+.mokton-choice-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.mokton-choice-button {
+  min-height: 24px;
+
+  padding: 0 6px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 0;
+
+  background: transparent;
+  color: var(--text);
+
+  font-size: 6px;
+
+  cursor: pointer;
+}
+
+.mokton-choice-button.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.mokton-readonly-value {
+  text-align: right;
+  color: var(--muted);
+}
+
+.mokton-step-editor-empty {
+  padding: 5px 0;
+
+  font-size: 7px;
+  color: var(--muted);
+}
+
+
+/* =========================================================
+   PATTERN 01-32
+   ========================================================= */
+
+.pattern-grid,
+#pattern-grid {
+  display: grid !important;
+  grid-template-columns:
+    repeat(8, 1fr);
+
+  gap: 5px;
+
+  width: 100%;
+}
+
+.mokton-pattern-button {
+  min-width: 0;
+  min-height: 29px;
+
+  padding: 0;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 0;
+
+  background: transparent;
+  color: var(--text);
+
+  font-size: 6px;
+
+  cursor: pointer;
+}
+
+.mokton-pattern-button.selected {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+
+/* =========================================================
+   Stage compatibility
+   ========================================================= */
+
+.legacy-stage-hooks,
+#sequence-page-button,
+#pattern-length-input,
+#pattern-page-button,
+#section-list,
+#song-parts,
+#song-grid,
+#song-master-mix,
+#song-page-button,
+#sequence-view-toggle,
+#song-editor-view-toggle {
+  display: none !important;
+}
+
+
+/* =========================================================
+   Small phones
+   ========================================================= */
+
+@media (
+  max-width: 350px
+) {
+  .app {
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+
+  body {
+    font-size: 9px;
+  }
+
+  .transport-right {
+    gap: 4px;
+  }
+
+  .master-control input[type="range"] {
+    width: 38px;
+  }
+
+  .mokton-param-row {
+    grid-template-columns:
+      58px
+      minmax(0, 1fr)
+      34px;
+  }
+
+  .mokton-choice-row,
+  .mokton-readonly-row {
+    grid-template-columns:
+      58px
+      minmax(0, 1fr);
+  }
+}
+
+
+/* =========================================================
+   Stage 5: sequence tools / layer + sound M/S
+   ========================================================= */
+
+.sequence-section .section-toolbar {
+  gap: 8px;
+}
+
+.mokton-sequence-tools {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mokton-mini-button {
+  min-width: 22px;
+  min-height: 22px;
+  margin: 0;
+  padding: 0 4px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 6px;
+  cursor: pointer;
+}
+
+.mokton-mini-button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.mokton-layer-area {
+  display: grid;
+  gap: 4px;
+}
+
+.mokton-ms-controls {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.mokton-ms-controls .mokton-mini-button {
+  min-width: 20px;
+  min-height: 18px;
+  padding: 0 3px;
+  font-size: 5px;
+}
+
+.mokton-sound-slot {
+  display: grid;
+  grid-template-rows: 30px 18px;
+  gap: 3px;
+}
+
+.mokton-sound-slot .mokton-ms-controls {
+  justify-content: center;
+}
+
+
+/* =========================================================
+   Stage 6: whole STEP clipboard
+   ========================================================= */
+
+.mokton-clip-button {
+  min-width: 32px;
+}
+
+.mokton-step.clipboard-ready {
+  cursor: copy;
+}
+
+.mokton-step.clipboard-ready::after {
+  content: "";
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  width: 3px;
+  height: 3px;
+  background: var(--accent);
+}
+
+
+/* =========================================================
+   Stage 7: Pattern order / repeat
+   ========================================================= */
+
+.mokton-pattern-button {
+  position: relative;
+
+  display: grid;
+  grid-template-columns:
+    1fr auto;
+
+  align-items: center;
+
+  gap: 3px;
+
+  padding:
+    0 5px;
+
+  touch-action: none;
+}
+
+.mokton-pattern-id {
+  text-align: left;
+}
+
+.mokton-pattern-repeat {
+  font-size: 5px;
+  color: var(--muted);
+}
+
+.mokton-pattern-button.selected
+.mokton-pattern-repeat {
+  color: var(--bg);
+  opacity: .72;
+}
+
+.mokton-pattern-button.dragging {
+  border-color: var(--accent);
+  opacity: .45;
+}
+
+.mokton-pattern-button.drop-target {
+  outline:
+    2px solid
+    var(--accent);
+
+  outline-offset:
+    -2px;
+}
+
+
+/* =========================================================
+   Stage 9: Pattern LOOP
+   ========================================================= */
+
+.pattern-section .section-toolbar {
+  display: flex;
+  align-items: center;
+}
+
+.pattern-loop-button {
+  margin-left: auto;
+  min-height: 24px;
+  padding: 0 7px;
+
+  border: 1px solid var(--line);
+  border-radius: 0;
+
+  background: transparent;
+  color: var(--muted);
+
+  font-size: 6px;
+  cursor: pointer;
+}
+
+.pattern-loop-button.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+}
+
+
+/* =========================================================
+   Stage 10: Pattern range loop
+   ========================================================= */
+
+.mokton-pattern-button.range-selected {
+  border-color: var(--accent);
+}
+
+.mokton-pattern-button.loop-range-active {
+  box-shadow:
+    inset 0 0 0 1px
+    var(--accent);
+}
+
+/* Range/loop membership is already shown by Pattern inversion.
+   No extra brackets around the Pattern number. */
+
+/* Stage 11: compact calculator editor */
+.mokton-editor-compact { gap: 7px; }
+.mokton-compact-sounds { display:grid; gap:5px; }
+.mokton-editor-modes { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.mokton-editor-mode,
+.mokton-parameter-pad,
+.mokton-lfo-access-button {
+  min-height:28px; padding:0 5px; border:1px solid var(--line);
+  border-radius:0; background:transparent; color:var(--text);
+  font-size:6px; cursor:pointer;
+}
+.mokton-editor-mode.active,
+.mokton-parameter-pad.active {
+  border-color:var(--accent); background:var(--accent); color:var(--bg);
+}
+.mokton-parameter-pads {
+  display:grid; grid-template-columns:repeat(4,1fr); gap:5px;
+}
+.mokton-value-control {
+  display:grid; grid-template-columns:58px minmax(0,1fr) 46px;
+  gap:7px; align-items:center; min-height:42px; padding:5px 0;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+}
+.mokton-value-name { font-size:7px; color:var(--muted); }
+.mokton-value-number {
+  text-align:right; font-size:11px; font-weight:400; color:var(--accent);
+}
+.mokton-value-slider {
+  width:100%; height:26px; margin:0; appearance:none;
+  -webkit-appearance:none; background:transparent;
+}
+.mokton-value-slider::-webkit-slider-runnable-track { height:2px; background:var(--text); }
+.mokton-value-slider::-webkit-slider-thumb {
+  width:12px; height:18px; margin-top:-8px; appearance:none;
+  -webkit-appearance:none; border:0; border-radius:0; background:var(--accent);
+}
+.mokton-value-slider::-moz-range-track { height:2px; background:var(--text); }
+.mokton-value-slider::-moz-range-thumb {
+  width:12px; height:18px; border:0; border-radius:0; background:var(--accent);
+}
+.mokton-lfo-access { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+.mokton-compact-lfo { margin-top:0; padding:7px; border:1px solid var(--line); }
+.mokton-compact-empty {
+  min-height:42px; display:grid; place-items:center;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  font-size:7px; color:var(--muted);
+}
+
+/* Stage 12: compressed Sound bank + calculator LFO */
+.mokton-sound-bank {
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  gap:4px;
+}
+
+.mokton-sound-button-compact {
+  min-height:30px;
+  width:100%;
+}
+
+.mokton-selected-ms {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:24px;
+  gap:8px;
+}
+
+.mokton-selected-ms-label,
+.mokton-layer-ms-label {
+  font-size:6px;
+  color:var(--muted);
+}
+
+.mokton-selected-ms-controls {
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.mokton-lfo-access-button.active,
+.mokton-lfo-wave-button.active {
+  border-color:var(--accent);
+  background:var(--accent);
+  color:var(--bg);
+}
+
+.mokton-lfo-calculator {
+  display:grid;
+  gap:5px;
+  padding-top:6px;
+  border-top:1px solid var(--line);
+}
+
+.mokton-lfo-calculator-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:20px;
+  font-size:7px;
+}
+
+.mokton-lfo-wave-pads {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:4px;
+}
+
+.mokton-lfo-wave-button {
+  min-height:26px;
+  padding:0 3px;
+  border:1px solid var(--line);
+  border-radius:0;
+  background:transparent;
+  color:var(--text);
+  font-size:5px;
+  cursor:pointer;
+}
+
+.mokton-lfo-parameter-pads {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:5px;
+}
+
+/* Stage 12 supersedes the old two-row labelled Sound groups. */
+.mokton-editor-compact .mokton-sound-group {
+  display:none;
+}
+
+
+/* =========================================================
+   Stage 13: unified typography
+   ========================================================= */
+
+:root {
+  --mokton-ui-font-size: 7px;
+}
+
+/*
+ * mokton typography rule:
+ * all visible text uses one size.
+ * The only exception is the current STEP offset/performance value.
+ */
+.app-shell,
+.app-shell button,
+.app-shell input,
+.app-shell output,
+.app-shell strong,
+.app-shell span,
+.app-shell div,
+.app-shell label {
+  font-size: var(--mokton-ui-font-size) !important;
+}
+
+/*
+ * Exception:
+ * selected STEP performance/offset numeric value only.
+ */
+.mokton-editor-step
+.mokton-value-number {
+  font-size: 11px !important;
+}
+
+/*
+ * Sound/LFO value readouts are intentionally NOT exceptions.
+ */
+.mokton-editor-sound
+.mokton-value-number,
+.mokton-lfo-calculator
+.mokton-value-number {
+  font-size: var(--mokton-ui-font-size) !important;
+}
+
+
+/* =========================================================
+   Stage 14: editor hierarchy cleanup
+   ========================================================= */
+
+/*
+ * M/S is no longer attached visually to each of the eight Sound keys.
+ * It is one compact status/action row for:
+ *   selected Sound | selected Layer
+ */
+.mokton-selected-ms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  min-height: 28px;
+}
+
+.mokton-ms-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+}
+
+.mokton-ms-label {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.mokton-ms-group
+.mokton-ms-controls {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.mokton-ms-group
+.mokton-mini-button {
+  min-width: 24px;
+  min-height: 20px;
+  padding: 0 4px;
+}
+
+/* Supersede Stage 12's scattered M/S helper layout. */
+.mokton-selected-ms-label,
+.mokton-selected-ms-controls,
+.mokton-layer-ms-label {
+  display: none;
+}
+
+/*
+ * Sequence toolbar now contains only sequence operations:
+ * shift left / shift right / randomize / clipboard.
+ * Undo remains in the global transport header.
+ */
+.mokton-sequence-tools {
+  align-items: center;
+}
+
+
+/* Stage 14.1: M/S visibility fix */
+.mokton-selected-ms {
+  display: grid !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.mokton-selected-ms
+.mokton-ms-group {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.mokton-selected-ms
+.mokton-ms-label,
+.mokton-selected-ms
+.mokton-ms-controls,
+.mokton-selected-ms
+.mokton-mini-button {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.mokton-selected-ms
+.mokton-ms-label {
+  align-items: center;
+}
+
+
+/* =========================================================
+   Stage 15: unified 8-column calculator grid
+   ========================================================= */
+
+:root {
+  --mokton-grid-gap: 5px;
+}
+
+/*
+ * EDIT area uses the same 8-column rhythm as Pattern.
+ */
+.mokton-editor-compact {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--mokton-grid-gap);
+}
+
+.mokton-compact-sounds,
+.mokton-editor-modes,
+.mokton-parameter-pads,
+.mokton-value-control,
+.mokton-lfo-access,
+.mokton-lfo-calculator,
+.mokton-compact-empty {
+  grid-column: 1 / -1;
+}
+
+/* 8 Sound keys = exact 8 columns */
+.mokton-sound-bank {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--mokton-grid-gap);
+}
+
+.mokton-sound-button-compact {
+  min-width: 0;
+  min-height: 32px;
+}
+
+/* selected Sound M/S + Layer M/S = 4 columns each */
+.mokton-selected-ms {
+  display: grid !important;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--mokton-grid-gap);
+  min-height: 26px;
+}
+
+.mokton-selected-ms .mokton-ms-group {
+  grid-column: span 4;
+  min-width: 0;
+  padding: 0 6px;
+}
+
+/* sound / step = 4 columns each */
+.mokton-editor-modes {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--mokton-grid-gap);
+}
+
+.mokton-editor-mode {
+  grid-column: span 4;
+  min-width: 0;
+  min-height: 32px;
+}
+
+/* normal parameter keys = 2 columns each */
+.mokton-parameter-pads {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--mokton-grid-gap);
+}
+
+.mokton-parameter-pad {
+  grid-column: span 2;
+  min-width: 0;
+  min-height: 32px;
+}
+
+/* single value lane */
+.mokton-value-control {
+  grid-template-columns:
+    2fr
+    minmax(0, 5fr)
+    1fr;
+
+  min-height: 42px;
+  padding: 5px 0;
+}
+
+/* LFO 1 / 2 = 4 columns each */
+.mokton-lfo-access {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--mokton-grid-gap);
+}
+
+.mokton-lfo-access-button {
+  grid-column: span 4;
+  min-width: 0;
+  min-height: 32px;
+}
+
+/* LFO panel also follows 8-column logic */
+.mokton-lfo-calculator {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--mokton-grid-gap);
+}
+
+.mokton-lfo-calculator-head,
+.mokton-lfo-wave-pads,
+.mokton-lfo-parameter-pads,
+.mokton-lfo-calculator .mokton-value-control {
+  grid-column: 1 / -1;
+}
+
+.mokton-lfo-wave-pads {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--mokton-grid-gap);
+}
+
+.mokton-lfo-wave-button {
+  grid-column: span 2;
+  min-width: 0;
+  min-height: 30px;
+}
+
+.mokton-lfo-parameter-pads {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: var(--mokton-grid-gap);
+}
+
+.mokton-lfo-parameter-pads .mokton-parameter-pad {
+  grid-column: span 2;
+}
+
+/*
+ * Keep section spacing consistent across sequence / edit / pattern.
+ */
+.sequence-section,
+.editor-section,
+.pattern-section {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.editor-section .section-toolbar,
+.pattern-section .section-toolbar,
+.sequence-section .section-toolbar {
+  min-height: 24px;
+  margin-bottom: 6px;
+}
+
+/*
+ * Pattern is already 8 columns; normalize its gap to the same grid.
+ */
+.pattern-grid,
+#pattern-grid {
+  gap: var(--mokton-grid-gap) !important;
+}
+
+/*
+ * Unified typography remains authoritative.
+ * STEP value is still the only larger text.
+ */
+
+
+/* =========================================================
+   Stage 16: PATTERN <-> SEQUENCE two-screen structure
+   ========================================================= */
+
+body[data-mokton-view="pattern"]
+.mokton-sequence-view {
+  display: none !important;
+}
+
+body[data-mokton-view="sequence"]
+.mokton-pattern-view {
+  display: none !important;
+}
+
+body[data-mokton-view="pattern"]
+.mokton-pattern-view,
+body[data-mokton-view="sequence"]
+.mokton-sequence-view {
+  display: block;
+}
+
+/* PATTERN: all 32 cells visible, no internal vertical scroll. */
+.pattern-section {
+  overflow: visible;
+}
+
+#pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(4, 36px);
+  gap: var(--mokton-grid-gap);
+  overflow: visible;
+  max-height: none;
+}
+
+/* SEQUENCE: all 32 STEP rows visible at once, no internal scroll. */
+.sequence-section {
+  overflow: visible;
+}
+
+#sequence-grid {
+  display: grid;
+  grid-template-rows: repeat(32, minmax(0, 1fr));
+  gap: 1px;
+  height: 352px;
+  max-height: none;
+  overflow: hidden;
+  scrollbar-width: none;
+}
+
+#sequence-grid::-webkit-scrollbar {
+  display: none;
+}
+
+#sequence-grid .mokton-step {
+  min-height: 0;
+  height: auto;
+}
+
+/* Navigation button uses the same typography and no icon font dependency. */
+.mokton-view-button {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/*
+ * On SEQUENCE screen the editor follows the 32-step grid.
+ * Page scrolling remains available for the editor itself;
+ * the sequencer grid never scrolls internally.
+ */
+
+
+/* =========================================================
+   Stage 16.1: SEQUENCE = 32 cells / 8 columns x 4 rows
+   ========================================================= */
+
+/*
+ * The actual 32 STEP buttons live inside .mokton-sequence.
+ * Stage 16 styled only #sequence-grid, so the legacy
+ * one-column wrapper kept winning. Make the wrapper itself
+ * the 8 x 4 calculator grid.
+ */
+#sequence-grid {
+  display: block;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+#sequence-grid .mokton-sequence {
+  display: grid !important;
+  grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(4, 54px) !important;
+  gap: var(--mokton-grid-gap) !important;
+  width: 100%;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+#sequence-grid .mokton-step {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: center;
+  justify-items: stretch;
+  min-width: 0;
+  width: 100%;
+  height: 54px !important;
+  min-height: 54px !important;
+  padding: 4px;
+  overflow: hidden;
+}
+
+/* STEP number stays compact at the top of each calculator cell. */
+#sequence-grid .mokton-step-number {
+  justify-self: start;
+  line-height: 1;
+}
+
+/* Melodic + rhythm visualization occupies the center. */
+#sequence-grid .mokton-step-body {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+}
+
+#sequence-grid .mokton-melodic-row,
+#sequence-grid .mokton-rhythm-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Existing upper-bar / lower-mark concept is retained. */
+#sequence-grid .mokton-melodic-mark {
+  display: block;
+  width: 100%;
+  min-height: 3px;
+}
+
+#sequence-grid .mokton-rhythm-mark {
+  display: block;
+  width: 7px;
+  height: 7px;
+}
+
+/* Sound IDs remain visible but compact inside the cell. */
+#sequence-grid .mokton-step-sounds {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  line-height: 1;
+}
+
+#sequence-grid .mokton-step-sound {
+  min-width: 0;
+}
+
+/* Never allow an internal sequence scrollbar. */
+#sequence-grid,
+#sequence-grid .mokton-sequence {
+  scrollbar-width: none;
+}
+
+#sequence-grid::-webkit-scrollbar,
+#sequence-grid .mokton-sequence::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* =========================================================
+   Stage 16.2: EDIT remains visible on both screens
+   ========================================================= */
+
+body[data-mokton-view="pattern"] .mokton-shared-view,
+body[data-mokton-view="sequence"] .mokton-shared-view {
+  display: block !important;
+}
+
+
+/* =========================================================
+   Stage 17: upper view switch / lower editor stays in place
+   ========================================================= */
+
+/*
+ * PATTERN and SEQUENCE occupy the same upper screen slot.
+ * Only one is rendered at a time; EDIT remains the shared
+ * lower block in normal document flow.
+ */
+body[data-mokton-view="pattern"] .mokton-sequence-view {
+  display: none !important;
+}
+
+body[data-mokton-view="sequence"] .mokton-pattern-view {
+  display: none !important;
+}
+
+body[data-mokton-view="pattern"] .mokton-pattern-view,
+body[data-mokton-view="sequence"] .mokton-sequence-view {
+  display: block !important;
+}
+
+body[data-mokton-view="pattern"] .mokton-shared-view,
+body[data-mokton-view="sequence"] .mokton-shared-view {
+  display: block !important;
+}
+
+/* Keep EDIT visually separated as the common lower control panel. */
+.editor-section.mokton-shared-view {
+  clear: both;
+  width: 100%;
+}
+
+/*
+ * SOUND keys are target selectors, not editor-mode selectors.
+ * SOUND / STEP mode is controlled only by the mode buttons.
+ */
+
+
+/* =========================================================
+   Stage 17.1: upper view always precedes fixed lower editor
+   ========================================================= */
+
+/*
+ * DOM order is now:
+ *   SEQUENCE (upper slot)
+ *   PATTERN  (upper slot)
+ *   EDIT     (shared lower panel)
+ *
+ * One upper slot is hidden by data-mokton-view, so EDIT always
+ * remains below whichever upper screen is active.
+ */
+.editor-section.mokton-shared-view {
+  order: initial;
+}
+
+
+/* =========================================================
+   Stage 18: mokton sequence visual language
+   ========================================================= */
+
+/*
+ * Upper SEQUENCE is now a musical 8 x 4 matrix rather than
+ * 32 generic boxes. The selected layer determines the primary
+ * visual language; the other layer remains as a small overlay.
+ */
+#sequence-grid {
+  border: 0 !important;
+}
+
+#sequence-grid .mokton-sequence {
+  grid-template-rows:
+    repeat(4, 46px) !important;
+  gap:
+    8px var(--mokton-grid-gap) !important;
+}
+
+#sequence-grid .mokton-step {
+  position: relative;
+
+  display: grid !important;
+  grid-template-rows:
+    11px 1fr !important;
+
+  align-items: stretch;
+  justify-items: stretch;
+
+  height: 46px !important;
+  min-height: 46px !important;
+
+  padding: 0 3px 3px !important;
+
+  border: 0 !important;
+  outline: 0;
+
+  background: transparent !important;
+}
+
+#sequence-grid .mokton-step-number {
+  justify-self: start;
+  align-self: start;
+
+  color: var(--muted);
+  line-height: 1;
+}
+
+#sequence-grid .mokton-step-visual {
+  position: relative;
+
+  display: grid;
+  grid-template-rows:
+    minmax(0, 1fr)
+    9px;
+
+  align-items: center;
+
+  width: 100%;
+  min-width: 0;
+}
+
+#sequence-grid .mokton-step-main {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  min-width: 0;
+  height: 100%;
+
+  overflow: hidden;
+  white-space: nowrap;
+
+  color: var(--muted);
+}
+
+#sequence-grid .mokton-step-main.note {
+  color: var(--text);
+}
+
+#sequence-grid .mokton-step-main.other {
+  color: var(--muted);
+}
+
+#sequence-grid .mokton-step-main.empty {
+  color: var(--muted);
+  opacity: .72;
+}
+
+#sequence-grid .mokton-step-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  min-height: 8px;
+
+  color: var(--muted);
+  line-height: 1;
+}
+
+/* selected melodic sound = readable note name */
+#sequence-grid
+.mokton-step.view-melodic.selected-sound-hit
+.mokton-step-main {
+  color: var(--text);
+}
+
+/* selected rhythm sound = solid rectangular hit */
+#sequence-grid
+.mokton-step-main.rhythm-hit {
+  width: 19px;
+  height: 7px;
+
+  align-self: center;
+
+  background: var(--text);
+  color: transparent;
+}
+
+/* another rhythm sound exists in the same layer */
+#sequence-grid
+.mokton-step-main.rhythm-other {
+  width: 19px;
+  height: 7px;
+
+  align-self: center;
+
+  border: 1px solid var(--muted);
+  background: transparent;
+  color: transparent;
+}
+
+/* secondary layer remains visible but subordinate */
+#sequence-grid
+.mokton-step-secondary.rhythm-presence {
+  color: var(--accent);
+}
+
+#sequence-grid
+.mokton-step-secondary.melodic-presence {
+  color: var(--muted);
+}
+
+/* STEP selection: small accent corner instead of a large filled cell */
+#sequence-grid .mokton-step.selected::before {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  top: 0;
+
+  width: 6px;
+  height: 6px;
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--accent) 0 50%,
+      transparent 51% 100%
+    );
+}
+
+/* playback cursor: underline the active STEP */
+#sequence-grid .mokton-step.playing::after {
+  content: "";
+
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 0;
+
+  height: 1px;
+
+  background: var(--accent);
+}
+
+#sequence-grid .mokton-step.playing {
+  outline: 0 !important;
+}
+
+/* clipboard remains a tiny top-right marker */
+#sequence-grid
+.mokton-step.clipboard-ready::after {
+  top: 0;
+  right: 0;
+  bottom: auto;
+  left: auto;
+
+  width: 3px;
+  height: 3px;
+
+  background: var(--accent);
+}
+
+/* Old row/sound-label presentation is no longer used. */
+#sequence-grid .mokton-step-body,
+#sequence-grid .mokton-step-sounds {
+  display: none !important;
+}
+
+/* Sequence toolbar stays lightweight like the reference layout. */
+.sequence-section .section-toolbar {
+  margin-bottom: 8px;
+}
+
+.sequence-section .mokton-current-source {
   min-width: 28px;
-  height: 28px;
+}
+
+.sequence-section .mokton-sequence-tools {
+  gap: 8px;
+}
+
+
+/* =========================================================
+   Stage 18.1: remove selected STEP corner triangle
+   ========================================================= */
+
+#sequence-grid .mokton-step.selected::before {
+  content: none !important;
+  display: none !important;
+}
+
+
+/* =========================================================
+   Stage 19: borderless UI / underline language
+   ========================================================= */
+
+/*
+ * No cell frames or divider rules anywhere in the application.
+ * State is expressed by fill, text, and underlines only.
+ */
+.app-shell *,
+.app * {
+  border-color: transparent !important;
+}
+
+.sequence-section,
+.editor-section,
+.pattern-section,
+.mokton-sound-editor,
+.mokton-step-editor {
+  border: 0 !important;
+}
+
+button,
+input,
+select,
+.mokton-sound-button,
+.mokton-editor-mode,
+.mokton-parameter-pad,
+.mokton-lfo-access-button,
+.mokton-mini-button,
+.pattern-loop-button,
+.mokton-pattern-button {
+  border: 0 !important;
+  outline: 0;
+}
+
+/* -----------------------------------------
+   PATTERN
+   empty    = number only
+   has data = underline below number
+   ----------------------------------------- */
+
+.mokton-pattern-button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  grid-template-columns: 1fr !important;
+  padding: 0 !important;
+  background: transparent;
+}
+
+.mokton-pattern-id {
+  position: relative;
+  display: inline-block;
+  text-align: center !important;
+}
+
+.mokton-pattern-button.has-data
+.mokton-pattern-id::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -4px;
+  height: 1px;
+  background: currentColor;
+}
+
+.mokton-pattern-repeat {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+}
+
+.mokton-pattern-button.selected {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* Old range/loop frames are removed; use underline/fill only. */
+.mokton-pattern-button.range-selected,
+.mokton-pattern-button.loop-range-active {
+  border: 0 !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+/* -----------------------------------------
+   SEQUENCE
+   every STEP = underline only
+   playing    = accent underline
+   no STEP number
+   melodic    = long bar above
+   rhythm     = square at lower-left
+   ----------------------------------------- */
+
+#sequence-grid .mokton-sequence {
+  grid-template-rows:
+    repeat(4, 42px) !important;
+  gap:
+    7px var(--mokton-grid-gap) !important;
+}
+
+#sequence-grid .mokton-step {
+  position: relative;
+  display: block !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 0 2px 4px !important;
+  background: transparent !important;
+  overflow: visible;
+}
+
+#sequence-grid .mokton-step-number {
+  display: none !important;
+}
+
+#sequence-grid .mokton-step::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--muted);
+  opacity: .65;
+}
+
+/* Playback is indicated only by the underline changing to accent. */
+#sequence-grid .mokton-step.playing::after {
+  height: 1px;
+  background: var(--accent);
+  opacity: 1;
+}
+
+#sequence-grid .mokton-step-visual {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 5px;
+  top: 2px;
+  display: block;
+}
+
+/* MELODIC ON: horizontal bar above the rhythm square. */
+#sequence-grid .mokton-step-melodic-mark {
+  position: absolute;
+  left: 0;
+  bottom: 13px;
+  width: 20px;
+  height: 4px;
+  background: transparent;
+}
+
+#sequence-grid .mokton-step-melodic-mark.active {
+  background: var(--text);
+}
+
+/* RHYTHM ON: square at lower-left. */
+#sequence-grid .mokton-step-rhythm-mark {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 7px;
+  height: 7px;
+  background: transparent;
+}
+
+#sequence-grid .mokton-step-rhythm-mark.active {
+  background: var(--text);
+}
+
+/* Selected STEP itself gets no frame/marker. */
+#sequence-grid .mokton-step.selected {
+  background: transparent !important;
+}
+
+#sequence-grid .mokton-step.selected::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Clipboard marker remains independent from STEP selection. */
+#sequence-grid .mokton-step.clipboard-ready::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 3px;
+  height: 3px;
+  background: var(--accent);
+}
+
+
+/* =========================================================
+   Stage 20: permanent parameter rows / compact STEP width
+   ========================================================= */
+
+/* SEQUENCE: compact 8-column instrument grid. */
+#sequence-grid .mokton-sequence {
+  width: max-content !important;
+  margin: 0 auto !important;
+
+  grid-template-columns:
+    repeat(8, 20px) !important;
+
+  grid-template-rows:
+    repeat(4, 42px) !important;
+
+  column-gap: 12px !important;
+  row-gap: 7px !important;
+}
+
+#sequence-grid .mokton-step {
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+
+  padding:
+    0 0 4px !important;
+}
+
+/* underline length = melodic bar length */
+#sequence-grid .mokton-step::after {
+  width: 20px;
+  left: 0;
+  right: auto;
+}
+
+/* melodic bar uses the same 20px visual width */
+#sequence-grid .mokton-step-melodic-mark {
+  width: 20px !important;
+}
+
+/* STEP offset view: value belongs to the STEP, not parameter button. */
+#sequence-grid .mokton-step.offset-view
+.mokton-step-visual {
+  inset:
+    2px 0 5px !important;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+#sequence-grid .mokton-step-offset-value {
+  display: block;
+
+  width: 20px;
+
+  overflow: visible;
+
+  color: var(--text);
+
+  font-size: 7px;
+  line-height: 1;
+
+  white-space: nowrap;
+  text-align: left;
+}
+
+#sequence-grid
+.mokton-step.offset-view:not(.offset-active)
+.mokton-step-offset-value {
+  color: transparent;
+}
+
+/* STEP parameters are permanently visible directly under SEQUENCE. */
+.mokton-step-parameter-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns:
+    minmax(0, 1fr);
+
+  gap: 5px;
+
+  width: 100%;
+
+  margin-top: 10px;
+}
+
+.mokton-step-parameter-button {
+  min-width: 0;
+  min-height: 24px;
+
+  margin: 0;
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+  color: var(--muted);
+
+  font-size: 7px;
+
+  cursor: pointer;
+}
+
+.mokton-step-parameter-button.active {
+  color: var(--accent);
+}
+
+/* Lower editor is now permanently SOUND-oriented. */
+.mokton-editor-modes,
+.mokton-value-control,
+.mokton-value-slider {
+  display: none !important;
+}
+
+.mokton-sound-parameter-values {
+  display: grid;
+
+  grid-template-columns:
+    repeat(9, minmax(0, 1fr));
+
+  gap: 4px;
+
+  align-items: stretch;
+}
+
+/* Rhythm has 6 parameters + lfo1/2; melodic 7 + lfo1/2.
+   Empty columns are not generated, keeping the row compact. */
+.mokton-direct-value-pad,
+.mokton-sound-parameter-values
+.mokton-lfo-access-button {
+  min-width: 0;
+  min-height: 34px;
+
+  padding: 3px 0 2px;
+
+  border: 0;
+
+  background: transparent;
+  color: var(--text);
+
+  cursor: ns-resize;
+
+  touch-action: none;
+}
+
+.mokton-direct-value-pad {
+  display: grid;
+  grid-template-rows:
+    auto auto;
+
+  align-content: center;
+  justify-items: center;
+
+  gap: 4px;
+}
+
+.mokton-direct-value-label {
+  color: var(--muted);
+}
+
+.mokton-direct-value-number {
+  color: var(--text);
+  font-weight: 400;
+}
+
+/* LFO access stays text-only; lfo1/lfo2 are the only >3-char parameter labels. */
+.mokton-sound-parameter-values
+.mokton-lfo-access-button {
+  display: grid;
+  place-items: center;
+
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.mokton-sound-parameter-values
+.mokton-lfo-access-button.active {
+  color: var(--accent);
+}
+
+/* LFO values also use label + numeric value, not range bars. */
+.mokton-lfo-parameter-pads {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 5px;
+}
+
+.mokton-lfo-value-pad {
+  min-height: 34px;
+}
+
+.mokton-lfo-wave-pads {
+  display: grid;
+  grid-template-columns:
+    repeat(8, minmax(0, 1fr));
+
+  gap: 3px;
+}
+
+.mokton-lfo-wave-button,
+.mokton-lfo-parameter-pads
+.mokton-parameter-pad {
+  min-width: 0;
+  min-height: 24px;
+
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+  color: var(--muted);
+}
+
+.mokton-lfo-wave-button.active,
+.mokton-lfo-parameter-pads
+.mokton-parameter-pad.active {
+  color: var(--accent);
+}
+
+/* Direct-edit cells need vertical swipe without scrolling the page. */
+.mokton-direct-value-pad,
+#sequence-grid .mokton-step.offset-active {
+  touch-action: none;
+}
+
+
+/* =========================================================
+   Stage 20.1: sound parameter row layout fix
+   ========================================================= */
+
+/*
+ * Older calculator CSS gave LFO buttons a 4-column span.
+ * The permanent sound-parameter row no longer uses that grid model,
+ * so force one simple horizontal flex row here.
+ */
+.mokton-sound-parameter-values {
+  display: flex !important;
+  flex-flow: row nowrap !important;
+
+  align-items: stretch !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+
+  gap: 5px !important;
+}
+
+.mokton-sound-parameter-values
+> .mokton-direct-value-pad,
+.mokton-sound-parameter-values
+> .mokton-lfo-access-button {
+  position: relative !important;
+
+  flex:
+    1 1 0 !important;
+
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  grid-column:
+    auto !important;
+
+  margin: 0 !important;
+  transform: none !important;
+}
+
+.mokton-sound-parameter-values
+> .mokton-direct-value-pad {
+  display: grid !important;
+}
+
+.mokton-sound-parameter-values
+> .mokton-lfo-access-button {
+  display: grid !important;
+  place-items: center !important;
+}
+
+
+/* =========================================================
+   Stage 20.2: sound parameter container full-width fix
+   ========================================================= */
+
+/*
+ * .mokton-editor-compact itself is still the old 8-column grid.
+ * The new sound parameter row was not assigned to span all 8 columns,
+ * so the entire row was being squeezed into the first grid cell.
+ */
+.mokton-editor-compact
+> .mokton-sound-parameter-values {
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   Stage 21: rhythm pitch / compact sequence / unified type
+   ========================================================= */
+
+:root {
+  --mokton-sequence-width: 244px;
+  --mokton-ui-font-size: 7px;
+}
+
+/* Slightly tighter vertical rhythm while preserving the two ON marks. */
+#sequence-grid .mokton-sequence {
+  width: var(--mokton-sequence-width) !important;
+
+  grid-template-rows:
+    repeat(4, 34px) !important;
+
+  row-gap: 5px !important;
+}
+
+#sequence-grid .mokton-step {
+  height: 34px !important;
+  min-height: 34px !important;
+}
+
+/* Keep melodic/rhythm marks near the underline in the tighter cell. */
+#sequence-grid .mokton-step-melodic-mark {
+  bottom: 11px !important;
+}
+
+#sequence-grid .mokton-step-rhythm-mark {
+  bottom: 0 !important;
+}
+
+/* Offset parameter row occupies the same horizontal field as SEQUENCE. */
+.mokton-step-parameter-strip {
+  width: var(--mokton-sequence-width) !important;
+
+  margin:
+    9px auto 0 !important;
+
+  grid-template-columns:
+    repeat(7, minmax(0, 1fr)) !important;
+
+  grid-auto-flow:
+    initial !important;
+
+  grid-auto-columns:
+    initial !important;
+}
+
+/*
+ * Typography is completely uniform now.
+ * Use the same size as the Pattern number shown at the upper-left of SEQUENCE.
+ * No STEP-value size exception remains.
+ */
+.app-shell,
+.app-shell button,
+.app-shell input,
+.app-shell output,
+.app-shell strong,
+.app-shell span,
+.app-shell div,
+.app-shell label,
+.app-shell select {
+  font-size:
+    var(--mokton-ui-font-size) !important;
+}
+
+#sequence-grid .mokton-step-offset-value,
+.mokton-direct-value-number,
+.mokton-direct-value-label,
+.mokton-lfo-target {
+  font-size:
+    var(--mokton-ui-font-size) !important;
+}
+
+
+/* =========================================================
+   Stage 21.1: true global typography unification
+   ========================================================= */
+
+/*
+ * Stage 21 targeted .app-shell, but the actual root element is .app.
+ * Make the real application root authoritative.
+ * Every visible glyph inside the application uses the same 7px size.
+ */
+body,
+.app,
+.app * ,
+.app *::before,
+.app *::after {
+  font-size:
+    var(--mokton-ui-font-size) !important;
+}
+
+
+/* =========================================================
+   Stage 22: compact editor / permanent LFO rows
+   ========================================================= */
+
+:root {
+  --mokton-editor-width:
+    var(--mokton-sequence-width);
+}
+
+/* EDIT label toolbar was removed from the HTML. */
+.editor-section {
+  padding-top: 8px !important;
+}
+
+/* Shared horizontal field: Sound keys, Sound params and LFO rows. */
+.mokton-editor-compact {
+  display: block !important;
+
+  width:
+    var(--mokton-editor-width) !important;
+
+  margin:
+    0 auto !important;
+}
+
+.mokton-compact-sounds {
+  display: grid !important;
+  gap: 6px !important;
+
+  width: 100% !important;
+}
+
+/* 1 2 3 4 a b c d = same width as SEQUENCE. */
+.mokton-sound-bank {
+  display: grid !important;
+
+  grid-template-columns:
+    repeat(8, 20px) !important;
+
+  column-gap: 12px !important;
+
+  width:
+    var(--mokton-editor-width) !important;
+
+  margin:
+    0 auto !important;
+}
+
+.mokton-sound-button-compact {
+  width: 20px !important;
+  min-width: 20px !important;
+  min-height: 28px !important;
+
+  padding: 0 !important;
+}
+
+/*
+ * One selected Sound row only:
+ * sound name at left, one M/S pair at right.
+ * Layer-level M/S is intentionally not surfaced in the UI.
+ */
+.mokton-selected-ms.mokton-selected-sound-info {
+  display: flex !important;
+
+  align-items: center !important;
+  justify-content:
+    space-between !important;
+
+  width: 100% !important;
+  min-height: 24px !important;
+
+  padding: 0 !important;
+}
+
+.mokton-selected-sound-name {
+  display: block !important;
+
+  min-width: 0;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text);
+}
+
+.mokton-selected-sound-info
+.mokton-ms-controls {
+  display: inline-flex !important;
+
+  gap: 12px !important;
+}
+
+.mokton-selected-sound-info
+.mokton-mini-button {
+  min-width: 20px !important;
+  min-height: 20px !important;
+
+  padding: 0 !important;
+}
+
+/* First editor row = Sound parameters only. */
+.mokton-editor-compact
+> .mokton-sound-parameter-values {
+  display: flex !important;
+
+  flex-flow: row nowrap !important;
+
+  align-items: stretch !important;
+
+  width:
+    var(--mokton-editor-width) !important;
+
+  margin:
+    5px auto 0 !important;
+
+  gap: 0 !important;
+}
+
+.mokton-sound-parameter-values
+> .mokton-direct-value-pad {
+  flex:
+    1 1 0 !important;
+
+  min-width: 0 !important;
+  min-height: 34px !important;
+
+  padding:
+    3px 0 2px !important;
+}
+
+/*
+ * LFO1 = row 2
+ * LFO2 = row 3
+ * layout:
+ * lfo# | tgt | wav | dep | rat | syn
+ */
+.mokton-lfo-row {
+  display: grid !important;
+
+  grid-template-columns:
+    38px
+    repeat(5, minmax(0, 1fr)) !important;
+
+  align-items: stretch !important;
+
+  width:
+    var(--mokton-editor-width) !important;
+
+  min-height: 34px !important;
+
+  margin:
+    4px auto 0 !important;
+
+  gap: 0 !important;
+}
+
+.mokton-lfo-row-title {
+  display: grid;
+  place-items: center start;
+
+  min-width: 0;
+}
+
+.mokton-lfo-cell,
+.mokton-lfo-inline-value {
+  display: grid !important;
+
+  grid-template-rows:
+    auto auto !important;
+
+  align-content: center !important;
+  justify-items: center !important;
+
+  min-width: 0 !important;
+  min-height: 34px !important;
+
+  gap: 4px !important;
+
+  margin: 0 !important;
+  padding: 3px 0 2px !important;
+
+  border: 0 !important;
+
+  background: transparent !important;
+  color: var(--text) !important;
+}
+
+.mokton-lfo-cell-label,
+.mokton-lfo-inline-value
+.mokton-direct-value-label {
+  color: var(--muted) !important;
+}
+
+.mokton-lfo-cell-value,
+.mokton-lfo-inline-value
+.mokton-direct-value-number {
+  color: var(--text) !important;
+  font-weight: 400 !important;
+}
+
+.mokton-lfo-wave-cycle,
+.mokton-lfo-sync-button {
+  cursor: pointer;
+}
+
+.mokton-lfo-target-cell {
+  cursor: pointer;
+}
+
+/* Old expandable LFO structures are no longer part of the editor. */
+.mokton-lfo-access,
+.mokton-lfo-calculator,
+.mokton-lfo-wave-pads,
+.mokton-lfo-parameter-pads {
+  display: none !important;
+}
+
+
+/* =========================================================
+   Stage 23: fixed 244px application layout field
+   ========================================================= */
+
+:root {
+  --mokton-layout-width:
+    var(--mokton-sequence-width);
+}
+
+/*
+ * Keep the outer app centered on the device,
+ * but every actual interface block uses the same fixed field.
+ */
+.app-header,
+.sequence-section,
+.pattern-section,
+.editor-section {
+  width:
+    var(--mokton-layout-width) !important;
+
+  max-width:
+    var(--mokton-layout-width) !important;
+
+  margin-left:
+    auto !important;
+
+  margin-right:
+    auto !important;
+}
+
+/* Header rows follow the same compact horizontal span. */
+.app-header .brand-row,
+.app-header .transport-row {
+  width: 100% !important;
+}
+
+/* Compress header spacing to fit the fixed field cleanly. */
+.app-header .header-actions,
+.app-header .transport-left,
+.app-header .transport-right {
+  gap: 5px !important;
+}
+
+.app-header .transport-row {
+  gap: 5px !important;
+}
+
+.app-header .play-button {
+  width: 24px !important;
+  height: 26px !important;
+}
+
+.app-header .master-control input[type="range"] {
+  width: 36px !important;
+}
+
+.app-header #bpm-input {
+  width: 28px !important;
+}
+
+/*
+ * PATTERN / song screen uses the exact same width as SEQUENCE.
+ * 8 columns remain, only their horizontal span is now fixed.
+ */
+#pattern-grid,
+.pattern-grid {
+  width:
+    var(--mokton-layout-width) !important;
+
+  max-width:
+    var(--mokton-layout-width) !important;
+
+  margin-left:
+    auto !important;
+
+  margin-right:
+    auto !important;
+
+  grid-template-columns:
+    repeat(8, minmax(0, 1fr)) !important;
+
+  gap:
+    5px !important;
+}
+
+/* Upper toolbars are constrained to the same field too. */
+.sequence-section .section-toolbar,
+.pattern-section .section-toolbar {
+  width: 100% !important;
+}
+
+/* SEQUENCE itself stays authoritative at 244px. */
+#sequence-grid,
+#sequence-grid .mokton-sequence {
+  max-width:
+    var(--mokton-layout-width) !important;
+}
+
+/* Shared editor already uses the same width; lock its container as well. */
+.editor-section #editor,
+.mokton-editor-compact {
+  width:
+    var(--mokton-layout-width) !important;
+
+  max-width:
+    var(--mokton-layout-width) !important;
+
+  margin-left:
+    auto !important;
+
+  margin-right:
+    auto !important;
+}
+
+
+/* =========================================================
+   Stage 24: fixed upper-screen height / vertical compression
+   ========================================================= */
+
+:root {
+  --mokton-upper-height: 180px;
+  --mokton-upper-row-height: 27px;
+  --mokton-upper-row-gap: 3px;
+}
+
+/*
+ * PATTERN and SEQUENCE occupy the same fixed-height upper slot.
+ * EDIT therefore starts at exactly the same vertical position
+ * when switching screens.
+ */
+.pattern-section,
+.sequence-section {
+  height:
+    var(--mokton-upper-height) !important;
+
+  min-height:
+    var(--mokton-upper-height) !important;
+
+  max-height:
+    var(--mokton-upper-height) !important;
+
+  padding:
+    6px 0 !important;
+
+  overflow:
+    visible !important;
+}
+
+/* Compact both upper toolbars. */
+.pattern-section .section-toolbar,
+.sequence-section .section-toolbar {
+  min-height:
+    20px !important;
+
+  height:
+    20px !important;
+
+  margin-bottom:
+    4px !important;
+}
+
+/* PATTERN: 4 rows, compressed vertically. */
+#pattern-grid,
+.pattern-grid {
+  grid-template-rows:
+    repeat(
+      4,
+      var(--mokton-upper-row-height)
+    ) !important;
+
+  row-gap:
+    var(--mokton-upper-row-gap) !important;
+
+  column-gap:
+    5px !important;
+}
+
+.mokton-pattern-button {
+  min-height:
+    var(--mokton-upper-row-height) !important;
+
+  height:
+    var(--mokton-upper-row-height) !important;
+}
+
+/* SEQUENCE: same 4-row vertical rhythm as PATTERN. */
+#sequence-grid .mokton-sequence {
+  grid-template-rows:
+    repeat(
+      4,
+      var(--mokton-upper-row-height)
+    ) !important;
+
+  row-gap:
+    var(--mokton-upper-row-gap) !important;
+}
+
+#sequence-grid .mokton-step {
+  height:
+    var(--mokton-upper-row-height) !important;
+
+  min-height:
+    var(--mokton-upper-row-height) !important;
+
+  padding-bottom:
+    3px !important;
+}
+
+/* Reposition ON markers for the tighter STEP height. */
+#sequence-grid .mokton-step-melodic-mark {
+  bottom:
+    9px !important;
+}
+
+#sequence-grid .mokton-step-rhythm-mark {
+  bottom:
+    0 !important;
+}
+
+/* STEP parameter lane also becomes vertically compact. */
+.mokton-step-parameter-strip {
+  min-height:
+    20px !important;
+
+  margin-top:
+    6px !important;
+}
+
+.mokton-step-parameter-button {
+  min-height:
+    20px !important;
+
+  height:
+    20px !important;
+}
+
+
+/* =========================================================
+   Stage 25: compact header / centered application
+   ========================================================= */
+
+/*
+ * Center the whole application block in the viewport.
+ * The app itself no longer forces a full-screen minimum height.
+ */
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100dvh;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border: 0;
-  background: transparent;
-  padding: 0;
+  padding:
+    max(8px, env(safe-area-inset-top))
+    0
+    max(8px, env(safe-area-inset-bottom));
+
+  overflow-x: hidden;
 }
 
-.base-value {
-    background: transparent;
-    border: none;
-    outline: none;
-    box-shadow: none;
+.app {
+  min-height: 0 !important;
+  height: auto !important;
 
-    color: inherit;
-    font-size: 12px;
-    text-decoration: none;
+  margin: 0 auto !important;
 
-    cursor: pointer;
+  padding:
+    0 12px !important;
 }
 
-.base-input {
-    font-size: 12px;
+/* Header row 1 / row 2: reduce vertical distance. */
+.app-header {
+  padding-bottom: 2px !important;
 }
 
-.base-value:focus,
-.base-value:hover {
-    border: none;
-    outline: none;
-    box-shadow: none;
-    text-decoration: none;
+.app-header .brand-row {
+  min-height: 20px !important;
+  height: 20px !important;
 }
 
-.base-value:focus-visible {
-    outline: 1px solid var(--text);
-    outline-offset: -1px;
+.app-header .transport-row {
+  min-height: 24px !important;
+  height: 24px !important;
+
+  margin-top: 1px !important;
 }
 
-.track-length-input {
-    width: 24px;
-    min-width: 24px;
-    height: 24px;
-
-    margin-left: auto;
-
-    padding: 0;
-
-    border: 0;
-    outline: none;
-    background: var(--cell);
-
-    color: inherit;
-
-    font-size: 12px;
-    line-height: 1;
-
-    text-align: center;
+/* Keep controls vertically compact inside the second row. */
+.app-header .text-button,
+.app-header .play-button {
+  min-height: 20px !important;
 }
 
-.track-length-input::-webkit-inner-spin-button,
-.track-length-input::-webkit-outer-spin-button {
-    margin: 0;
-
-    appearance: none;
-    -webkit-appearance: none;
+.app-header .play-button {
+  height: 22px !important;
 }
 
-.track-lane.outside-length {
-    visibility: hidden;
+/* Header -> PATTERN / SEQUENCE gap: tighten substantially. */
+.pattern-section,
+.sequence-section {
+  padding-top: 2px !important;
 }
 
-.track-lane.playing {
-    background: color-mix(
-        in srgb,
-        var(--play) 15%,
-        var(--off)
-    );
+/* Avoid any inherited top margin from the upper-screen toolbar. */
+.pattern-section .section-toolbar,
+.sequence-section .section-toolbar {
+  margin-top: 0 !important;
 }
 
-.track-lane.on.playing {
-    background: color-mix(
-        in srgb,
-        var(--play) 15%,
-        var(--on)
-    );
+/*
+ * If the viewport is shorter than the fixed app block,
+ * fall back to top alignment so content never becomes inaccessible.
+ */
+@media (max-height: 560px) {
+  body {
+    align-items: flex-start;
+  }
 }
 
-.track-lane.on.selected-track.playing {
-    background: color-mix(
-        in srgb,
-        var(--play) 15%,
-        var(--selected-bg)
-    );
+
+/* =========================================================
+   Stage 26: one text color / numeric-only master volume
+   ========================================================= */
+
+:root {
+  --mokton-unified-text:
+    var(--text);
 }
 
-.bpm-input:focus-visible,
-.pattern-length-input:focus-visible,
-.track-length-input:focus-visible,
-.base-input:focus-visible,
-.offset-input:focus-visible {
-    outline: 1px solid var(--text);
-    outline-offset: -1px;
+/* All visible text and glyphs use one color.
+   Accent remains available only for non-text state indicators/fills. */
+.app,
+.app button,
+.app input,
+.app output,
+.app label,
+.app span,
+.app strong,
+.app div,
+.app select,
+.app option {
+  color:
+    var(--mokton-unified-text) !important;
 }
 
-/* =========================
-   Pattern / Fill / Section
-========================= */
-.pattern-section {
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px solid var(--line);
+/* Keep selected filled buttons readable against the accent fill. */
+.mokton-pattern-button.selected,
+.mokton-sound-button-compact.active {
+  color:
+    var(--bg) !important;
 }
 
-.pattern-section-header {
-  display: flex;
+/* Master volume: preserve the range element for existing JS/audio binding,
+   but remove the bar from the visual layout. */
+.master-control {
+  position: relative;
+}
+
+.master-control #master-volume {
+  position: absolute !important;
+
+  width: 1px !important;
+  height: 1px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  opacity: 0 !important;
+  pointer-events: none !important;
+
+  overflow: hidden !important;
+}
+
+.master-control #master-volume-value {
+  display: inline-block !important;
+
+  min-width: 20px;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   Stage 27: selection = monochrome inversion only
+   Accent is reserved for PLAY ON / playback position.
+   ========================================================= */
+
+/* Generic selectable controls: selected/active = foreground/background inversion. */
+.mokton-pattern-button.selected,
+.mokton-pattern-button.range-selected,
+.mokton-pattern-button.loop-range-active,
+.mokton-sound-button-compact.active,
+.mokton-step-parameter-button.active,
+.mokton-mini-button.active,
+.mokton-parameter-pad.active,
+.mokton-lfo-wave-button.active,
+.mokton-editor-mode.active,
+.pattern-loop-button.active,
+.pattern-loop-button[aria-pressed="true"] {
+  background:
+    var(--text) !important;
+
+  color:
+    var(--bg) !important;
+
+  box-shadow:
+    none !important;
+
+  outline:
+    0 !important;
+}
+
+/* Do not use accent text for selected controls. */
+.mokton-step-parameter-button.active,
+.mokton-lfo-wave-button.active,
+.mokton-parameter-pad.active,
+.mokton-mini-button.active {
+  color:
+    var(--bg) !important;
+}
+
+/*
+ * Remove accent-colored selection markers left by earlier stages.
+ * Playback underline remains accent and is intentionally NOT overridden.
+ */
+.mokton-pattern-button.selected,
+.mokton-sound-button-compact.active {
+  border-color:
+    transparent !important;
+}
+
+/* Clipboard/selection utility marks are monochrome too. */
+#sequence-grid .mokton-step.clipboard-source::before,
+#sequence-grid .mokton-step.selected::before {
+  background:
+    var(--text) !important;
+}
+
+/* The only green text/state allowed is the active PLAY control. */
+#play-button.playing,
+#play-button.active,
+#play-button[aria-pressed="true"] {
+  color:
+    var(--accent) !important;
+
+  background:
+    transparent !important;
+}
+
+/* Playback position underline remains green. */
+#sequence-grid .mokton-step.playing::after {
+  background:
+    var(--accent) !important;
+
+  opacity:
+    1 !important;
+}
+
+
+/* =========================================================
+   Stage 28: strict monochrome selection + no muted UI text
+   Accent is reserved for PLAY ON / playback position only.
+   ========================================================= */
+
+/*
+ * Eliminate the old "muted text" tone throughout the current UI.
+ * Any selector still using --muted now resolves to the normal text color.
+ */
+.app {
+  --muted: var(--text);
+}
+
+/* Explicitly cover generated labels/pseudo text that had older !important rules. */
+.section-label,
+.control-label,
+.mokton-current-source::before,
+.current-source-display::before,
+.mokton-direct-value-label,
+.mokton-lfo-cell-label,
+.mokton-lfo-inline-value .mokton-direct-value-label,
+.mokton-param-label,
+.mokton-selected-info,
+.mokton-stage-note,
+.mokton-pattern-repeat {
+  color: var(--text) !important;
+  opacity: 1 !important;
+}
+
+/* Sequence idle underline = normal text color, full opacity. */
+#sequence-grid .mokton-step::after {
+  background: var(--text) !important;
+  opacity: 1 !important;
+}
+
+/*
+ * PATTERN selection: invert the entire cell, including child spans.
+ * Child color rules from older stages must not override inheritance.
+ */
+.mokton-pattern-button.selected,
+.mokton-pattern-button.range-selected,
+.mokton-pattern-button.loop-range-active {
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+.mokton-pattern-button.selected *,
+.mokton-pattern-button.range-selected *,
+.mokton-pattern-button.loop-range-active * {
+  color: var(--bg) !important;
+}
+
+/*
+ * SOUND selection uses class "selected" (not "active").
+ * White background / black character.
+ */
+.mokton-sound-button-compact.selected,
+.mokton-sound-button.selected {
+  background: var(--text) !important;
+  color: var(--bg) !important;
+  border-color: transparent !important;
+}
+
+.mokton-sound-button-compact.selected *,
+.mokton-sound-button.selected * {
+  color: var(--bg) !important;
+}
+
+/* Current selectable editor controls also use the same inversion language. */
+.mokton-step-parameter-button.active,
+.mokton-mini-button.active,
+.mokton-choice-button.selected,
+.mokton-editor-mode.selected,
+.mokton-editor-mode.active,
+.pattern-loop-button.active,
+.pattern-loop-button[aria-pressed="true"] {
+  background: var(--text) !important;
+  color: var(--bg) !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+}
+
+.mokton-step-parameter-button.active *,
+.mokton-mini-button.active *,
+.mokton-choice-button.selected *,
+.mokton-editor-mode.selected *,
+.mokton-editor-mode.active *,
+.pattern-loop-button.active *,
+.pattern-loop-button[aria-pressed="true"] * {
+  color: var(--bg) !important;
+}
+
+/*
+ * Undo / redo:
+ * - no history target => button disappears completely
+ * - available => normal white text
+ * Existing app logic already drives the disabled state.
+ */
+#undo-button:disabled,
+#redo-button:disabled {
+  display: none !important;
+}
+
+#undo-button:not(:disabled),
+#redo-button:not(:disabled) {
+  display: inline-block !important;
+  color: var(--text) !important;
+  opacity: 1 !important;
+}
+
+/*
+ * Remove accent from non-playback transient selection indicators too.
+ * The accent color remains untouched only for PLAY and playback position.
+ */
+.mokton-pattern-button.dragging {
+  border-color: var(--text) !important;
+}
+
+.mokton-pattern-button.drop-target {
+  outline-color: var(--text) !important;
+}
+
+/* PLAY ON = accent. */
+#play-button.playing,
+#play-button.active,
+#play-button[aria-pressed="true"] {
+  color: var(--accent) !important;
+  background: transparent !important;
+}
+
+/* Playback position = accent. */
+#sequence-grid .mokton-step.playing::after {
+  background: var(--accent) !important;
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   Stage 29: align STEP marks to the underline geometry
+   ========================================================= */
+
+:root {
+  --mokton-step-bar-width: 20px;
+  --mokton-rhythm-mark-size: 10px;
+}
+
+/*
+ * The visual layer now uses the exact same horizontal origin and width
+ * as the STEP underline.
+ */
+#sequence-grid .mokton-step-visual {
+  left: 0 !important;
+  right: 0 !important;
+}
+
+/* MELODIC: exact same width and left edge as underline. */
+#sequence-grid .mokton-step-melodic-mark {
+  left: 0 !important;
+  width: var(--mokton-step-bar-width) !important;
+}
+
+/*
+ * RHYTHM:
+ * left edge = underline left edge
+ * right edge = underline center
+ * 20px underline -> 10px square.
+ */
+#sequence-grid .mokton-step-rhythm-mark {
+  left: 0 !important;
+  width: var(--mokton-rhythm-mark-size) !important;
+  height: var(--mokton-rhythm-mark-size) !important;
+}
+
+/*
+ * Lock normal and playing underline to identical geometry.
+ * Older .playing::after rules used left/right:2px and made the
+ * green playback underline look slightly shorter.
+ */
+#sequence-grid .mokton-step::after,
+#sequence-grid .mokton-step.playing::after {
+  left: 0 !important;
+  right: auto !important;
+  width: var(--mokton-step-bar-width) !important;
+}
+
+/* Playing changes color only; never geometry. */
+#sequence-grid .mokton-step.playing::after {
+  height: 1px !important;
+  background: var(--accent) !important;
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   Stage 30: PWA viewport-fit scaling
+   ========================================================= */
+
+:root {
+  --mokton-app-scale: 1;
+  --mokton-fit-margin: 12px;
+}
+
+/*
+ * mokton keeps its fixed internal geometry.
+ * The completed UI is scaled as one object to the largest size
+ * that fits inside the current PWA viewport.
+ */
+body {
+  position: relative !important;
+  display: block !important;
+
+  min-height: 100dvh !important;
+
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.app {
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+
+  width: var(--mokton-layout-width) !important;
+
+  margin: 0 !important;
+
+  transform:
+    translate(-50%, -50%)
+    scale(var(--mokton-app-scale)) !important;
+
+  transform-origin: center center !important;
+
+  will-change: transform;
+}
+
+/* Disable the Stage 25 short-height top-alignment fallback.
+   Stage 30 handles fitting by scale instead. */
+@media (max-height: 560px) {
+  body {
+    align-items: initial !important;
+  }
+}
+
+
+/* =========================================================
+   Stage 31: iPhone horizontal fit correction
+   ========================================================= */
+
+/*
+ * Keep the app's own box honest:
+ * width includes the horizontal padding, so the scaler does not
+ * underestimate the real rendered width on narrow iPhone screens.
+ */
+.app {
+  box-sizing: border-box !important;
+}
+
+/* Prevent any accidental horizontal document overflow. */
+html,
+body {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+
+/* =========================================================
+   Stage 32: true horizontal centering
+   ========================================================= */
+
+/*
+ * Stage 31 made .app border-box while Stage 25 still left 12px
+ * horizontal padding on it. That reduced the actual content field
+ * from 244px to 220px, while the Pattern / Sequence / Editor children
+ * stayed 244px wide, so they overflowed to the right.
+ *
+ * The app container is now exactly the same 244px field as its children.
+ * Outer breathing room is handled only by the viewport-fit calculation.
+ */
+.app {
+  width: var(--mokton-layout-width) !important;
+  max-width: var(--mokton-layout-width) !important;
+
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+
+  box-sizing: content-box !important;
+}
+
+/* Every major visible block shares the exact same centered axis. */
+.app-header,
+.pattern-section,
+.sequence-section,
+.editor-section,
+#pattern-grid,
+.pattern-grid,
+#sequence-grid,
+#sequence-grid .mokton-sequence,
+.editor-section #editor,
+.mokton-editor-compact {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+
+/* =========================================================
+   Stage 33: viewport breathing room
+   ========================================================= */
+
+:root {
+  --mokton-fit-margin: 20px;
+}
+
+
+/* =========================================================
+   Stage 34: hide performance/load monitor
+   ========================================================= */
+
+/*
+ * Keep monitoring code untouched for later diagnostics,
+ * but remove its overlay from the product UI.
+ */
+#performance-monitor,
+#performanceMonitor,
+#load-monitor,
+#loadMonitor,
+.performance-monitor,
+.performanceMonitor,
+.load-monitor,
+.loadMonitor,
+.debug-monitor,
+.debug-overlay,
+.performance-overlay,
+.monitor-overlay {
+  display: none !important;
+}
+
+
+/* Stage 35: actual audio diagnostics overlay */
+#sprooto-audio-debug-panel {
+  display: none !important;
+}
+
+
+/* =========================================================
+   Stage 37: interaction fixes / mono82 UI
+   ========================================================= */
+
+/* M / S letters stay mathematically centered inside their active box. */
+.mokton-selected-sound-info .mokton-mini-button,
+.mokton-ms-controls .mokton-mini-button {
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}
+
+/*
+ * Selected Sound placement:
+ * only the mark belonging to the currently selected Sound
+ * gets the accent. Other placed Sounds remain foreground white.
+ */
+#sequence-grid .mokton-step-melodic-mark.active.selected-sound,
+#sequence-grid .mokton-step-rhythm-mark.active.selected-sound {
+  background: var(--accent) !important;
+}
+
+/* Pattern toolbar no longer needs a left-side label placeholder. */
+.pattern-section .section-toolbar {
+  justify-content: flex-end !important;
+}
+
+
+/* =========================================================
+   Stage 39: 40 Pattern / 8 x 5
+   ========================================================= */
+
+#pattern-grid,
+.pattern-grid {
+  grid-template-rows:
+    repeat(
+      5,
+      var(--mokton-upper-row-height)
+    ) !important;
+}
+
+/*
+ * Empty Pattern is intentionally reduced to a single dot.
+ * Fixed Pattern IDs remain internal and appear once data exists.
+ */
+.mokton-pattern-id {
+  display: inline-flex;
   align-items: center;
-
-  min-height: 20px;
-  margin-bottom: 4px;
+  justify-content: center;
+  text-align: center;
 }
 
-.fill-column-label {
-    width: 64px;
-    text-align: center;
-    font-size: 11px;
-    font-weight: 600;
+
+/* =========================================================
+   Stage 41: pattern / STEP / Sound geometry
+   ========================================================= */
+
+/* Pattern data state is now explicit: empty = ▪, used = fixed ID. */
+.mokton-pattern-button.has-data
+.mokton-pattern-id::after {
+  content: none !important;
+  display: none !important;
 }
 
-.pattern-section-icon {
+/*
+ * STEP underline:
+ * 20px width remains unchanged.
+ * Grow upward from the same bottom edge so the playback accent is visible,
+ * while narrowing the gap to the 10px RHYTHM square.
+ */
+:root {
+  --mokton-step-underline-height: 3px;
+}
+
+#sequence-grid .mokton-step::after,
+#sequence-grid .mokton-step.playing::after {
+  height:
+    var(--mokton-step-underline-height) !important;
+}
+
+#sequence-grid .mokton-step-visual {
+  bottom: 4px !important;
+}
+
+/*
+ * 20px Sound columns already match the SEQUENCE grid.
+ * Make the selectable key itself 20 x 20 instead of the old tall rectangle.
+ */
+.mokton-sound-button-compact {
+  width: 20px !important;
+  min-width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  padding: 0 !important;
+}
+
+
+/* =========================================================
+   Stage 42: restore thin STEP underline + centered playhead dot
+   ========================================================= */
+
+/* Restore the original thin underline and original visual spacing. */
+:root {
+  --mokton-step-underline-height: 1px;
+}
+
+#sequence-grid .mokton-step::after,
+#sequence-grid .mokton-step.playing::after {
+  height: 1px !important;
+}
+
+#sequence-grid .mokton-step-visual {
+  bottom: 5px !important;
+}
+
+/*
+ * Playback position gets a small centered "▪" marker above the underline.
+ * It is attached to the visual layer so it does not interfere with the
+ * existing STEP clipboard / selection pseudo-elements.
+ */
+#sequence-grid
+.mokton-step.playing
+.mokton-step-visual::after {
+  content: "▪";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  transform: translateX(-50%);
+  display: block;
+  width: 8px;
+  height: 8px;
+  line-height: 8px;
+  text-align: center;
+  font-size: 7px;
+  color: var(--accent) !important;
+  pointer-events: none;
+}
+
+/* =========================================================
+   Stage 45: theme-local unified text color
+   ========================================================= */
+
+/*
+ * --mokton-unified-text was previously declared on :root.
+ * Because it contains var(--text), it could keep resolving against the
+ * root palette instead of the active body theme. Define it inside the
+ * actual application subtree so every theme uses its own --text value.
+ */
+.app {
+  --mokton-unified-text: var(--text);
+}
+
+
+/* =========================================================
+   Stage 48: melodic / rhythm marks touch exactly
+   ========================================================= */
+
+/*
+ * RHYTHM square is 10px high at bottom: 0.
+ * Put the MELODIC bar's bottom edge exactly at its top edge.
+ */
+#sequence-grid .mokton-step-melodic-mark {
+  bottom: var(--mokton-rhythm-mark-size) !important;
+}
+
+
+/* =========================================================
+   mono82 SVG icon pass
+   ========================================================= */
+
+.mono82-icon {
   width: 18px;
   height: 18px;
-  display: inline-flex;
-}
-
-.pattern-section-icon svg {
-  width: 100%;
-  height: 100%;
-}
-
-.pattern-section-label {
-  text-transform: lowercase;
-}
-
-.fill-column-label {
-  justify-self: end;
-  width: calc((360px - 14px - 35px) / 8);
-  text-align: center;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.pattern-grid {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 5px;
-}
-
-.pattern-cell {
-    width: 100%;
-
-    height: 28px;
-    aspect-ratio: auto;
-
-    padding: 0;
-    border: 0;
-    background: var(--cell);
-
-    font-size: 10px;
-    line-height: 1;
-}
-
-.pattern-cell.active {
-    background: var(--selected-bg);
-    color: var(--selected-text);
-}
-
-.pattern-cell.fill-cell {
-  background: var(--fill-bg);
-  color: var(--fill-text);
-  font-weight: 600;
-}
-
-.pattern-cell.fill-cell:hover,
-.pattern-cell.fill-cell:focus-visible {
-  background: var(--hover-bg);
-  color: var(--hover-text);
-}
-
-/*
- * Fill選択中
- * Pattern選択中と同じ強調表示。
- */
-.pattern-cell.fill-cell.active {
-    background: var(--selected-bg);
-    color: var(--selected-text);
-}
-
-/*
- * Fill予約中
- * Pattern予約中と同じ表示。
- */
-.pattern-cell.fill-cell.queued {
-    background: color-mix(
-        in srgb,
-        var(--queued) 22%,
-        var(--cell)
-    );
-
-    color: var(--text);
-}
-
-/*
- * 選択中のFillを予約した場合も
- * Patternと同じ予約表示を優先。
- */
-.pattern-cell.fill-cell.active.queued {
-    background: color-mix(
-        in srgb,
-        var(--queued) 30%,
-        var(--selected-bg)
-    );
-
-    color: var(--selected-text);
-}
-
-.section-manager {
-  margin-top: 5px;
-}
-
-/* section文字と＋ボタンを非表示 */
-.section-manager-header {
-  display: none;
-}
-
-/* A～J */
-.section-selector {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 5px;
-  margin-top: 5px;
-}
-
-.pattern-cell,
-.section-selector-cell {
-    width: 100%;
-    height: 22px;
-
-    aspect-ratio: auto;
-
-    padding: 0;
-    border: 0;
-    background: var(--cell);
-
-    font-size: 10px;
-    line-height: 1;
-}
-
-/* 選択中Sectionの帯全体 */
-/* =========================
-   Section編集バー
-========================= */
-
-.section-list {
-    --section-gap: 5px;
-
-    display: grid;
-    grid-template-columns:
-        repeat(8, minmax(0, 1fr));
-
-    column-gap: var(--section-gap);
-    align-items: center;
-
-    width: 100%;
-
-    height: 28px;
-
-    margin-top: 5px;
-
-    padding: 0;
-
-    background: var(--cell);
-
-    overflow: hidden;
-}
-
-/*
- * 1列目：編集対象Section記号
- *
- * 列位置は上のA〜Hと一致。
- * □自体は列幅より小さくして中央配置。
- */
-.section-editor-button {
-    grid-column: 1;
-
-    width: 34px;
-    height: 22px;
-
-    justify-self: center;
-    align-self: center;
-
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-
-    background: var(--on);
-    color: var(--bg);
-
-    font-size: 10px;
-    line-height: 1;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/*
- * 2〜8列目：Pattern / Fill格納領域
- */
-.section-contents {
-    grid-column: 2 / 9;
-
-    display: grid;
-    grid-template-columns:
-        repeat(7, minmax(0, 1fr));
-    column-gap: var(--section-gap);
-    align-items: center;
-
-    width: 100%;
-    height: 28px;
-    min-width: 0;
-
-    padding: 0;
-    background: transparent;
-
-    overflow: hidden;
-}
-
-/*
- * 帯内のPattern / Fillブロック。
- *
- * 各列の中央に置きつつ、
- * 列幅より左右5pxずつ小さくする。
- */
-.section-pattern-cell {
-    width: calc(100% - 10px);
-    height: 28px;
-
-    justify-self: center;
-    align-self: center;
-
-    min-width: 0;
-
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-
-    background: var(--chip-bg);
-    color: var(--chip-text);
-
-    font-size: 10px;
-    line-height: 1;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* 空Sectionの「—」 */
-.section-contents-empty {
-    grid-column: 1 / -1;
-
-    width: 100%;
-
-    color: var(--muted);
-
-    font-size: 11px;
-    line-height: 1;
-    text-align: center;
-}
-
-/* カーソル表示 */
-/*
- * Section編集記号
- * 通常時
- */
-.section-editor-button {
-    -webkit-tap-highlight-color:
-        transparent;
-
-    appearance: none;
-    -webkit-appearance: none;
-
-    outline: none;
-}
-
-/*
- * PCキーボード編集モード
- */
-.section-editor-button[
-    data-keyboard-editing="true"
-] {
-    background: var(--hover-bg);
-    color: var(--hover-text);
-}
-
-/*
- * PCのみHover／フォーカスを強調
- *
- * スマホでは:hoverを使わない。
- */
-@media (hover: hover) and (pointer: fine) {
-    .section-editor-button:hover,
-.section-editor-button:focus-visible {
-    background: var(--hover-bg);
-    color: var(--hover-text);
-}
-}
-
-/*
- * スマホのタップフォーカスは
- * 通常配色のままにする。
- */
-@media (hover: none) {
-    .section-editor-button:focus,
-    .section-editor-button:focus-visible {
-        background: var(--on);
-        color: var(--bg);
-        outline: none;
-    }
-}
-
-/*
- * キーボード編集中以外は
- * フォーカス色を通常色へ戻す。
- */
-.section-editor-button:focus:not([data-keyboard-editing="true"]) {
-    background: var(--edit-bg);
-    color: var(--edit-text);
-}
-
-.section-pattern-cell:hover,
-.section-pattern-cell:focus-visible {
-    background: var(--hover-bg);
-    color: var(--hover-text);
-}
-
-.pattern-section-label,
-.fill-column-label {
-  display: none;
-}
-
-/*
- * 再生中Section
- */
-.section-selector-cell.active {
-    background: var(--selected-bg);
-    color: var(--selected-text);
-}
-
-/*
- * 次回予約中Section
- */
-.section-selector-cell.queued {
-    background: color-mix(
-        in srgb,
-        var(--queued) 22%,
-        var(--cell)
-    );
-
-    color: var(--text);
-}
-
-/*
- * 再生中Sectionを再予約表示する場合は
- * 予約表示を優先。
- */
-.section-selector-cell.active.queued {
-    background: color-mix(
-        in srgb,
-        var(--queued) 30%,
-        var(--selected-bg)
-    );
-
-    color: var(--selected-text);
-}
-
-.theme-button {
-    width: 24px;
-    height: 24px;
-
-    padding: 2px;
-
-    border: 0;
-    background: transparent;
-    color: var(--text);
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    cursor: pointer;
-}
-
-.theme-button svg {
-    display: block;
-    width: 18px;
-    height: 18px;
-}
-
-/* PCだけホバー時に点灯 */
-@media (hover: hover) {
-    .theme-button:hover,
-    .theme-button:focus-visible {
-        color: var(--selected-bg);
-    }
-}
-
-/* スマホはJSで付けるactiveだけ点灯 */
-.theme-button.active {
-    color: var(--selected-bg);
-}
-
-.theme-selector-hidden {
-    position: absolute;
-
-    width: 1px;
-    height: 1px;
-
-    margin: 0;
-    padding: 0;
-
-    border: 0;
-
-    opacity: 0;
-    pointer-events: none;
-
-    overflow: hidden;
-}
-
-/* =========================
-   Header icon size
-========================= */
-
-.theme-button,
-.play-button {
-    width: 28px;
-    height: 28px;
-
-    padding: 4px;
-}
-
-.theme-button svg,
-.play-button svg {
-    width: 20px;
-    height: 20px;
-}
-
-.master-volume-icon {
-    width: 18px;
-    height: 18px;
+  display: block;
+  overflow: visible;
+  color: currentColor;
+  shape-rendering: crispEdges;
+  vector-effect: non-scaling-stroke;
 }
 
 .history-button {
-    width: 28px;
-    height: 28px;
-
-    padding: 4px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
 }
 
-.history-button svg {
-    display: block;
-    width: 19px;
-    height: 19px;
+.history-button .mono82-icon {
+  width: 17px;
+  height: 17px;
 }
 
-.history-button:disabled {
-    color: var(--muted);
-    opacity: 0.45;
+.play-button .mono82-icon {
+  width: 20px;
+  height: 20px;
 }
 
-.pattern-page-button {
-    width: 24px;
-    height: 22px;
-
-    padding: 0;
-    border: 0;
-    border-radius: 0;
-
-    background: transparent;
-    color: var(--text);
-
-    font: inherit;
-    font-size: 20px;
-    line-height: 1;
-
-    appearance: none;
-    -webkit-appearance: none;
-
-    cursor: pointer;
+.pattern-loop-button {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
 }
 
-.pattern-page-button:hover,
-.pattern-page-button:focus-visible {
-    color: var(--selected-bg);
+.pattern-loop-button .mono82-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.pattern-loop-button.active {
+  color: var(--accent) !important;
+  background: transparent !important;
+}
+
+.mokton-mini-button .mono82-icon {
+  margin: 0 auto;
+}
+
+.mono82-shift-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.mokton-direct-value-label,
+.mokton-step-parameter-button {
+  display: grid;
+  place-items: center;
+}
+
+.mono82-parameter-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.mokton-step-parameter-button .mono82-parameter-icon {
+  width: 15px;
+  height: 15px;
+}
+
+.mokton-lfo-wave-cycle .mokton-lfo-cell-value {
+  display: grid;
+  place-items: center;
+}
+
+.mono82-lfo-wave-icon {
+  width: 19px;
+  height: 11px;
+}
+
+
+/* =========================================================
+   mono82 SVG icon color fix
+   Header / sequencer icons follow text color.
+   Play uses accent only while playing.
+   ========================================================= */
+
+.history-button,
+.pattern-loop-button,
+.mokton-mini-button {
+  color: var(--text) !important;
+}
+
+.history-button .mono82-icon,
+.pattern-loop-button .mono82-icon,
+.mokton-mini-button .mono82-icon {
+  color: inherit;
+}
+
+.play-button {
+  color: var(--text) !important;
+}
+
+.play-button .mono82-icon {
+  color: inherit;
+}
+
+/* Existing playback state uses .playing on the play button. */
+.play-button.playing {
+  color: var(--accent) !important;
+}
+
+/* Keep loop active-state behavior independent from playback. */
+.pattern-loop-button.active {
+  color: var(--accent) !important;
+}
+
+
+/* =========================================================
+   mono82 SVG explicit paint fix
+   Do not rely on SVG default fill/stroke.
+   ========================================================= */
+
+/* Outline icons: undo / redo / loop */
+#undo-button .mono82-icon path,
+#redo-button .mono82-icon path,
+#pattern-loop-button .mono82-icon path {
+  fill: none !important;
+  stroke: var(--text) !important;
+  stroke-width: 2 !important;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+/* Solid icons: play / sequencer shift */
+#play-button .mono82-icon polygon,
+.mokton-mini-button .mono82-shift-icon polygon {
+  fill: var(--text) !important;
+  stroke: none !important;
+}
+
+/* PLAY only: accent while actually playing */
+#play-button.playing .mono82-icon polygon,
+#play-button.active .mono82-icon polygon,
+#play-button[aria-pressed="true"] .mono82-icon polygon {
+  fill: var(--accent) !important;
+}
+
+/* Loop OFF = normal. ON = invert foreground/background for an unmistakable state. */
+#pattern-loop-button {
+  color: var(--text) !important;
+  background: transparent !important;
+}
+
+#pattern-loop-button.active,
+#pattern-loop-button[aria-pressed="true"] {
+  color: var(--bg) !important;
+  background: var(--text) !important;
+}
+
+#pattern-loop-button.active .mono82-icon path,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon path {
+  stroke: var(--bg) !important;
+}
+
+#pattern-loop-button.active .mono82-icon polygon,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon polygon {
+  fill: var(--bg) !important;
+}
+
+
+/* =========================================================
+   mono82 icon shape/size adjustment
+   ========================================================= */
+
+/* Header transport / history / loop: smaller */
+#undo-button .mono82-icon,
+#redo-button .mono82-icon,
+#pattern-loop-button .mono82-icon {
+  width: 13px !important;
+  height: 13px !important;
+}
+
+#play-button .mono82-icon {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Sequencer shift arrows: smaller still */
+.mokton-mini-button .mono82-shift-icon {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+/* Keep line weight readable after downsizing */
+#undo-button .mono82-icon path,
+#redo-button .mono82-icon path,
+#pattern-loop-button .mono82-icon path {
+  stroke-width: 2 !important;
+}
+
+
+/* icon shape revision 2 */
+#pattern-loop-button .mono82-icon path {
+  stroke-linecap: square !important;
+  stroke-linejoin: miter !important;
+}
+
+
+/* icon shape revision 3 */
+#undo-button .mono82-icon path,
+#redo-button .mono82-icon path {
+  stroke-linecap: square !important;
+  stroke-linejoin: miter !important;
+}
+
+#pattern-loop-button .mono82-icon path {
+  stroke-linecap: square !important;
+  stroke-linejoin: miter !important;
+}
+
+
+/* loop arrowheads: explicit filled triangles at the true endpoints */
+#pattern-loop-button .mono82-icon polygon {
+  fill: var(--text) !important;
+  stroke: none !important;
+}
+
+#pattern-loop-button.active .mono82-icon polygon,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon polygon {
+  fill: var(--text) !important;
+}
+
+
+/* =========================================================
+   mono82 loop + undo/redo fixed slots
+   ========================================================= */
+
+/* Keep two permanent history slots.
+   Disabled history actions are invisible, not removed from layout. */
+.app-header .transport-left {
+  display: grid !important;
+  grid-template-columns: 18px 18px !important;
+  column-gap: 5px !important;
+  align-items: center !important;
+  justify-content: start !important;
+}
+
+#undo-button,
+#redo-button {
+  width: 18px !important;
+  min-width: 18px !important;
+  padding: 0 !important;
+}
+
+#undo-button:disabled,
+#redo-button:disabled {
+  display: grid !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+#undo-button:not(:disabled),
+#redo-button:not(:disabled) {
+  display: grid !important;
+  visibility: visible !important;
+}
+
+/* Loop: uniform shaft and more visible arrowheads. */
+#pattern-loop-button .mono82-icon path {
+  fill: none !important;
+  stroke: var(--text) !important;
+  stroke-width: 2.4 !important;
+  stroke-linecap: square !important;
+  stroke-linejoin: miter !important;
+  vector-effect: non-scaling-stroke;
+}
+
+#pattern-loop-button .mono82-icon polygon {
+  fill: var(--text) !important;
+  stroke: none !important;
+}
+
+
+/* loop revision: thinner shaft, arrowheads remain prominent */
+#pattern-loop-button .mono82-icon path {
+  stroke-width: 1.35 !important;
+}
+
+#pattern-loop-button .mono82-icon polygon {
+  fill: var(--text) !important;
+  stroke: none !important;
+}
+
+
+/* play icon size adjustment */
+#play-button .mono82-icon {
+  width: 11px !important;
+  height: 11px !important;
+}
+
+
+/* =========================================================
+   mono82 STEP offset visual language
+   ========================================================= */
+
+/* Offset content belongs to the center of each STEP cell. */
+#sequence-grid .mokton-step.offset-view
+.mokton-step-visual {
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#sequence-grid .mokton-step-offset-value {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 20px !important;
+  min-width: 20px !important;
+
+  text-align: center !important;
+}
+
+/* PAN / NUDGE directional mark is intentionally subordinate to the number. */
+.mokton-step-offset-direction {
+  display: inline-block;
+
+  margin-right: 1px;
+
+  font-size: 5px;
+  line-height: 1;
+}
+
+.mokton-step-offset-number {
+  display: inline-block;
+
+  font-size: 7px;
+  line-height: 1;
+}
+
+/* SUB = actual hit positions. */
+.mokton-step-subpattern-icon {
+  display: block;
+
+  width: 18px;
+  height: 9px;
+
+  overflow: visible;
+}
+
+.mokton-step-subpattern-icon line {
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linecap: square;
+  vector-effect: non-scaling-stroke;
+}
+
+/* STRUM = four voices; zero is vertically aligned,
+   larger +/- values progressively separate them. */
+.mokton-step-strum-icon {
+  display: block;
+
+  width: 18px;
+  height: 12px;
+
+  overflow: visible;
+}
+
+.mokton-step-strum-icon line {
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: square;
+  vector-effect: non-scaling-stroke;
+}
+
+
+/* =========================================================
+   mono82 STEP offset visual refinement
+   ========================================================= */
+
+/* SUB blocks show the actual subdivision duration. */
+.mokton-step-subpattern-icon {
+  width: 20px !important;
+  height: 9px !important;
+}
+
+.mokton-step-subpattern-icon rect {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* STRUM first hit remains centered; later voices move right. */
+.mokton-step-strum-icon {
+  width: 22px !important;
+  height: 11px !important;
+}
+
+
+/* =========================================================
+ * NOTE / CHORD shared STEP offset slot - prototype
+ * ========================================================= */
+
+#sequence-grid .mokton-note-chord-display {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  align-items: center;
+  justify-items: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1;
+}
+
+#sequence-grid .mokton-note-chord-line {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+#sequence-grid .mokton-note-line {
+  font-size: 0.96em;
+}
+
+#sequence-grid .mokton-chord-line {
+  font-size: 0.72em;
+}
+
+#sequence-grid .mokton-note-sharp {
+  display: inline-block;
+  font-size: 1.24em;
+  line-height: 0.8;
+  margin: 0 0.02em;
+  transform: translateY(-0.02em);
+}
+
+#sequence-grid .mokton-note-chord-line.is-edit-target::before {
+  content: "";
+  position: absolute;
+  right: calc(100% + 2px);
+  top: 50%;
+  width: 1px;
+  height: 0.82em;
+  background: currentColor;
+  transform: translateY(-50%);
+}
+
+
+/* NOTE / CHORD edit-target marker refinement */
+#sequence-grid .mokton-note-chord-line.is-edit-target::before {
+  content: "▪" !important;
+  position: absolute !important;
+  right: calc(100% + 2px) !important;
+  top: 50% !important;
+  width: auto !important;
+  height: auto !important;
+  background: none !important;
+  color: var(--accent) !important;
+  font-size: 0.82em !important;
+  line-height: 1 !important;
+  transform: translateY(-50%) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* =========================================================
+   mono82: compact text glyph unification
+   Keep short parameter tokens rasterized on the same box.
+   ========================================================= */
+
+.mokton-direct-value-label,
+.mokton-lfo-cell-label,
+.mokton-lfo-cell-value,
+.mokton-lfo-inline-value .mokton-direct-value-label,
+.mokton-lfo-inline-value .mokton-direct-value-number {
+  font-family: var(--font-main) !important;
+  font-size: var(--mokton-ui-font-size) !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-variant: normal !important;
+  -webkit-font-smoothing: none;
+  text-rendering: geometricPrecision;
+}
+
+.mokton-direct-value-label,
+.mokton-lfo-cell-label,
+.mokton-lfo-cell-value {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+/* =========================================================
+   mono82: disable font ligatures for bitmap-style UI labels
+   Prevent sequences such as "fi" in "fil" from changing glyph shape.
+   ========================================================= */
+.app,
+.app *,
+.app *::before,
+.app *::after {
+  font-variant-ligatures: none !important;
+  -webkit-font-variant-ligatures: none !important;
+  font-feature-settings: "liga" 0, "clig" 0, "calt" 0 !important;
+}
+
+
+/* =========================================================
+   mono82 Loop persistent active-state final override
+   ========================================================= */
+#pattern-loop-button.active,
+#pattern-loop-button[aria-pressed="true"] {
+  color: var(--bg) !important;
+  background: var(--text) !important;
+}
+
+#pattern-loop-button.active .mono82-icon path,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon path {
+  stroke: var(--bg) !important;
+}
+
+#pattern-loop-button.active .mono82-icon polygon,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon polygon {
+  fill: var(--bg) !important;
+}
+
+
+/* =========================================================
+   mono82: Song playback selection + Pattern Edit entry
+   ========================================================= */
+.pattern-section .section-toolbar {
+  gap: 7px !important;
+}
+
+.pattern-edit-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  min-width: 28px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.mono82-pattern-edit-icon {
+  display: grid;
+  grid-template-columns: repeat(4, 3px);
+  grid-template-rows: repeat(2, 3px);
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+}
+
+.mono82-pattern-edit-icon i {
+  display: block;
+  width: 3px;
+  height: 3px;
+  margin: 0;
+  padding: 0;
+  background: currentColor;
+}
+
+.pattern-edit-button:active {
+  color: var(--text);
+}
+
+
+/* Stage 8: STEP clipboard icon / range gesture */
+.mokton-clip-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mono82-clipboard-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.mokton-step {
+  touch-action: none;
+}
+
+
+/* =========================================================
+   STEP clipboard UI refinement
+   ========================================================= */
+
+/*
+ * Clipboard mode must not alter the normal STEP underline/design.
+ * Earlier clipboard-ready rules reused ::after and displaced the STEP
+ * underline, so disable that legacy state completely.
+ */
+#sequence-grid .mokton-step.clipboard-ready::before,
+#sequence-grid .mokton-step.clipboard-ready::after {
+  content: none !important;
+  display: none !important;
+}
+
+/*
+ * While double-tap + sweep is in progress, show the current copy range
+ * without restructuring the STEP. The number alone is inverted temporarily.
+ */
+#sequence-grid
+.mokton-step.clipboard-preview
+.mokton-step-number {
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+/*
+ * Once copied, only the actual source STEP(s) get a tiny monochrome marker.
+ * The normal underline, melodic/rhythm marks and playback indicator remain
+ * untouched.
+ */
+#sequence-grid .mokton-step.clipboard-source::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 3px;
+  height: 3px;
+  background: var(--text) !important;
+  pointer-events: none;
+}
+
+/*
+ * Clipboard clear button exists only while a clipboard exists, so it does
+ * not need an active/inverted state.
+ */
+.mokton-clip-button,
+.mokton-clip-button.active {
+  background: transparent !important;
+  color: var(--text) !important;
+}
+
+/*
+ * The clipboard button is inserted before the normal left-shift control.
+ * No permanent toolbar items move when clipboard mode is entered.
+ */
+.mokton-sequence-tools .mokton-clip-button {
+  order: -1;
+}
+
+
+/* =========================================================
+   STEP clipboard marker refinement v2
+   ========================================================= */
+
+/* Never use STEP pseudo-elements for clipboard range/source marks. */
+#sequence-grid .mokton-step.clipboard-source::before,
+#sequence-grid .mokton-step.clipboard-preview::before {
+  content: none !important;
+  display: none !important;
+}
+
+/* Preview no longer changes the STEP number/design. */
+#sequence-grid
+.mokton-step.clipboard-preview
+.mokton-step-number {
+  background: transparent !important;
+  color: var(--text) !important;
+}
+
+/* Dedicated tiny outline square: always the same physical position. */
+#sequence-grid .mokton-step-clipboard-marker {
+  display: none;
+  position: absolute;
+  left: 1px !important;
+  right: auto !important;
+  top: 1px !important;
+  bottom: auto !important;
+  width: 4px;
+  height: 4px;
+  box-sizing: border-box;
+  border: 1px solid var(--text);
+  background: transparent;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Same marker is shown live during the sweep and retained after copy. */
+#sequence-grid
+.mokton-step.clipboard-preview
+.mokton-step-clipboard-marker,
+#sequence-grid
+.mokton-step.clipboard-source
+.mokton-step-clipboard-marker {
+  display: block;
+}
+
+/* The transient clear control should react as a direct touch target. */
+.mokton-clip-button {
+  touch-action: manipulation;
+}
+
+
+/* =========================================================
+   STEP clipboard marker + iOS gesture hardening v6
+   ========================================================= */
+
+/*
+ * The marker now uses the native hidden attribute as the source of truth.
+ * This avoids conflicts with the many historical STEP state selectors.
+ */
+#sequence-grid .mokton-step-clipboard-marker {
+  display: block !important;
+  position: absolute !important;
+  left: 1px !important;
+  right: auto !important;
+  top: 1px !important;
+  bottom: auto !important;
+  width: 4px !important;
+  height: 4px !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--text) !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  z-index: 20 !important;
+}
+
+#sequence-grid .mokton-step-clipboard-marker[hidden] {
+  display: none !important;
+}
+
+/*
+ * Prevent iOS Safari from treating double-tap + drag on the sequencer as
+ * text selection / touch-callout (the magnifying loupe interaction).
+ */
+#sequence-grid,
+#sequence-grid *,
+#sequence-grid button {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+#sequence-grid .mokton-step {
+  touch-action: none !important;
+}
+
+/* =========================================================
+   Hierarchical clipboard: Song Pattern / Offset Layer
+   ========================================================= */
+.mokton-pattern-button { position: relative; }
+.mokton-pattern-clipboard-marker {
+  display: block !important;
+  position: absolute !important;
+  left: 2px !important;
+  top: 2px !important;
+  width: 4px !important;
+  height: 4px !important;
+  box-sizing: border-box !important;
+  border: 1px solid var(--text) !important;
+  background: transparent !important;
+  pointer-events: none !important;
+  z-index: 20 !important;
+}
+.mokton-pattern-clipboard-marker[hidden] { display: none !important; }
+.mokton-pattern-button.clipboard-preview .mokton-pattern-clipboard-marker { display: block !important; }
+.pattern-section, .pattern-section * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+.mokton-pattern-button { touch-action: none !important; }
+
+
+/* Song clipboard: fixed slot immediately left of Loop. */
+.pattern-section .section-toolbar {
+  position: relative;
+}
+
+.pattern-section .mokton-pattern-clip-button {
+  z-index: 10;
+}
+
+
+/* =========================================================
+   Song clipboard placement v4
+   Keep Pattern Edit at left; Clipboard + Loop form the
+   right-side pair. Clipboard is immediately left of Loop.
+   ========================================================= */
+
+.pattern-section .mokton-pattern-clip-button {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  margin-left: auto !important;
+  margin-right: 0 !important;
+}
+
+.pattern-section #pattern-loop-button {
+  margin-left: 0 !important;
+}
+
+
+/* =========================================================
+   Hierarchical clipboard v6
+   Song clipboard occupies a fixed overlay slot and never
+   participates in toolbar flex layout.
+   ========================================================= */
+
+.pattern-section .section-toolbar {
+  position: relative !important;
+}
+
+/* Loop is the far-right 8th-column control. Clipboard is 7th. */
+.pattern-section .mokton-pattern-clip-button {
+  position: absolute !important;
+  right: 28px !important;
+  left: auto !important;
+  top: 0 !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  margin: 0 !important;
+  z-index: 20 !important;
+}
+
+/* Never allow the temporary clipboard button to push Pattern Edit. */
+.pattern-section .section-toolbar > .mokton-pattern-clip-button {
+  flex: 0 0 28px !important;
+}
+
+
+/* =========================================================
+   Hierarchical clipboard v7
+   Pattern Edit is permanently anchored at the far left.
+   Clipboard remains an overlay in column 7; Loop stays right.
+   ========================================================= */
+
+.pattern-section #pattern-edit-button,
+.pattern-section .pattern-edit-button {
+  margin-left: 0 !important;
+  margin-right: auto !important;
+  flex: 0 0 28px !important;
+}
+
+
+/* =========================================================
+   Song Pattern mini sequence preview v2
+   32 STEP = 8 x 4 simple activity matrix.
+   Layer identity is intentionally not represented.
+   ========================================================= */
+
+.mokton-pattern-button {
+  position: relative;
+  display: grid;
+  grid-template-rows: 9px minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.mokton-pattern-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  height: 9px;
+  padding: 1px 2px 0;
+  line-height: 1;
+}
+
+.mokton-pattern-id,
+.mokton-pattern-repeat {
+  line-height: 1;
+}
+
+.mokton-pattern-preview {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+}
+
+.mokton-pattern-preview-step {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+}
+
+/* Either layer contains a sound -> foreground square. */
+.mokton-pattern-preview-step.occupied {
+  background: var(--text);
+}
+
+/* Playback always wins: one accent square travels through all 32 cells. */
+.mokton-pattern-preview-step.playing,
+.mokton-pattern-button.selected
+.mokton-pattern-preview-step.playing {
+  background: var(--accent);
+}
+
+/* Keep the matrix independent from the selected Pattern header treatment. */
+.mokton-pattern-button.selected
+.mokton-pattern-preview,
+.mokton-pattern-button.selected
+.mokton-pattern-preview-step:not(.occupied):not(.playing) {
+  background: var(--bg);
+}
+
+.mokton-pattern-button.selected
+.mokton-pattern-preview-step.occupied:not(.playing) {
+  background: var(--text);
+}
+
+
+/* =========================================================
+   mono82 2026-09-07 UI alignment / loop / palette refinements
+   ========================================================= */
+
+/* PLAY belongs to the exact vertical center of the VOL/BPM row. */
+.app-header .transport-center {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  align-self: stretch !important;
+}
+
+.app-header #play-button {
+  align-self: center !important;
+  vertical-align: middle !important;
+}
+
+/*
+ * Icon labels (lvl/atk/h-d) and text labels (fil/res/...) share one
+ * fixed-height label slot so every numeric value sits on the same baseline.
+ */
+.mokton-sound-parameter-values
+> .mokton-direct-value-pad
+> .mokton-direct-value-label {
+  width: 100% !important;
+  height: 17px !important;
+  min-height: 17px !important;
+  max-height: 17px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+.mokton-sound-parameter-values
+> .mokton-direct-value-pad
+> .mokton-direct-value-number {
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Palette control: tiny pixel-ish paint tube. */
+#theme-button {
+  display: grid !important;
+  place-items: center !important;
+}
+
+#theme-button .mono82-theme-paint-icon {
+  width: 14px !important;
+  height: 15px !important;
+  overflow: visible;
+  shape-rendering: crispEdges;
+}
+
+#theme-button .mono82-theme-paint-fill {
+  fill: currentColor !important;
+  stroke: none !important;
+}
+
+#theme-button .mono82-theme-paint-cut {
+  fill: var(--bg) !important;
+  stroke: none !important;
+}
+
+/*
+ * Keep the Loop touch target unchanged, but shrink only its ON background.
+ * 18x18 is intentionally smaller than the 28x24 button hit area.
+ */
+#pattern-loop-button {
+  position: relative !important;
+  isolation: isolate;
+}
+
+#pattern-loop-button.active,
+#pattern-loop-button[aria-pressed="true"] {
+  background: transparent !important;
+  color: var(--bg) !important;
+}
+
+#pattern-loop-button.active::before,
+#pattern-loop-button[aria-pressed="true"]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translate(-50%, -50%);
+  background: var(--text);
+  z-index: -1;
+  pointer-events: none;
+}
+
+#pattern-loop-button.active .mono82-icon,
+#pattern-loop-button[aria-pressed="true"] .mono82-icon {
+  position: relative;
+  z-index: 1;
+}
+
+/* Pattern repeat display is retired; old CSS/data can remain harmlessly. */
+.mokton-pattern-repeat {
+  display: none !important;
+}
+
+/* =========================================================
+   mono82: mini EQ visualizer + master reverb
+   ========================================================= */
+
+.transport-mixer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 39px;
+  height: 24px;
+}
+
+.mini-eq-meter {
+  width: 39px;
+  height: 15px;
+  display: grid;
+  grid-template-columns: repeat(8, 4px);
+  align-items: end;
+  justify-content: space-between;
+  color: var(--text);
+  pointer-events: none;
+}
+
+.mini-eq-meter > span {
+  height: 15px;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  gap: 1px;
+}
+
+.mini-eq-meter i {
+  display: block;
+  width: 4px;
+  height: 1px;
+  flex: 0 0 1px;
+  background: transparent;
+}
+
+.mini-eq-meter i.on {
+  background: currentColor;
+}
+
+.mini-eq-meter i.peak {
+  background: var(--accent);
+}
+
+.master-reverb-control,
+.swing-control {
+  flex: 0 0 auto;
+  min-width: 48px;
+  height: 24px;
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  font-size: 7px;
+  line-height: 1;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+
+
+/* =========================================================
+   mono82 2026-09-07: song toolbar order refinement
+   edit -> reverb -> spacer -> clipboard -> loop
+   ========================================================= */
+.pattern-section #pattern-edit-button,
+.pattern-section .pattern-edit-button {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.pattern-section #master-reverb-control {
+  margin-left: 6px !important;
+  margin-right: 0 !important;
+}
+
+.pattern-section #swing-control {
+  margin-left: 6px !important;
+  margin-right: auto !important;
+}
+
+/* =========================================================
+   Global menu / Project manager / Export
+   ========================================================= */
+
+.global-menu-button {
+  min-width: 24px;
+  font-size: 11px;
+}
+
+.current-project-name {
+  cursor: text;
+}
+
+.project-name-input {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 3px;
+  border: 0;
+  border-bottom: 1px solid var(--accent);
+  border-radius: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  outline: 0;
+  text-transform: lowercase;
+  animation: mono82-name-caret 0.8s steps(1, end) infinite;
+}
+
+@keyframes mono82-name-caret {
+  0%, 49% { border-bottom-color: var(--accent); }
+  50%, 100% { border-bottom-color: transparent; }
+}
+
+.global-overlay,
+.export-overlay,
+.global-confirm-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding:
+    max(48px, calc(env(safe-area-inset-top) + 38px))
+    14px
+    max(14px, env(safe-area-inset-bottom));
+  background: transparent;
+}
+
+.global-confirm-layer {
+  z-index: 9100;
+  align-items: center;
+}
+
+.global-panel,
+.export-modal {
+  width: min(100%, 336px);
+  max-height: calc(100dvh - 76px);
+  overflow: auto;
+  border: 1px solid var(--text);
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 8px;
+}
+
+.global-menu-panel {
+  width: 148px;
+  margin-left: auto;
+  margin-right: max(0px, calc((100vw - min(100vw, var(--app-width))) / 2));
+  display: grid;
+}
+
+.global-menu-panel button,
+.project-list-toolbar button,
+.global-confirm-actions button,
+.export-modal button {
+  min-height: 30px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.global-menu-panel button + button {
+  border-top: 1px solid var(--line);
+}
+
+.global-menu-panel button:active,
+.project-list-toolbar button:active,
+.global-confirm-actions button:active,
+.export-modal button:active,
+.export-choice.active {
+  color: var(--accent);
+}
+
+.project-list-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.project-list-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  border-bottom: 1px solid var(--line);
+}
+
+.project-list-toolbar button {
+  min-height: 28px;
+}
+
+.project-list {
+  max-height: min(64dvh, 430px);
+  overflow-y: auto;
+}
+
+.project-list > .project-name-input {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 8px;
+  min-height: 28px;
+  color: var(--text);
+}
+
+.project-list-row {
+  position: relative;
+  overflow: hidden;
+  min-height: 34px;
+  border-top: 1px solid var(--line);
+}
+
+.project-list-row:first-of-type {
+  border-top: 0;
+}
+
+.project-list-item,
+.project-delete-button {
+  min-height: 34px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.project-list-item {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 0 9px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: left;
+  transition: transform 100ms linear;
+  touch-action: pan-y;
+}
+
+.project-delete-button {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 0 auto;
+  width: 62px;
+  padding: 0;
+  background: var(--text);
+  color: var(--bg);
+  text-align: center;
+  font-size: 6px;
+}
+
+.global-confirm-panel {
+  width: min(100%, 286px);
+  padding: 10px;
+}
+
+.global-confirm-message {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  line-height: 1.7;
+}
+
+.global-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.global-confirm-actions button {
+  border: 1px solid var(--line);
+  text-align: center;
+}
+
+.operation-notice {
+  position: fixed;
+  z-index: 10000;
+  top: max(8px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  padding: 5px 7px;
+  border: 1px solid var(--text);
+  background: var(--bg);
+  color: var(--text);
+  opacity: 0;
+}
+
+.operation-notice.show {
+  opacity: 1;
+}
+
+.export-overlay {
+  z-index: 9050;
+  align-items: center;
+}
+
+.export-modal {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.export-modal-title {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  color: var(--accent);
+}
+
+.export-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+  border-top: 1px solid var(--line);
+  padding-top: 7px;
+}
+
+.export-label {
+  color: var(--muted);
+  font-size: 7px;
+}
+
+.export-choice-group,
+.export-value-control,
+.export-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 5px;
+}
+
+.export-choice,
+.export-value-control button,
+.export-actions button {
+  min-height: 28px !important;
+  border: 1px solid var(--line) !important;
+  text-align: center !important;
+}
+
+.export-choice.active {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+  color: var(--bg) !important;
+}
+
+.export-value-control {
+  grid-template-columns: 34px 1fr 34px;
+  align-items: center;
+}
+
+.export-value-control output {
+  text-align: center;
+}
+
+.export-row.disabled {
+  opacity: .3;
+}
+
+.export-progress {
+  display: grid;
+  gap: 5px;
+  min-height: 28px;
+}
+
+.export-progress-track {
+  height: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.export-progress-track i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+}
+
+.export-actions {
+  margin-top: 3px;
+}
+
+/* =========================================================
+   Save / project / export refinements 2026-09-08
+   ========================================================= */
+
+/* ≡ should read at the same visual size as the 13px palette glyph. */
+.global-menu-button {
+  min-width: 24px !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
+/* Project/export utility text follows the app's 10px base text size. */
+.global-panel,
+.export-modal {
+  font-size: 10px !important;
+}
+
+.project-delete-button {
+  font-size: 10px !important;
+}
+
+.export-label {
+  color: var(--text) !important;
+  font-size: inherit !important;
+}
+
+/* Terminal-style name editor: native input only captures the keyboard.
+   The visible cursor is one blinking underscore that advances with text. */
+.project-name-editor {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  min-width: 1ch;
+  max-width: 100%;
+  min-height: 20px;
+  overflow: hidden;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.45;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.project-name-editor-text {
+  display: inline-block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: clip;
+  color: var(--text);
+}
+
+.project-name-editor-cursor {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 1ch;
+  color: var(--text);
+  animation: mono82-name-cursor 0.8s steps(1, end) infinite;
+}
+
+@keyframes mono82-name-cursor {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.project-name-input {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: transparent !important;
+  outline: 0 !important;
+  opacity: 0.01;
+  text-transform: lowercase;
+}
+
+.project-name-input:focus-visible {
+  outline: 0 !important;
+}
+
+.current-project-name .project-name-editor {
+  width: 100%;
+  color: var(--text);
+}
+
+.project-list > .project-name-editor {
+  display: flex;
+  width: calc(100% - 16px);
+  margin: 8px;
+  min-height: 28px;
+  padding: 5px 0 3px;
+  border: 0;
+  color: var(--text);
+}
+
+/* Confirmation sits just above the project title, centered, without a box. */
+.global-confirm-layer {
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding: 0 14px !important;
+  pointer-events: auto;
+}
+
+.global-confirm-panel {
+  position: absolute;
+  top: var(--confirm-top, 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(calc(100% - 28px), 336px) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: var(--bg) !important;
+}
+
+.global-confirm-message {
+  min-height: 18px !important;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.45 !important;
+}
+
+.global-confirm-actions {
+  width: 112px;
+  margin: 2px auto 0;
+  gap: 4px !important;
+}
+
+.global-confirm-actions button {
+  min-height: 22px !important;
+  border: 0 !important;
+  text-align: center !important;
+}
+
+/* Export uses only the standard foreground/background pair for text states. */
+.export-modal-title {
+  color: var(--text) !important;
+}
+
+.export-modal button,
+.export-choice,
+.export-value-control button,
+.export-actions button {
+  color: var(--text) !important;
+}
+
+.export-choice.active {
+  border-color: var(--text) !important;
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+.export-modal button:active {
+  color: var(--text) !important;
+}
+
+.export-choice.active:active {
+  color: var(--bg) !important;
+}
+
+/* =========================================================
+   Save / export layout refinements 2026-09-08 b
+   ========================================================= */
+
+/* Utility windows always begin below the live app header. */
+.global-overlay,
+.export-overlay {
+  align-items: flex-start !important;
+  padding:
+    var(--overlay-top, max(48px, calc(env(safe-area-inset-top) + 38px)))
+    14px
+    max(14px, env(safe-area-inset-bottom)) !important;
+}
+
+/* Project list: no internal ruler lines. */
+.project-list-toolbar {
+  border-bottom: 0 !important;
+}
+
+.project-list-row,
+.project-list-row:first-of-type {
+  border-top: 0 !important;
+}
+
+/* Export: compact panel and remove internal horizontal rulers. */
+.export-overlay {
+  justify-content: center !important;
+}
+
+.export-modal {
+  width: min(calc(100% - 28px), 238px) !important;
+  padding: 8px !important;
+  gap: 5px !important;
+}
+
+.export-modal-title {
+  min-height: 18px !important;
+}
+
+.export-row {
+  grid-template-columns: 52px minmax(0, 1fr) !important;
+  gap: 5px !important;
+  min-height: 26px !important;
+  border-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.export-choice-group,
+.export-value-control,
+.export-actions {
+  gap: 3px !important;
+}
+
+.export-choice,
+.export-value-control button,
+.export-actions button {
+  min-height: 24px !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
+
+.export-value-control {
+  grid-template-columns: 28px 1fr 28px !important;
+}
+
+/* Completion notices share the same title-relative position as confirms,
+   but remain borderless and non-blocking. */
+.operation-notice {
+  top: var(--notice-top, max(8px, env(safe-area-inset-top))) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: var(--bg) !important;
+  text-align: center;
+  line-height: 1.45;
+}
+
+
+/* =========================================================
+   Save / export layout refinements 2026-09-08 c
+   ========================================================= */
+
+/* Draw the menu glyph at the same actual 13 x 13px visual size as the
+   palette icon. The text glyph itself varies too much by font. */
+.global-menu-button {
+  position: relative !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 24px !important;
+  min-width: 24px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  overflow: hidden;
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+.global-menu-button::before {
+  content: "";
+  display: block;
+  width: 13px;
+  height: 13px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 1px / 13px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 6px / 13px 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 11px / 13px 2px no-repeat;
+  color: var(--text);
+}
+
+.global-menu-button:active::before,
+.global-menu-button.active::before {
+  color: var(--accent);
+}
+
+/* Utility UI follows the app's real base size: 7px. */
+.global-panel,
+.export-modal,
+.global-confirm-panel,
+.operation-notice {
+  font-size: var(--mokton-ui-font-size, 7px) !important;
+}
+
+/* Remove browser focus decoration from confirm buttons. It can render as
+   short stray lines on mobile bitmap-font layouts. */
+.global-confirm-actions button,
+.global-confirm-actions button:focus,
+.global-confirm-actions button:focus-visible {
+  outline: 0 !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+}
+
+/* Project list can be much narrower than the generic utility panel. */
+.project-list-panel {
+  width: min(calc(100% - 28px), 214px) !important;
+}
+
+.project-list-toolbar button {
+  min-height: 24px !important;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+.project-list-row,
+.project-list-item,
+.project-delete-button {
+  min-height: 30px !important;
+}
+
+/* Export: slightly wider than the previous pass, but keep the editable
+   right-hand controls compact so labels never collide. */
+.export-modal {
+  width: min(calc(100% - 28px), 258px) !important;
+  padding: 8px !important;
+  gap: 5px !important;
+}
+
+.export-row {
+  grid-template-columns: 56px minmax(0, 138px) !important;
+  justify-content: space-between;
+  gap: 6px !important;
+  min-height: 24px !important;
+}
+
+.export-choice-group,
+.export-value-control {
+  width: 138px !important;
+  justify-self: end;
+}
+
+.export-choice,
+.export-value-control button,
+.export-actions button {
+  min-height: 22px !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  padding-left: 3px !important;
+  padding-right: 3px !important;
+}
+
+.export-choice.active {
+  border: 0 !important;
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+.export-value-control {
+  grid-template-columns: 24px minmax(0, 1fr) 24px !important;
+}
+
+/* No ruler before the final action; one centered export action only. */
+.export-actions {
+  grid-auto-flow: initial !important;
+  grid-template-columns: auto !important;
+  justify-content: center !important;
+  width: 100% !important;
+  margin-top: 3px !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+}
+
+.export-actions button {
+  min-width: 54px;
+  text-align: center !important;
+}
+
+/* =========================================================
+   Save / export layout refinements 2026-09-08 d
+   ========================================================= */
+
+/* Restore utility text to the visual size used before the 7px pass.
+   Export stays one step smaller so it matches the surrounding app UI
+   without looking oversized. */
+.global-panel,
+.global-confirm-panel,
+.operation-notice {
+  font-size: 10px !important;
+}
+
+.export-modal {
+  font-size: 8px !important;
+}
+
+.export-label,
+.export-modal button,
+.export-modal output {
+  font-size: inherit !important;
+}
+
+/* Thin 13px hamburger: same footprint as the palette icon, lighter stroke. */
+.global-menu-button::before {
+  width: 13px !important;
+  height: 13px !important;
+  background:
+    linear-gradient(currentColor, currentColor) 0 2px / 13px 1px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 6px / 13px 1px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 10px / 13px 1px no-repeat !important;
+}
+
+/* Remove every remaining native button decoration around yes / no. */
+.global-confirm-actions button,
+.global-confirm-actions button:hover,
+.global-confirm-actions button:active,
+.global-confirm-actions button:focus,
+.global-confirm-actions button:focus-visible {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: var(--bg) !important;
+  text-decoration: none !important;
+  padding: 0 !important;
+}
+
+.global-confirm-actions button::before,
+.global-confirm-actions button::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* The progress track was visually appearing above EXPORT because the
+   author display:grid rule overrode the browser's [hidden] rule. */
+.export-progress[hidden] {
+  display: none !important;
+}
+
+.export-actions,
+.export-actions::before,
+.export-actions::after {
+  border-top: 0 !important;
+  border-bottom: 0 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+.export-actions::before,
+.export-actions::after {
+  content: none !important;
+  display: none !important;
+}
+
+
+/* =========================================================
+   Export compact labels refinement 2026-09-08 e
+   ========================================================= */
+.export-modal {
+  font-size: 9px !important;
+}
+
+.export-row {
+  grid-template-columns: 48px minmax(0, 124px) !important;
+  gap: 5px !important;
+}
+
+.export-choice-group,
+.export-value-control {
+  width: 124px !important;
+}
+
+.export-value-control {
+  grid-template-columns: 21px minmax(0, 1fr) 21px !important;
+}
+
+.export-choice,
+.export-value-control button {
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
+
+/* =========================================================
+   Utility UI font unification 2026-09-08 f
+   ========================================================= */
+.global-panel,
+.global-confirm-panel,
+.operation-notice,
+.export-modal {
+  font-size: 9px !important;
+}
+
+
+/* =========================================================
+   Confirm overlay: hide header action glyphs underneath.
+   Their 1px bottom SVG/pseudo-element edges can peek through the
+   intentionally transparent confirm layer on iOS/WebKit.
+   ========================================================= */
+body.global-confirm-open #theme-button,
+body.global-confirm-open #global-menu-button {
+  visibility: hidden !important;
+}
+
+
+
+
+/* =========================================================
+   Sound preset library - mono82 2026-09-08
+   ========================================================= */
+
+/* Sound name is the preset entry point, as in the final sprooto UI. */
+.mokton-selected-sound-name {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: left !important;
+  font: inherit !important;
+  color: var(--text) !important;
+  cursor: pointer;
+}
+
+.mokton-selected-sound-name:active {
+  color: var(--accent) !important;
+}
+
+.sound-preset-overlay {
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding:
+    var(--overlay-top, max(48px, calc(env(safe-area-inset-top) + 38px)))
+    14px
+    max(14px, env(safe-area-inset-bottom)) !important;
+}
+
+.sound-preset-modal {
+  width: min(calc(100% - 28px), 238px) !important;
+  max-height: min(62dvh, 420px);
+  padding: 8px !important;
+  border: 1px solid var(--text) !important;
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-size: 9px !important;
+}
+
+.sound-preset-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 24px;
+}
+
+.sound-preset-tabs,
+.sound-preset-actions,
+.sound-preset-save-modes,
+.sound-preset-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sound-preset-tab,
+.sound-preset-action,
+.sound-preset-save-mode,
+.sound-preset-confirm-actions button,
+.sound-preset-item {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  min-height: 22px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  padding: 3px 4px !important;
+  font: inherit !important;
+  text-align: left;
+}
+
+.sound-preset-tab.active,
+.sound-preset-item.active,
+.sound-preset-save-mode:active {
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+
+.sound-preset-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.sound-preset-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: min(44dvh, 300px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  padding: 4px 0;
+}
+
+.sound-preset-list::-webkit-scrollbar {
+  display: none;
+}
+
+.sound-preset-row {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 28px;
+  flex: 0 0 auto;
+}
+
+.sound-preset-row .sound-preset-item {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  min-height: 28px;
+  background: var(--bg) !important;
+  transition: transform 100ms linear;
+  touch-action: pan-y;
+}
+
+.sound-preset-row .sound-preset-item.active {
+  background: var(--text) !important;
+  color: var(--bg) !important;
+}
+
+.sound-preset-delete-button {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 0 auto;
+  width: 62px;
+  min-height: 28px;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--text) !important;
+  color: var(--bg) !important;
+  padding: 0 !important;
+  font: inherit !important;
+  text-align: center;
+}
+
+.sound-preset-item {
+  width: 100%;
+  flex: 0 0 auto;
+}
+
+.sound-preset-actions {
+  justify-content: flex-end;
+  min-height: 26px;
+  padding-top: 3px;
+}
+
+.sound-preset-action:disabled {
+  opacity: 0.35;
+}
+
+.sound-preset-save-view,
+.sound-preset-delete-view {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 0 2px;
+}
+
+.sound-preset-current {
+  min-height: 18px;
+  line-height: 1.45;
+}
+
+.sound-preset-name-editor {
+  display: flex !important;
+  width: 100%;
+  min-height: 28px;
+  padding: 5px 0 3px;
+}
+
+.sound-preset-save-modes,
+.sound-preset-confirm-actions {
+  justify-content: center;
+}
+
+.sound-preset-confirm-actions {
+  width: 112px;
+  margin: 2px auto 0;
+}
+
+.sound-preset-confirm-actions button {
+  flex: 1 1 0;
+  text-align: center;
+}
+
+
+/* =========================================================
+   mono82: per-Sound reverb send 2026-09-09
+   sound name ........ rev 00  m  s
+   ========================================================= */
+.mokton-selected-sound-info {
+  justify-content: flex-start !important;
+  gap: 0 !important;
+}
+
+.mokton-selected-sound-spacer {
+  flex: 1 1 auto !important;
+  min-width: 6px !important;
+}
+
+.mokton-sound-reverb-send {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  flex: 0 0 auto !important;
+  min-width: 48px !important;
+  min-height: 24px !important;
+  margin: 0 12px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font: inherit !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+
+
+/* =========================================================
+   Help mode foundation 2026-09-09
+   ========================================================= */
+#help-button {
+  display: grid !important;
+  place-items: center !important;
+  color: var(--text) !important;
+  font-size: 14px !important;
+  line-height: 1 !important;
+  font-family: inherit !important;
+  font-weight: inherit !important;
+  padding: 0 !important;
+}
+
+/* The ? itself deliberately does not change appearance while help is active. */
+#help-button[aria-pressed="true"] {
+  color: inherit !important;
+  background: transparent !important;
+}
+
+body.help-mode [data-help-target] {
+  outline: 1px solid var(--text) !important;
+  outline-offset: 1px !important;
+}
+
+.help-description-panel {
+  position: fixed;
+  z-index: 10020;
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  width: auto;
+  box-sizing: border-box;
+  padding: 8px;
+  border: 1px solid var(--text);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 9px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow: visible;
+  pointer-events: none;
+}
+
+
+/* Help-mode grouped Sound layer targets */
+.help-target-group-overlay {
+  position: fixed;
+  z-index: 10010;
+  box-sizing: border-box;
+  background: transparent;
+  pointer-events: auto;
+}
+
+
+@font-face {
+  font-family: "DotGothic16";
+  src: url("../fonts/DotGothic16-Regular.ttf")
+    format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* bilingual Help panel */
+.help-description-panel {
+  pointer-events: auto;
+}
+
+.help-description-panel[data-language="ja"] {
+  font-family: "DotGothic16", sans-serif;
+  font-size: 12px;
+}
+
+.help-language-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+  white-space: nowrap;
+}
+
+.help-language-control {
+  appearance: none;
+  border: 0;
+  padding: 0 2px;
+  margin: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  line-height: inherit;
+}
+
+.help-language-control.active {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.help-description-title {
+  margin-bottom: 5px;
+}
+
+.help-description-body {
+  white-space: normal;
+}
+
+
+/* Help panel v45: stay inside the mono82 app width, not the desktop viewport. */
+.help-description-panel {
+  right: auto;
+  max-width: calc(100vw - 16px);
+}
+
+.help-language-row {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: var(--text) !important;
+}
+
+.help-language-row > * {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+
+/* Help v48: Help taps never use the Sound-name accent press feedback. */
+body.help-mode .mokton-selected-sound-name:active {
+  color: var(--text) !important;
+}
+
+
+/* Help v49: the spectrum is normally display-only, but becomes a Help tap target. */
+body.help-mode #mini-eq-meter {
+  pointer-events: auto !important;
+}
+
+
+/* mono82 v50: VOL/BPM interaction cleanup.
+   Keep their appearance unchanged while touching/focusing. */
+.master-control,
+.bpm-control,
+.master-control *,
+.bpm-control * {
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.master-control:active,
+.bpm-control:active,
+.master-control *:active,
+.bpm-control *:active {
+  opacity: 1 !important;
+}
+
+#bpm-input:focus,
+#bpm-input:focus-visible,
+#bpm-input:active {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Help v60: opening Help for the global menu must not flash the accent color. */
+body.help-mode #global-menu-button:active::before,
+body.help-mode #global-menu-button.active::before {
+  color: var(--text) !important;
+}
+
+
+/* =========================================================
+   mono82 v64: per-Pattern Step Length
+   ========================================================= */
+
+.sequence-section #pattern-length-control {
+  min-width: 0 !important;
+  min-height: 22px !important;
+  margin: 0 0 0 6px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  font-family: inherit !important;
+  font-size: 7px !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  touch-action: none !important;
+}
+
+.sequence-section #pattern-length-control > span {
+  color: inherit !important;
+  font: inherit !important;
+}
+
+/* Keep all 32 preview cells geometrically present; Length-excluded cells are silent/hidden. */
+.mokton-pattern-preview-step.inactive {
+  visibility: hidden !important;
 }

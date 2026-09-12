@@ -1,894 +1,999 @@
-export const STEP_COUNT = 64;
+import {
+  createProjectSoundBank,
+  createPatternSequence,
+  createSequenceStep,
+  createMelodicStep,
+  createRhythmStep,
+  normalizeProjectSoundBank,
+  normalizeSequenceStep
+} from "./sound-defaults.js";
+
+export const STEP_COUNT = 32;
 export const PAGE_STEP_COUNT = 32;
-export const TRACK_COUNT = 4;
+export const PATTERN_SLOT_COUNT = 40;
 
-export const PATTERN_SLOT_COUNT = 24;
-export const FILL_SLOT_COUNT = 8;
-export const SECTION_SLOT_COUNT = 16;
+export const MELODIC_SOUND_IDS = Object.freeze(["1", "2", "3", "4"]);
+export const RHYTHM_SOUND_IDS = Object.freeze(["a", "b", "c", "d"]);
 
-const filled = value =>
-  Array(STEP_COUNT).fill(value);
+export const CHORD_NAMES = Object.freeze([
+  // 1 VOICE
+  "off",
 
-function makeTrack(id) {
+  // 2 VOICE
+  "1-2",
+  "5th",
+
+  // 3 VOICE
+  "maj",
+  "min",
+  "aug",
+  "dim",
+  "♭5",
+  "sus2",
+  "sus4",
+
+  // 4 VOICE / basic
+  "7",
+  "maj7",
+  "m7",
+  "mMaj7",
+  "6",
+  "m6",
+  "m7♭5",
+  "dim7",
+  "7sus4",
+  "maj7sus2",
+
+  // 4 VOICE / 9
+  "9",
+  "maj9",
+  "m9",
+  "mMaj9",
+  "6/9",
+  "m6/9",
+  "9sus4",
+  "7♭9",
+  "7♯9",
+  "aug♭9",
+  "aug♯9",
+  "m7♭5(9)",
+  "1-♭5-6-9",
+
+  // 4 VOICE / special
+  "m7♯5",
+
+  // 4 VOICE / 11-13
+  "11",
+  "sus7(13)",
+  "7♭13"
+]);
+
+/*
+ * Chord storage is now versioned.
+ * New snapshots always store chord names, never list indexes.
+ *
+ * LEGACY_NUMERIC_CHORD_NAMES_V0 is frozen permanently: it represents the
+ * numeric-index layout used immediately before name-based persistence was
+ * introduced. Never derive migration from the live CHORD_NAMES array again.
+ */
+export const CHORD_STORAGE_SCHEMA = "name-v1";
+
+const LEGACY_NUMERIC_CHORD_NAMES_V0 = Object.freeze([
+  "off",
+  "1-2",
+  "5th",
+  "maj",
+  "min",
+  "aug",
+  "dim",
+  "♭5",
+  "sus2",
+  "sus4",
+  "7",
+  "maj7",
+  "m7",
+  "mMaj7",
+  "6",
+  "m6",
+  "m7♭5",
+  "dim7",
+  "7sus4",
+  "maj7sus2",
+  "9",
+  "maj9",
+  "m9",
+  "mMaj9",
+  "6/9",
+  "m6/9",
+  "9sus4",
+  "7♭9",
+  "7♯9",
+  "aug♭9",
+  "aug♯9",
+  "m7♭5(9)",
+  "1-♭5-6-9",
+  "m7♯5",
+  "11",
+  "sus7(13)",
+  "7♭13"
+]);
+
+const CHORD_DEFINITIONS = Object.freeze([
+  // 1 VOICE
+  [0],
+
+  // 2 VOICE
+  [0, 2],
+  [0, 7],
+
+  // 3 VOICE
+  [0, 4, 7],      // maj
+  [0, 3, 7],      // min
+  [0, 4, 8],      // aug
+  [0, 3, 6],      // dim
+  [0, 4, 6],      // ♭5 = 1-3-♭5
+  [0, 2, 7],      // sus2
+  [0, 5, 7],      // sus4
+
+  // 4 VOICE / basic
+  [0, 4, 7, 10],  // 7
+  [0, 4, 7, 11],  // maj7
+  [0, 3, 7, 10],  // m7
+  [0, 3, 7, 11],  // mMaj7
+  [0, 4, 7, 9],   // 6
+  [0, 3, 7, 9],   // m6
+  [0, 3, 6, 10],  // m7♭5
+  [0, 3, 6, 9],   // dim7
+  [0, 5, 7, 10],  // 7sus4
+  [0, 2, 7, 11],  // maj7sus2
+
+  // 4 VOICE / 9
+  [0, 4, 10, 14], // 9
+  [0, 4, 11, 14], // maj9
+  [0, 3, 10, 14], // m9
+  [0, 3, 11, 14], // mMaj9
+  [0, 4, 9, 14],  // 6/9
+  [0, 3, 9, 14],  // m6/9
+  [0, 5, 10, 14], // 9sus4
+  [0, 4, 10, 13], // 7♭9
+  [0, 4, 10, 15], // 7♯9
+  [0, 4, 8, 13],  // aug♭9
+  [0, 4, 8, 15],  // aug♯9
+  [0, 6, 10, 14], // m7♭5(9)
+  [0, 6, 9, 14],  // 1-♭5-6-9
+
+  // 4 VOICE / special
+  [0, 8, 10, 15], // m7♯5 = 1-♯5-♭7-♭3↑
+
+  // 4 VOICE / 11-13
+  [0, 7, 10, 17], // 11 = 1-5-♭7-11
+  [0, 10, 17, 21],// sus7(13) = 1-♭7-11-13
+  [0, 10, 16, 20] // 7♭13 = 1-♭7-3↑-♭13
+]);
+
+export function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+/*
+ * Compatibility helper for audio.js while chord UI/data is redesigned.
+ */
+export function resolveChordNoteOffsets(chordValue) {
+  let index = 0;
+
+  if (typeof chordValue === "string") {
+    const namedIndex = CHORD_NAMES.indexOf(chordValue);
+    index = namedIndex >= 0 ? namedIndex : 0;
+  } else {
+    index = clamp(
+      Math.round(Number(chordValue) || 0),
+      0,
+      CHORD_DEFINITIONS.length - 1
+    );
+  }
+
+  return [...CHORD_DEFINITIONS[index]];
+}
+
+function makePatternData(id) {
   return {
     id,
-
-    stepLength: 32,
-
-    steps:
-      filled(false),
-
-    muted: false,
-    solo: false,
-
-    base: {
-      note: 0,
-      sine: 100,
-      noise: 0,
-      velocity: 70,
-      decay: 5,
-      fmDepth: 0,
-      fmRatio: 1,
-      tone: 50,
-      pan: 50,
-      probability: 100
-    },
-
-    offsets: {
-      note:
-        filled(0),
-
-      velocity:
-        filled(0),
-
-      decay:
-        filled(0),
-
-      fmDepth:
-        filled(0),
-
-      tone:
-        filled(0),
-
-      pan:
-        filled(0),
-
-      probability:
-        filled(0)
-    }
+    repeat: 1,
+    length: STEP_COUNT,
+    sequence: createPatternSequence()
   };
 }
 
-function makePatternData() {
+function makeMasterMix() {
   return {
-    tracks:
-      Array.from(
-        {
-          length:
-            TRACK_COUNT
-        },
-        (_, index) =>
-          makeTrack(index + 1)
-      ),
-
-    patternSwing: 0
+    eq: [0, 0, 0, 0, 0, 0, 0, 0],
+    volume: 100,
+    limiter: -1,
+    reverb: 0
   };
 }
 
-function makeSectionData() {
+function makeSongData() {
+  /*
+   * Song detail is intentionally minimal here.
+   * Pattern order/repeat UI is migrated later; no Section/Fill model is created.
+   */
   return {
-    /*
-     * Pattern／Fillの並び
-     *
-     * [
-     *   {
-     *     type: "pattern",
-     *     index: 0
-     *   },
-     *   {
-     *     type: "fill",
-     *     index: 1
-     *   }
-     * ]
-     */
-    sequence: []
+    order: Array.from({ length: PATTERN_SLOT_COUNT }, (_, index) => index),
+    swing: 0,
+    masterMix: makeMasterMix()
   };
 }
 
-/*
- * Pattern 01へ、
- * 現在使用中の初期データを移す。
- */
-function applyInitialPatternData(
-  patternData
-) {
-  const patternTracks =
-    patternData.tracks;
+export let soundBank = createProjectSoundBank();
 
-  /*
-   * Track 1
-   * 1、9、17、25
-   */
-  [0, 8, 16, 24].forEach(
-    stepIndex => {
-      patternTracks[0]
-        .steps[stepIndex] =
-        true;
-    }
-  );
-
-  /*
-   * Track 2
-   * 5、13、21、29
-   */
-  [4, 12, 20, 28].forEach(
-    stepIndex => {
-      patternTracks[1]
-        .steps[stepIndex] =
-        true;
-    }
-  );
-
-  patternTracks[1]
-    .base.note = 11;
-
-  /*
-   * Track 3
-   */
-  [4, 12, 20, 28].forEach(
-    stepIndex => {
-      patternTracks[2]
-        .steps[stepIndex] =
-        true;
-    }
-  );
-
-  patternTracks[2]
-    .base.noise = 70;
-
-  patternTracks[2]
-    .base.sine = 0;
-
-  patternTracks[2]
-    .base.decay = 1;
-
-  /*
-   * Track 4
-   */
-  [
-    0,
-    6,
-    8,
-    14,
-    16,
-    22,
-    24,
-    30
-  ].forEach(
-    stepIndex => {
-      patternTracks[3]
-        .steps[stepIndex] =
-        true;
-    }
-  );
-
-  patternTracks[3]
-    .base.noise = 45;
-
-  patternTracks[3]
-    .base.sine = 0;
-
-  patternTracks[3]
-    .base.decay = 1;
-}
-
-/*
- * パターンとフィルの保存領域
- */
-export const patterns =
-  Array.from(
-    {
-      length:
-        PATTERN_SLOT_COUNT
-    },
-    () =>
-      makePatternData()
-  );
-
-export const fills =
-  Array.from(
-    {
-      length:
-        FILL_SLOT_COUNT
-    },
-    () =>
-      makePatternData()
-  );
-
- export const sections =
-  Array.from(
-    {
-      length:
-        SECTION_SLOT_COUNT
-    },
-    () =>
-      makeSectionData()
-  );
-/*
- * 現在の初期データは
- * Pattern 01へ入れる。
- */
-applyInitialPatternData(
-  patterns[0]
+export const patterns = Array.from(
+  { length: PATTERN_SLOT_COUNT },
+  (_, index) => makePatternData(index + 1)
 );
 
+export const song = makeSongData();
+
 /*
- * ui.jsやmain.jsは、
- * 引き続きtracksを参照する。
- *
- * 中身だけ選択中パターンの
- * Trackへ差し替える。
+ * Temporary compatibility exports.
+ * They deliberately contain no old Track/Fill/Section data.
+ * Consumers are migrated in the following steps.
  */
-export const tracks = [
-  ...patterns[0].tracks
-];
+export const tracks = [];
+export const fills = [];
+export const sections = [];
+export const parameters = [];
 
-export const parameters = [
-  {
-    id: "note",
-    label: "note",
-    icon: "note",
-    min: -24,
-    max: 24,
-    step: 1,
-    offsetMode: "result"
-  },
+function makeDefaultRuntimeState() {
+  return {
+    selectedSoundId: "1",
+    selectedLayer: "melodic",
+    selectedPatternIndex: 0,
 
-  {
-    id: "velocity",
-    label: "volume",
-    icon: "volume",
-    min: 0,
-    max: 100,
-    step: 1,
-    offsetMode: "offset"
-  },
+    selectedParameterId: null,
+    selectedChildId: null,
 
-  {
-    id: "sine",
-    label: "sine",
-    icon: "sine",
-    min: 0,
-    max: 100,
-    step: 1,
-    baseOnly: true
-  },
+    playingStepIndex: null,
+    playbackTickIndex: null,
+    isPlaying: false,
 
-  {
-    id: "noise",
-    label: "noise",
-    icon: "noise",
-    min: 0,
-    max: 100,
-    step: 1,
-    baseOnly: true
-  },
+    playingPatternIndex: null,
+    queuedPatternIndex: null,
 
-  {
-    id: "decay",
-    label: "decay",
-    icon: "decay",
-    min: 1,
-    max: 50,
-    step: 1,
-    offsetMode: "offset"
-  },
+    /*
+     * Number of completed passes of the currently playing Pattern.
+     * 0 means the first pass is in progress.
+     */
+    playingPatternRepeatCount: 0,
 
-  {
-    id: "fmDepth",
-    label: "fm",
-    icon: "fm",
-    min: 0,
-    max: 20,
-    step: 1,
-    offsetMode: "offset",
+    /*
+     * When true, keep the currently playing Pattern at every
+     * Pattern boundary instead of advancing through song.order.
+     */
+    patternLoopEnabled: false,
 
-    children: [
-      {
-        id: "fmDepth",
-        label: "depth"
-      },
+    /*
+     * Pattern loop range is expressed as Pattern indexes.
+     * null means single-Pattern loop behavior.
+     */
+    patternLoopRange: null,
 
-      {
-        id: "fmRatio",
-        label: "ratio",
-        baseOnly: true
-      }
-    ]
-  },
+    /*
+     * UI-only playback override used while Pattern Edit is open.
+     * This never changes the Song screen loop button/range state.
+     */
+    patternEditLoopEnabled: false,
 
-  {
-    id: "tone",
-    label: "tone",
-    icon: "tone",
-    min: 0,
-    max: 100,
-    step: 1,
-    offsetMode: "offset"
-  },
+    songMode: false,
+    selectedSongPartIndex: 0,
+    playingSongPartIndex: null,
+    queuedSongPartIndex: null,
 
-  {
-    id: "pan",
-    label: "pan",
-    icon: "pan",
-    min: 0,
-    max: 100,
-    step: 1,
-    offsetMode: "offset"
-  },
-
-  {
-    id: "probability",
-    label: "prob",
-    icon: "probability",
-    min: 0,
-    max: 100,
-    step: 1,
-    offsetMode: "result"
-  }
-];
-
-export const state = {
-  selectedTrackIndex: 0,
-
-  selectedParameterId: null,
-  selectedChildId: null,
-
-  sequencePage: 0,
-  patternLength: 32,
-
-  playingStepIndex: null,
-  isPlaying: false,
-
-  /*
-   * 現在画面に読み込まれている
-   * データの種類と番号。
-   */
-  selectedSourceType:
-    "pattern",
-
-   selectedPatternIndex: 0,
-  selectedFillIndex: null,
-
-  /*
-   * Sectionボタンで選択する
-   * 再生対象Section。
-   */
-  selectedSectionIndex: 0,
-
-  /*
-   * Sectionバー左端に表示する
-   * 編集対象Section。
-   */
+    /*
+     * Compatibility fields kept only until main/ui migration.
+     */
+    selectedTrackIndex: 0,
+    sequencePage: 0,
+    patternLength: STEP_COUNT,
+    selectedSourceType: "pattern",
+    selectedFillIndex: null,
+    selectedSectionIndex: 0,
     editingSectionIndex: 0,
-
-  /*
-   * 実際に再生しているPattern／Fill。
-   *
-   * selected～は画面編集対象、
-   * playing～は再生対象として分離する。
-   */
-  playingSourceType: null,
-  playingPatternIndex: null,
-  playingFillIndex: null,
-
-  /*
-   * 次回切替予約。
-   */
-  queuedSourceType: null,
-  queuedPatternIndex: null,
-  queuedFillIndex: null,
-
-/*
- * Pattern／Fill単体再生か、
- * Section再生かを示す。
- */
-selectedPlaybackType:
-  "source",
-
-/*
- * 現在再生中のSection。
- * nullならPattern／Fill単体再生。
- */
-playingSectionIndex:
-  null,
-
-/*
- * Section内で現在再生中の位置。
- */
-playingSectionItemIndex:
-  null,
-
-/*
- * 次回再生予約中のSection。
- */
-queuedSectionIndex:
-  null
-};
-
-function sourceData(
-  type,
-  index
-) {
-  if (type === "fill") {
-    return fills[index];
-  }
-
-  return patterns[index];
+    playingSourceType: null,
+    playingFillIndex: null,
+    queuedSourceType: null,
+    queuedFillIndex: null,
+    queuedSectionIndex: null,
+    selectedPlaybackType: "source",
+    playingSectionIndex: null,
+    playingSectionItemIndex: null,
+    fillReturnTarget: null,
+    songPage: 0
+  };
 }
 
-/*
- * 選択したPattern／Fillの
- * Trackをtracksへ読み込む。
- *
- * オブジェクト自体は同じ参照なので、
- * tracksへ加えた編集は
- * 各Pattern／Fillへ直接保存される。
- */
-function loadSourceTracks(
-  type,
-  index
-) {
-  const data =
-    sourceData(
-      type,
-      index
-    );
+export const state = makeDefaultRuntimeState();
 
-  if (!data) {
-    return false;
+export function selectedLayer() {
+  return state.selectedLayer;
+}
+
+export function selectSound(soundId) {
+  if (MELODIC_SOUND_IDS.includes(String(soundId))) {
+    state.selectedSoundId = String(soundId);
+    state.selectedLayer = "melodic";
+    return true;
   }
 
-  tracks.splice(
-    0,
-    tracks.length,
-    ...data.tracks
+  if (RHYTHM_SOUND_IDS.includes(String(soundId))) {
+    state.selectedSoundId = String(soundId);
+    state.selectedLayer = "rhythm";
+    return true;
+  }
+
+  return false;
+}
+
+export function currentPattern() {
+  return patterns[state.selectedPatternIndex] ?? null;
+}
+
+export function patternStepLength(pattern = currentPattern()) {
+  return clamp(
+    Math.round(Number(pattern?.length) || STEP_COUNT),
+    1,
+    STEP_COUNT
+  );
+}
+
+export function currentPatternStepLength() {
+  return patternStepLength(currentPattern());
+}
+
+export function setCurrentPatternStepLength(length) {
+  const pattern = currentPattern();
+  if (!pattern) return false;
+
+  const next = clamp(
+    Math.round(Number(length) || STEP_COUNT),
+    1,
+    STEP_COUNT
   );
 
-  syncPatternLength();
-
-  return true;
-}
-
-export function selectPattern(
-  patternIndex
-) {
-  if (
-    patternIndex < 0 ||
-    patternIndex >=
-      patterns.length
-  ) {
+  if (patternStepLength(pattern) === next) {
+    pattern.length = next;
     return false;
   }
 
-  state.selectedPlaybackType =
-  "source";
+  pattern.length = next;
+  state.patternLength = next;
+  return true;
+}
 
-  state.selectedSourceType =
-    "pattern";
-
-  state.selectedPatternIndex =
-    patternIndex;
-
-  state.selectedFillIndex =
-    null;
-
-  loadSourceTracks(
-    "pattern",
-    patternIndex
+function activeStepIndex(stepIndex) {
+  return (
+    Number.isInteger(stepIndex) &&
+    stepIndex >= 0 &&
+    stepIndex < currentPatternStepLength()
   );
-
-  return true;
 }
 
-export function clearQueuedSource() {
-  state.queuedSourceType =
-    null;
-
-  state.queuedPatternIndex =
-    null;
-
-  state.queuedFillIndex =
-    null;
-
-  state.queuedSectionIndex =
-    null;
+export function currentSequence() {
+  return currentPattern()?.sequence ?? [];
 }
 
-export function queuePattern(
-  patternIndex
-) {
+export function currentStep(stepIndex) {
+  return currentSequence()[stepIndex] ?? null;
+}
+
+export function selectPattern(patternIndex) {
   if (
+    !Number.isInteger(patternIndex) ||
     patternIndex < 0 ||
-    patternIndex >=
-      patterns.length
+    patternIndex >= patterns.length
   ) {
     return false;
   }
 
-  /*
-   * 同じPatternがすでに予約中なら
-   * 再選択で予約解除。
-   */
-  if (
-    state.queuedSourceType ===
-      "pattern" &&
-    state.queuedPatternIndex ===
-      patternIndex
-  ) {
-    clearQueuedSource();
-
-    return true;
-  }
-
-  /*
-   * 現在再生中のPatternを押した場合は
-   * 切替予約を作らない。
-   */
-  if (
-    state.playingSourceType ===
-      "pattern" &&
-    state.playingPatternIndex ===
-      patternIndex
-  ) {
-    clearQueuedSource();
-
-    return true;
-  }
-
-  state.queuedSourceType =
-    "pattern";
-
-  state.queuedPatternIndex =
-    patternIndex;
-
-  state.queuedFillIndex =
-    null;
-
+  state.selectedPatternIndex = patternIndex;
+  state.selectedSourceType = "pattern";
+  state.selectedFillIndex = null;
   return true;
 }
 
-export function queueFill(
-  fillIndex
-) {
+export function queuePattern(patternIndex) {
   if (
-    fillIndex < 0 ||
-    fillIndex >=
-      fills.length
+    !Number.isInteger(patternIndex) ||
+    patternIndex < 0 ||
+    patternIndex >= patterns.length
   ) {
     return false;
   }
 
-  /*
-   * 同じFillがすでに予約中なら
-   * 再選択で予約解除。
-   */
-  if (
-    state.queuedSourceType ===
-      "fill" &&
-    state.queuedFillIndex ===
-      fillIndex
-  ) {
+  if (state.queuedPatternIndex === patternIndex) {
     clearQueuedSource();
-
-    return true;
-  }
-
-  /*
-   * 現在再生中のFillを押した場合は
-   * 切替予約を作らない。
-   */
-  if (
-    state.playingSourceType ===
-      "fill" &&
-    state.playingFillIndex ===
-      fillIndex
-  ) {
-    clearQueuedSource();
-
-    return true;
-  }
-
-  state.queuedSourceType =
-    "fill";
-
-  state.queuedPatternIndex =
-    null;
-
-  state.queuedFillIndex =
-    fillIndex;
-
-  return true;
-}
-
-export function queueSection(
-  sectionIndex
-) {
-  if (
-    sectionIndex < 0 ||
-    sectionIndex >=
-      sections.length
-  ) {
-    return false;
-  }
-
-  const section =
-    sections[sectionIndex];
-
-  /*
-   * 空のSectionは予約しない。
-   */
-  if (
-    !section ||
-    section.sequence.length === 0
-  ) {
-    return false;
-  }
-
-  /*
-   * 同じSectionを再選択したら
-   * 予約解除。
-   */
-  if (
-    state.queuedSectionIndex ===
-      sectionIndex
-  ) {
-    clearQueuedSource();
-
-    return true;
-  }
-
-  /*
-   * 現在再生中のSectionを押した場合も
-   * 予約を作らない。
-   */
-  if (
-    state.playingSectionIndex ===
-      sectionIndex
-  ) {
-    clearQueuedSource();
-
     return true;
   }
 
   clearQueuedSource();
-
-  state.queuedSectionIndex =
-    sectionIndex;
-
+  state.queuedPatternIndex = patternIndex;
+  state.queuedSourceType = "pattern";
   return true;
 }
 
-function activatePlayingSource(
-  type,
-  index
-) {
-  const loaded =
-    loadSourceTracks(
-      type,
-      index
+export function clearQueuedSource() {
+  state.queuedPatternIndex = null;
+  state.queuedSourceType = null;
+  state.queuedSongPartIndex = null;
+}
+
+function normalizedSongOrder() {
+  const valid =
+    Array.from(
+      { length: patterns.length },
+      (_, index) => index
     );
 
-  if (!loaded) {
-    return false;
-  }
+  const source =
+    Array.isArray(song.order)
+      ? song.order
+      : [];
 
-  state.selectedSourceType =
-    type;
+  const seen =
+    new Set();
 
-  if (type === "fill") {
-    state.selectedFillIndex =
-      index;
+  const order =
+    source.filter(index => {
+      if (
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= patterns.length ||
+        seen.has(index)
+      ) {
+        return false;
+      }
 
-    state.playingSourceType =
-      "fill";
-
-    state.playingPatternIndex =
-      null;
-
-    state.playingFillIndex =
-      index;
-  } else {
-    state.selectedPatternIndex =
-      index;
-
-    state.selectedFillIndex =
-      null;
-
-    state.playingSourceType =
-      "pattern";
-
-    state.playingPatternIndex =
-      index;
-
-    state.playingFillIndex =
-      null;
-  }
-
-  return true;
-}
-
-export function startSectionPlayback(
-  sectionIndex
-) {
-  const section =
-    sections[sectionIndex];
-
-  if (
-    !section ||
-    section.sequence.length === 0
-  ) {
-    return false;
-  }
-
-  const firstSource =
-    section.sequence[0];
-
-  if (
-    !firstSource ||
-    !activatePlayingSource(
-      firstSource.type,
-      firstSource.index
-    )
-  ) {
-    return false;
-  }
-
-  state.selectedPlaybackType =
-    "section";
-
-  state.selectedSectionIndex =
-    sectionIndex;
-
-  state.playingSectionIndex =
-    sectionIndex;
-
-  state.playingSectionItemIndex =
-    0;
-
-  return true;
-}
-
-export function beginSelectedPlayback() {
-  /*
-   * Sectionが選択されている場合。
-   */
-  if (
-    state.selectedPlaybackType ===
-      "section"
-  ) {
-    const started =
-      startSectionPlayback(
-        state.selectedSectionIndex
-      );
-
-    if (started) {
+      seen.add(index);
       return true;
+    });
+
+  valid.forEach(index => {
+    if (!seen.has(index)) {
+      order.push(index);
     }
+  });
+
+  song.order =
+    order;
+
+  return order;
+}
+
+function nextPatternInSongOrder(
+  patternIndex
+) {
+  const order =
+    normalizedSongOrder();
+
+  if (!order.length) {
+    return patternIndex;
   }
 
-  /*
-   * 空Sectionなどの場合は、
-   * 現在表示中のPattern／Fillを再生する。
-   */
-  state.selectedPlaybackType =
-    "source";
+  const position =
+    order.indexOf(
+      patternIndex
+    );
 
-  state.playingSectionIndex =
-    null;
+  if (position < 0) {
+    return order[0];
+  }
 
-  state.playingSectionItemIndex =
-    null;
+  return order[
+    (position + 1) %
+    order.length
+  ];
+}
 
-  return activatePlayingSource(
-    state.selectedSourceType,
-    state.selectedSourceType ===
-      "fill"
-      ? state.selectedFillIndex ?? 0
-      : state.selectedPatternIndex
+
+export function setPatternLoopRange(
+  startPatternIndex,
+  endPatternIndex
+) {
+  if (
+    !Number.isInteger(startPatternIndex) ||
+    !Number.isInteger(endPatternIndex)
+  ) {
+    state.patternLoopRange =
+      null;
+
+    return false;
+  }
+
+  const order =
+    normalizedSongOrder();
+
+  const startPosition =
+    order.indexOf(
+      startPatternIndex
+    );
+
+  const endPosition =
+    order.indexOf(
+      endPatternIndex
+    );
+
+  if (
+    startPosition < 0 ||
+    endPosition < 0
+  ) {
+    state.patternLoopRange =
+      null;
+
+    return false;
+  }
+
+  const from =
+    Math.min(
+      startPosition,
+      endPosition
+    );
+
+  const to =
+    Math.max(
+      startPosition,
+      endPosition
+    );
+
+  state.patternLoopRange =
+    order.slice(
+      from,
+      to + 1
+    );
+
+  return (
+    state.patternLoopRange.length >
+    1
   );
 }
 
-export function applyQueuedSource() {
-  const queuedType =
-    state.queuedSourceType;
+export function clearPatternLoopRange() {
+  state.patternLoopRange =
+    null;
+}
+
+export function patternLoopRange() {
+  return Array.isArray(
+    state.patternLoopRange
+  )
+    ? [
+        ...state.patternLoopRange
+      ]
+    : null;
+}
+
+
+export function setPatternLoopEnabled(
+  enabled
+) {
+  state.patternLoopEnabled =
+    Boolean(enabled);
 
   /*
-   * Pattern予約
+   * Start a fresh repeat count when entering/leaving loop mode.
+   * This avoids resuming halfway through an old repeat count.
+   */
+  state.playingPatternRepeatCount =
+    0;
+
+  return state.patternLoopEnabled;
+}
+
+export function togglePatternLoop() {
+  return setPatternLoopEnabled(
+    !state.patternLoopEnabled
+  );
+}
+
+
+export function setPatternEditLoopEnabled(
+  enabled
+) {
+  state.patternEditLoopEnabled =
+    Boolean(enabled);
+
+  state.playingPatternRepeatCount =
+    0;
+
+  return state.patternEditLoopEnabled;
+}
+
+export function beginSelectedPlayback() {
+  state.playingPatternIndex =
+    state.selectedPatternIndex;
+
+  state.playingPatternRepeatCount =
+    0;
+
+  state.playingSourceType =
+    "pattern";
+
+  state.playingStepIndex =
+    null;
+
+  state.playbackTickIndex =
+    null;
+
+  return true;
+}
+
+export function advancePlaybackSource() {
+  /*
+   * A queued Pattern always wins at the next Pattern boundary.
    */
   if (
-    queuedType === "pattern" &&
     state.queuedPatternIndex !==
-      null
+    null
   ) {
-    const patternIndex =
+    const index =
       state.queuedPatternIndex;
 
-    const selected =
-      selectPattern(
-        patternIndex
-      );
+    clearQueuedSource();
 
-    if (!selected) {
-      clearQueuedSource();
+    selectPattern(index);
 
-      return false;
-    }
+    state.playingPatternIndex =
+      index;
 
-    state.selectedPlaybackType =
-  "source";
-
-state.playingSectionIndex =
-  null;
-
-state.playingSectionItemIndex =
-  null;
+    state.playingPatternRepeatCount =
+      0;
 
     state.playingSourceType =
       "pattern";
-
-    state.playingPatternIndex =
-      patternIndex;
-
-    state.playingFillIndex =
-      null;
-
-    clearQueuedSource();
 
     return true;
   }
 
   /*
-   * Fill予約
+   * Pattern Edit always loops the Pattern being edited, regardless of the
+   * Song screen loop setting. The Song loop state is left untouched.
    */
   if (
-    queuedType === "fill" &&
-    state.queuedFillIndex !==
-      null
+    state.patternEditLoopEnabled
   ) {
-    const fillIndex =
-      state.queuedFillIndex;
+    state.playingPatternRepeatCount =
+      0;
 
-    const selected =
-      selectFill(
-        fillIndex
-      );
+    return false;
+  }
 
-    if (!selected) {
-      clearQueuedSource();
+  if (
+    state.patternLoopEnabled
+  ) {
+    const currentIndex =
+      state.playingPatternIndex ??
+      state.selectedPatternIndex ??
+      0;
+
+    const range =
+      Array.isArray(
+        state.patternLoopRange
+      )
+        ? state.patternLoopRange
+        : null;
+
+    /*
+     * No valid range = single Pattern loop.
+     */
+    if (
+      !range ||
+      range.length < 2
+    ) {
+      state.playingPatternRepeatCount =
+        0;
 
       return false;
     }
 
-    state.selectedPlaybackType =
-  "source";
+    const position =
+      range.indexOf(
+        currentIndex
+      );
 
-state.playingSectionIndex =
-  null;
+    const nextIndex =
+      position < 0
+        ? range[0]
+        : range[
+            (position + 1) %
+            range.length
+          ];
 
-state.playingSectionItemIndex =
-  null;
+    state.playingPatternRepeatCount =
+      0;
 
-    state.playingSourceType =
-      "fill";
+    if (
+      nextIndex ===
+      currentIndex
+    ) {
+      return false;
+    }
+
+    selectPattern(
+      nextIndex
+    );
 
     state.playingPatternIndex =
-      null;
+      nextIndex;
 
-    state.playingFillIndex =
-      fillIndex;
+    state.playingSourceType =
+      "pattern";
 
-    clearQueuedSource();
+    return true;
+  }
+
+  const currentIndex =
+    state.playingPatternIndex ??
+    state.selectedPatternIndex ??
+    0;
+
+  /*
+   * Pattern repeat has been retired from the Song screen.
+   * Every completed Pattern now advances directly through song.order.
+   * The legacy repeat field may remain in saved data for compatibility,
+   * but playback intentionally ignores it.
+   */
+  const nextIndex =
+    nextPatternInSongOrder(
+      currentIndex
+    );
+
+  state.playingPatternRepeatCount =
+    0;
+
+  if (
+    nextIndex ===
+    currentIndex
+  ) {
+    return false;
+  }
+
+  /*
+   * Follow playback with the selected Pattern so UI editing/display
+   * stays on the Pattern currently being heard.
+   */
+  selectPattern(
+    nextIndex
+  );
+
+  state.playingPatternIndex =
+    nextIndex;
+
+  state.playingSourceType =
+    "pattern";
+
+  return true;
+}
+
+
+export function setPatternRepeat(patternIndex, repeat) {
+  const pattern = patterns[patternIndex];
+  if (!pattern) return false;
+
+  pattern.repeat = clamp(
+    Math.round(Number(repeat) || 1),
+    1,
+    99
+  );
+  return true;
+}
+
+export function setStepLayer(stepIndex, layer, data) {
+  const step = currentStep(stepIndex);
+  if (!step || !["melodic", "rhythm"].includes(layer)) {
+    return false;
+  }
+
+  saveHistory();
+
+  if (data == null) {
+    step[layer] =
+      layer === "melodic"
+        ? createMelodicStep()
+        : createRhythmStep();
+
+    return true;
+  }
+
+  step[layer] = layer === "melodic"
+    ? normalizeSequenceStep({
+        melodic: data,
+        rhythm: null
+      }).melodic
+    : normalizeSequenceStep({
+        melodic: null,
+        rhythm: data
+      }).rhythm;
+
+  return true;
+}
+
+export function clearStepLayer(stepIndex, layer) {
+  if (!activeStepIndex(stepIndex)) return false;
+  const step = currentStep(stepIndex);
+  if (!step || !["melodic", "rhythm"].includes(layer)) {
+    return false;
+  }
+
+  const layerData = step[layer];
+  if (!layerData) {
+    return false;
+  }
+
+  saveHistory();
+  layerData.soundId = null;
+  return true;
+}
+
+export function clearStep(stepIndex) {
+  if (!activeStepIndex(stepIndex)) return false;
+  const sequence = currentSequence();
+  if (!sequence[stepIndex]) return false;
+
+  saveHistory();
+  sequence[stepIndex] = createSequenceStep();
+  return true;
+}
+
+export function placeSelectedSound(stepIndex) {
+  if (!activeStepIndex(stepIndex)) return false;
+  const step = currentStep(stepIndex);
+  if (!step) return false;
+
+  saveHistory();
+
+  const layer = state.selectedLayer;
+  const existing = step[layer];
+
+  if (existing && existing.soundId == null) {
+    existing.soundId = state.selectedSoundId;
+    return true;
+  }
+
+  if (layer === "melodic") {
+    step.melodic = createMelodicStep(state.selectedSoundId);
+  } else {
+    step.rhythm = createRhythmStep(state.selectedSoundId);
+  }
+
+  return true;
+}
+
+export function stepHasData(step) {
+  return Boolean(
+    step?.melodic?.soundId ||
+    step?.rhythm?.soundId
+  );
+}
+
+export function sourceHasData(source) {
+  return Boolean(
+    source?.sequence?.some(stepHasData)
+  );
+}
+
+export function currentSourceLabel() {
+  return String(state.selectedPatternIndex + 1).padStart(2, "0");
+}
+
+/* =========================
+ * Whole-STEP clipboard
+ * ========================= */
+
+let editClipboard = null;
+
+export function copyStepToEditClipboard(stepIndex) {
+  if (!activeStepIndex(stepIndex)) return false;
+  const step = currentStep(stepIndex);
+  if (!step) return false;
+
+  /*
+   * mono82 has one logical clipboard.
+   * Creating a STEP clip invalidates Pattern / Layer clips.
+   */
+  patternClipboard = null;
+  layerClipboards.melodic = null;
+  layerClipboards.rhythm = null;
+
+  editClipboard = {
+    type: "step",
+    step: structuredClone(step)
+  };
+  return true;
+}
+
+export function pasteStepFromEditClipboard(stepIndex) {
+  if (!editClipboard?.step || !activeStepIndex(stepIndex)) return false;
+
+  const sequence = currentSequence();
+  if (!sequence[stepIndex]) return false;
+
+  saveHistory();
+  sequence[stepIndex] = normalizeSequenceStep(
+    structuredClone(editClipboard.step)
+  );
+  return true;
+}
+
+export function hasEditClipboard() {
+  return Boolean(editClipboard);
+}
+
+export function editClipboardType() {
+  return editClipboard?.type ?? null;
+}
+
+export function editClipboardOriginIsStep() {
+  return (
+    editClipboard?.type === "step" ||
+    editClipboard?.type === "step-range"
+  );
+}
+
+export function clearEditClipboard() {
+  editClipboard = null;
+}
+
+export function copyStepRangeToEditClipboard(startIndex, endIndex) {
+  const sequence = currentSequence();
+  const limit = currentPatternStepLength();
+  const start = clamp(Math.min(startIndex, endIndex), 0, limit - 1);
+  const end = clamp(Math.max(startIndex, endIndex), 0, limit - 1);
+
+  patternClipboard = null;
+  layerClipboards.melodic = null;
+  layerClipboards.rhythm = null;
+
+  editClipboard = {
+    type: "step-range",
+    steps: structuredClone(sequence.slice(start, end + 1))
+  };
+  return true;
+}
+
+export function pasteStepClipboardAt(stepIndex) {
+  if (!editClipboard) return false;
+
+  const sequence = currentSequence();
+  const limit = currentPatternStepLength();
+  if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= limit) return false;
+  const start = stepIndex;
+
+  if (editClipboard.type === "step") {
+    if (!editClipboard.step || !sequence[start]) return false;
+
+    saveHistory();
+    sequence[start] = normalizeSequenceStep(
+      structuredClone(editClipboard.step)
+    );
+    return true;
+  }
+
+  if (editClipboard.type === "step-range") {
+    const steps = Array.isArray(editClipboard.steps)
+      ? editClipboard.steps
+      : [];
+
+    if (!steps.length || !sequence[start]) return false;
+
+    saveHistory();
+
+    steps.forEach((step, offset) => {
+      const targetIndex = start + offset;
+      if (targetIndex >= limit || !sequence[targetIndex]) return;
+
+      sequence[targetIndex] = normalizeSequenceStep(
+        structuredClone(step)
+      );
+    });
 
     return true;
   }
@@ -896,515 +1001,642 @@ state.playingSectionItemIndex =
   return false;
 }
 
-export function advancePlaybackSource() {
-  /*
-   * Section再生中ではない場合。
-   */
-  if (
-    state.playingSectionIndex ===
-      null
-  ) {
-    /*
-     * Section予約がある場合は
-     * Pattern終端でSectionを開始。
-     */
-    if (
-      state.queuedSectionIndex !==
-        null
-    ) {
-      const sectionIndex =
-        state.queuedSectionIndex;
 
-      clearQueuedSource();
+/* =========================
+ * Hierarchical clipboards
+ * Song = Pattern / Offset = Layer
+ * Each category is independent and survives view changes.
+ * ========================= */
 
-      return startSectionPlayback(
-        sectionIndex
-      );
-    }
+let patternClipboard = null;
+const layerClipboards = { melodic: null, rhythm: null };
 
-    return applyQueuedSource();
-  }
+export function copyPatternRangeToClipboard(patternIndexes) {
+  const indexes = Array.isArray(patternIndexes) ? patternIndexes : [];
+  const items = indexes
+    .filter(index => Number.isInteger(index) && patterns[index])
+    .map(index => structuredClone(patterns[index]));
+  if (!items.length) return false;
 
-  /*
-   * Section再生中にPattern／Fillが
-   * 直接予約された場合は、
-   * 次の終端でSection再生を終了する。
-   */
-  if (
-    state.queuedSourceType ===
-      "pattern" ||
-    state.queuedSourceType ===
-      "fill"
-  ) {
-    return applyQueuedSource();
-  }
+  editClipboard = null;
+  layerClipboards.melodic = null;
+  layerClipboards.rhythm = null;
 
-  const section =
-    sections[
-      state.playingSectionIndex
-    ];
+  patternClipboard = { items };
+  return true;
+}
 
-  if (
-    !section ||
-    section.sequence.length === 0
-  ) {
-    state.playingSectionIndex =
-      null;
+export function hasPatternClipboard() { return Boolean(patternClipboard?.items?.length); }
+export function clearPatternClipboard() { patternClipboard = null; }
 
-    state.playingSectionItemIndex =
-      null;
+export function pastePatternClipboardAt(patternIndex) {
+  if (!hasPatternClipboard() || !patterns[patternIndex]) return false;
+  const order = Array.isArray(song.order) ? song.order : [];
+  const startPosition = order.indexOf(patternIndex);
+  saveHistory();
+  patternClipboard.items.forEach((source, offset) => {
+    const targetIndex = startPosition >= 0
+      ? order[startPosition + offset]
+      : patternIndex + offset;
+    const target = patterns[targetIndex];
+    if (!target) return;
+    const keepId = target.id;
+    Object.assign(target, structuredClone(source), { id: keepId });
+    normalizePattern(target, keepId);
+  });
+  return true;
+}
 
-    return false;
-  }
-
-  const currentItemIndex =
-    state.playingSectionItemIndex ??
-    0;
-
-  const nextItemIndex =
-    currentItemIndex + 1;
+export function copyLayerRangeToClipboard(layer, startIndex, endIndex) {
+  if (!(layer in layerClipboards)) return false;
+  const sequence = currentSequence();
+  const limit = currentPatternStepLength();
+  const start = clamp(Math.min(startIndex, endIndex), 0, limit - 1);
+  const end = clamp(Math.max(startIndex, endIndex), 0, limit - 1);
 
   /*
-   * Section内に次のSourceがある。
+   * A new Offset clip replaces every previous clip,
+   * including the opposite melodic/rhythm layer.
    */
-  if (
-    nextItemIndex <
-    section.sequence.length
-  ) {
-    const nextSource =
-      section.sequence[
-        nextItemIndex
-      ];
+  editClipboard = null;
+  patternClipboard = null;
+  layerClipboards.melodic = null;
+  layerClipboards.rhythm = null;
 
-    const changed =
-      activatePlayingSource(
-        nextSource.type,
-        nextSource.index
-      );
+  layerClipboards[layer] = {
+    items: structuredClone(sequence.slice(start, end + 1).map(step => step?.[layer] ?? null))
+  };
+  return true;
+}
 
-    if (!changed) {
-      return false;
-    }
+export function hasLayerClipboard(layer) { return Boolean(layerClipboards[layer]?.items?.length); }
+export function clearLayerClipboard(layer) { if (layer in layerClipboards) layerClipboards[layer] = null; }
 
-    state.playingSectionItemIndex =
-      nextItemIndex;
+export function pasteLayerClipboardAt(layer, stepIndex) {
+  const clip = layerClipboards[layer];
+  if (!clip?.items?.length) return false;
+  const sequence = currentSequence();
+  const limit = currentPatternStepLength();
+  if (!Number.isInteger(stepIndex) || stepIndex < 0 || stepIndex >= limit) return false;
+  const start = stepIndex;
+  if (!sequence[start]) return false;
+  saveHistory();
+  clip.items.forEach((item, offset) => {
+    const targetIndex = start + offset;
+    if (targetIndex >= limit || !sequence[targetIndex]) return;
+    sequence[targetIndex][layer] = structuredClone(item);
+  });
+  return true;
+}
 
-    return true;
+/* =========================
+ * Pattern clipboard
+ * ========================= */
+
+let sourceClipboard = null;
+
+export function copySource() {
+  sourceClipboard = structuredClone(currentPattern());
+  return Boolean(sourceClipboard);
+}
+
+export function pasteSource() {
+  if (!sourceClipboard) return false;
+
+  saveHistory();
+  const target = patterns[state.selectedPatternIndex];
+  const keepId = target.id;
+
+  Object.assign(
+    target,
+    structuredClone(sourceClipboard),
+    { id: keepId }
+  );
+  normalizePattern(target, keepId);
+  return true;
+}
+
+export function hasSourceClipboard() {
+  return Boolean(sourceClipboard);
+}
+
+export function clearSourceClipboard() {
+  sourceClipboard = null;
+}
+
+/* =========================
+ * Sequence operations
+ * ========================= */
+
+export function shiftSequence(direction) {
+  const sequence = currentSequence();
+  const length = currentPatternStepLength();
+  if (!sequence.length || length < 1) return false;
+
+  saveHistory();
+
+  const active = sequence.slice(0, length);
+
+  if (direction < 0) {
+    active.push(active.shift());
+  } else {
+    active.unshift(active.pop());
   }
 
-  /*
-   * Section末尾。
-   * Section予約があれば切り替える。
-   */
-  if (
-    state.queuedSectionIndex !==
-      null
-  ) {
-    const sectionIndex =
-      state.queuedSectionIndex;
+  sequence.splice(0, length, ...active);
+  return true;
+}
 
-    clearQueuedSource();
+export function randomizeSequence() {
+  const sequence = currentSequence();
+  const length = currentPatternStepLength();
+  if (!sequence.length || length < 1) return false;
 
-    return startSectionPlayback(
-      sectionIndex
-    );
+  saveHistory();
+
+  for (let i = length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [sequence[i], sequence[j]] = [sequence[j], sequence[i]];
   }
-
-  /*
-   * 予約がなければ、
-   * 現在のSection先頭へ戻る。
-   */
-  const firstSource =
-    section.sequence[0];
-
-  const changed =
-    activatePlayingSource(
-      firstSource.type,
-      firstSource.index
-    );
-
-  if (!changed) {
-    return false;
-  }
-
-  state.playingSectionItemIndex =
-    0;
 
   return true;
 }
 
-export function addCurrentSourceToSection(
-  sectionIndex =
-    state.editingSectionIndex
-) {
-  const section =
-    sections[sectionIndex];
+/* =========================
+ * Mute / Solo
+ * ========================= */
 
-  if (!section) {
-    return false;
+export const performance = {
+  layers: {
+    melodic: {
+      muted: false,
+      solo: false
+    },
+
+    rhythm: {
+      muted: false,
+      solo: false
+    }
   }
+};
+
+export function soundIsAudible(
+  layer,
+  soundId
+) {
+  const layerState =
+    performance.layers[layer];
+
+  const sound =
+    soundBank?.[layer]?.[
+      soundId
+    ];
 
   if (
-    section.sequence.length >= 7
+    !layerState ||
+    !sound
   ) {
     return false;
   }
 
-  const source =
-    state.selectedSourceType ===
-      "fill"
-      ? {
-          type: "fill",
-          index:
-            state.selectedFillIndex ?? 0
+  const anyLayerSolo =
+    Object.values(
+      performance.layers
+    ).some(
+      item => item.solo
+    );
+
+  const allSounds = [
+    ...Object.values(
+      soundBank.melodic ?? {}
+    ),
+
+    ...Object.values(
+      soundBank.rhythm ?? {}
+    )
+  ];
+
+  const anySoundSolo =
+    allSounds.some(
+      item => item.solo
+    );
+
+  return (
+    !layerState.muted &&
+    !sound.muted &&
+    (
+      !anyLayerSolo ||
+      layerState.solo
+    ) &&
+    (
+      !anySoundSolo ||
+      sound.solo
+    )
+  );
+}
+
+/* =========================
+ * Snapshot / normalization
+ * ========================= */
+
+function normalizePattern(
+  pattern,
+  fallbackId,
+  chordStorageSchema = null
+) {
+  if (!pattern || typeof pattern !== "object") {
+    return makePatternData(fallbackId);
+  }
+
+  pattern.id = Number.isInteger(pattern.id) ? pattern.id : fallbackId;
+  pattern.repeat = clamp(
+    Math.round(Number(pattern.repeat) || 1),
+    1,
+    99
+  );
+
+  pattern.length = clamp(
+    Math.round(Number(pattern.length) || STEP_COUNT),
+    1,
+    STEP_COUNT
+  );
+
+  const oldSequence = Array.isArray(pattern.sequence)
+    ? pattern.sequence
+    : [];
+
+  pattern.sequence = Array.from(
+    { length: STEP_COUNT },
+    (_, index) => {
+      const step = normalizeSequenceStep(oldSequence[index]);
+
+      if (step.melodic) {
+        const chord = step.melodic.chord;
+
+        if (typeof chord === "string") {
+          /*
+           * Name-based snapshots are stable. Do not reinterpret a valid name
+           * through an index under any circumstances.
+           */
+          step.melodic.chord = CHORD_NAMES.includes(chord)
+            ? chord
+            : "off";
+        } else {
+          /*
+           * Only legacy snapshots may contain numeric indexes.
+           * Convert through the permanently frozen v0 table, never through
+           * the current live CHORD_NAMES ordering.
+           */
+          const legacyIndex = Math.max(
+            0,
+            Math.min(
+              LEGACY_NUMERIC_CHORD_NAMES_V0.length - 1,
+              Math.round(Number(chord) || 0)
+            )
+          );
+
+          step.melodic.chord =
+            LEGACY_NUMERIC_CHORD_NAMES_V0[legacyIndex] ?? "off";
         }
-      : {
-          type: "pattern",
-          index:
-            state.selectedPatternIndex ?? 0
-        };
+      }
 
-  section.sequence.push(
-    source
+      return step;
+    }
   );
 
-  return true;
+  return pattern;
 }
 
-export function selectFill(
-  fillIndex
-) {
-  if (
-    fillIndex < 0 ||
-    fillIndex >=
-      fills.length
-  ) {
-    return false;
-  }
+function normalizeProjectSnapshot(snapshot) {
+  const data = snapshot && typeof snapshot === "object"
+    ? structuredClone(snapshot)
+    : {};
 
-  state.selectedPlaybackType =
-  "source";
+  const chordStorageSchema =
+    typeof data.chordStorageSchema === "string"
+      ? data.chordStorageSchema
+      : null;
 
-  state.selectedSourceType =
-    "fill";
+  data.soundBank = normalizeProjectSoundBank(data.soundBank);
 
-  state.selectedFillIndex =
-    fillIndex;
-
-  loadSourceTracks(
-    "fill",
-    fillIndex
+  data.patterns = Array.from(
+    { length: PATTERN_SLOT_COUNT },
+    (_, index) =>
+      normalizePattern(
+        data.patterns?.[index],
+        index + 1,
+        chordStorageSchema
+      )
   );
 
-  return true;
-}
+  data.song ??= makeSongData();
+  data.song.order = Array.isArray(data.song.order)
+    ? data.song.order.filter(index =>
+        Number.isInteger(index) &&
+        index >= 0 &&
+        index < PATTERN_SLOT_COUNT
+      )
+    : makeSongData().order;
 
-export function selectSection(
-  sectionIndex
-) {
-  if (
-    sectionIndex < 0 ||
-    sectionIndex >=
-      sections.length
-  ) {
-    return false;
-  }
-
-  state.selectedSectionIndex =
-    sectionIndex;
-
-  state.selectedPlaybackType =
-    "section";
-
-  return true;
-}
-
-export function selectEditingSection(
-  sectionIndex
-) {
-  if (
-    sectionIndex < 0 ||
-    sectionIndex >=
-      sections.length
-  ) {
-    return false;
-  }
-
-  state.editingSectionIndex =
-    sectionIndex;
-
-  return true;
-}
-
-export function changeEditingSection(
-  difference
-) {
-  const nextIndex =
-    clamp(
-      state.editingSectionIndex +
-        difference,
-      0,
-      sections.length - 1
-    );
-
-  if (
-    nextIndex ===
-    state.editingSectionIndex
-  ) {
-    return false;
-  }
-
-  state.editingSectionIndex =
-    nextIndex;
-
-  return true;
-}
-
-export function currentEditingSection() {
-  return sections[
-    state.editingSectionIndex
-  ];
-}
-
-export function currentEditingSectionLabel() {
-  return String.fromCharCode(
-    65 +
-    state.editingSectionIndex
+  data.song.swing = clamp(
+    Math.round(Number(data.song.swing) || 0),
+    -50,
+    50
   );
+
+  data.song.masterMix = {
+    ...makeMasterMix(),
+    ...(data.song.masterMix ?? {})
+  };
+
+  data.chordStorageSchema = CHORD_STORAGE_SCHEMA;
+
+  return data;
 }
 
-export function currentSourceData() {
-  if (
-    state.selectedSourceType ===
-    "fill"
-  ) {
-    return fills[
-      state.selectedFillIndex ?? 0
-    ];
-  }
-
-  return patterns[
-    state.selectedPatternIndex
-  ];
-}
-
-export function currentSourceLabel() {
-  if (
-    state.selectedSourceType ===
-    "fill"
-  ) {
-    return `F${
-      (state.selectedFillIndex ?? 0) +
-      1
-    }`;
-  }
-
-  return String(
-    state.selectedPatternIndex + 1
-  ).padStart(
-    2,
-    "0"
-  );
-}
-
-const HISTORY_LIMIT = 100;
-
-const undoStack = [];
-const redoStack = [];
-
-function createSnapshot() {
+export function createProjectSnapshot() {
   return structuredClone({
+    chordStorageSchema: CHORD_STORAGE_SCHEMA,
+    soundBank,
     patterns,
-    fills,
-    sections,
+    song
+  });
+}
+
+export function createNewProjectSnapshot() {
+  return structuredClone({
+    chordStorageSchema: CHORD_STORAGE_SCHEMA,
+    soundBank: createProjectSoundBank(),
+    patterns: Array.from(
+      { length: PATTERN_SLOT_COUNT },
+      (_, index) => makePatternData(index + 1)
+    ),
+    song: makeSongData()
+  });
+}
+
+export function createSnapshot() {
+  return structuredClone({
+    ...createProjectSnapshot(),
     state
   });
 }
 
-function restoreSnapshot(
-  snapshot
-) {
+export function restoreProjectSnapshot(projectSnapshot) {
+  if (!projectSnapshot) return false;
+
+  const normalized = normalizeProjectSnapshot(projectSnapshot);
+
+  soundBank = normalized.soundBank;
+
   patterns.splice(
     0,
     patterns.length,
-    ...structuredClone(
-      snapshot.patterns
-    )
+    ...normalized.patterns
   );
 
-  fills.splice(
+  Object.assign(song, normalized.song);
+
+  Object.assign(state, makeDefaultRuntimeState());
+
+  clearHistory();
+  return true;
+}
+
+export function restoreSnapshot(snapshot) {
+  if (!snapshot) return false;
+
+  const normalized = normalizeProjectSnapshot(snapshot);
+
+  soundBank = normalized.soundBank;
+
+  patterns.splice(
     0,
-    fills.length,
-    ...structuredClone(
-      snapshot.fills
-    )
+    patterns.length,
+    ...normalized.patterns
   );
 
-  sections.splice(
-  0,
-  sections.length,
-  ...structuredClone(
-    snapshot.sections
-  )
-);
+  Object.assign(song, normalized.song);
 
   Object.assign(
     state,
-    structuredClone(
-      snapshot.state
-    )
+    makeDefaultRuntimeState(),
+    structuredClone(snapshot.state ?? {})
   );
 
-  if (
-    state.selectedSourceType ===
-    "fill"
-  ) {
-    loadSourceTracks(
-      "fill",
-      state.selectedFillIndex ?? 0
-    );
-  } else {
-    loadSourceTracks(
-      "pattern",
-      state.selectedPatternIndex
-    );
-  }
+  return true;
 }
 
-export function saveHistory() {
-  undoStack.push(
-    createSnapshot()
-  );
+/* =========================
+ * Undo / Redo
+ * ========================= */
 
-  if (
-    undoStack.length >
-    HISTORY_LIMIT
-  ) {
+const HISTORY_LIMIT = 10;
+const undoStack = [];
+const redoStack = [];
+
+export function saveHistorySnapshot(snapshot) {
+  if (!snapshot) return false;
+
+  undoStack.push(structuredClone(snapshot));
+
+  if (undoStack.length > HISTORY_LIMIT) {
     undoStack.shift();
   }
 
   redoStack.length = 0;
+  window.dispatchEvent(new Event("historychange"));
+  return true;
+}
 
-  window.dispatchEvent(
-    new Event(
-      "historychange"
-    )
+export function saveHistory() {
+  /*
+   * Undo / Redo is edit history, not transport history.
+   * Keep playback/runtime state out of the stack so restoring an edit
+   * can never rewind isPlaying / playbackTickIndex / playingStepIndex.
+   */
+  return saveHistorySnapshot(createProjectSnapshot());
+}
+
+export function saveTrackHistory() {
+  /*
+   * Old name retained temporarily for ui.js compatibility.
+   * New model has no Track-local history.
+   */
+  return saveHistory();
+}
+
+export function saveMasterMixHistory() {
+  return saveHistory();
+}
+
+export function discardLatestUndoEntry() {
+  if (!undoStack.length) return false;
+  undoStack.pop();
+  window.dispatchEvent(new Event("historychange"));
+  return true;
+}
+
+function restoreHistorySnapshot(snapshot) {
+  if (!snapshot) return false;
+
+  const normalized = normalizeProjectSnapshot(snapshot);
+
+  soundBank = normalized.soundBank;
+
+  patterns.splice(
+    0,
+    patterns.length,
+    ...normalized.patterns
   );
+
+  Object.assign(song, normalized.song);
+
+  /*
+   * Deliberately do NOT restore state here.
+   * Transport/runtime state belongs to the live session and must continue
+   * through Undo / Redo without stopping or jumping playback.
+   */
+  return true;
 }
 
 export function undo() {
-  if (
-    undoStack.length === 0
-  ) {
-    return false;
-  }
+  if (!undoStack.length) return false;
 
-  redoStack.push(
-    createSnapshot()
-  );
+  const current = createProjectSnapshot();
+  const previous = undoStack.pop();
 
-  const snapshot =
-    undoStack.pop();
+  redoStack.push(current);
+  restoreHistorySnapshot(previous);
 
-  restoreSnapshot(
-    snapshot
-  );
-
-  window.dispatchEvent(
-    new Event(
-      "historychange"
-    )
-  );
-
+  window.dispatchEvent(new Event("historychange"));
   return true;
 }
 
 export function redo() {
-  if (
-    redoStack.length === 0
-  ) {
-    return false;
-  }
+  if (!redoStack.length) return false;
 
-  undoStack.push(
-    createSnapshot()
-  );
+  const current = createProjectSnapshot();
+  const next = redoStack.pop();
 
-  const snapshot =
-    redoStack.pop();
+  undoStack.push(current);
+  restoreHistorySnapshot(next);
 
-  restoreSnapshot(
-    snapshot
-  );
-
-  window.dispatchEvent(
-    new Event(
-      "historychange"
-    )
-  );
-
+  window.dispatchEvent(new Event("historychange"));
   return true;
 }
 
 export function canUndo() {
-  return (
-    undoStack.length > 0
-  );
+  return undoStack.length > 0;
 }
 
 export function canRedo() {
-  return (
-    redoStack.length > 0
-  );
+  return redoStack.length > 0;
 }
 
-export function clamp(
-  value,
-  min,
-  max
-) {
-  return Math.min(
-    max,
-    Math.max(
-      min,
-      value
-    )
-  );
+export function clearHistory() {
+  undoStack.length = 0;
+  redoStack.length = 0;
+  window.dispatchEvent(new Event("historychange"));
 }
+
+/* =========================
+ * Compatibility stubs
+ * Removed concepts must not create new data.
+ * ========================= */
 
 export function getMaxTrackLength() {
-  return Math.max(
-    ...tracks.map(
-      track =>
-        track.stepLength
-    )
-  );
+  return STEP_COUNT;
 }
 
 export function syncPatternLength() {
-  state.patternLength =
-    getMaxTrackLength();
-
-  if (
-    state.patternLength <=
-      PAGE_STEP_COUNT &&
-    state.sequencePage === 1
-  ) {
-    state.sequencePage = 0;
-  }
+  state.patternLength = currentPatternStepLength();
 }
 
 export function selectedTrack() {
-  return tracks[
-    state.selectedTrackIndex
-  ];
+  return null;
 }
 
-export function parameterById(
-  id
-) {
-  return parameters.find(
-    parameter =>
-      parameter.id === id
-  );
+export function parameterById() {
+  return null;
+}
+
+export function clearSelectedTrackSequence() {
+  return false;
+}
+
+export function clearSelectedParameterOffsets() {
+  return false;
+}
+
+export function selectFill() {
+  return false;
+}
+
+export function queueFill() {
+  return false;
+}
+
+export function selectSection() {
+  return false;
+}
+
+export function queueSection() {
+  return false;
+}
+
+export function selectEditingSection() {
+  return false;
+}
+
+export function currentEditingSection() {
+  return null;
+}
+
+export function currentEditingSectionLabel() {
+  return "";
+}
+
+export function addCurrentSourceToSection() {
+  return false;
+}
+
+export function addSourceToSection() {
+  return false;
+}
+
+export function moveSectionSource() {
+  return false;
+}
+
+export function removeSectionSource() {
+  return false;
+}
+
+export function sectionHasData() {
+  return false;
+}
+
+export function addSourceToSong() {
+  return false;
+}
+
+export function moveSongSource() {
+  return false;
+}
+
+export function removeSongSource() {
+  return false;
+}
+
+export function selectSongPart(index) {
+  if (!Number.isInteger(index)) return false;
+  state.selectedSongPartIndex = index;
+  return true;
+}
+
+export function queueSongPart(index) {
+  if (!Number.isInteger(index)) return false;
+  state.queuedSongPartIndex = index;
+  return true;
 }

@@ -1,220 +1,391 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja" class="theme-sprooto">
 <head>
   <meta charset="UTF-8">
+
   <meta
     name="viewport"
     content="width=device-width,
              initial-scale=1,
              maximum-scale=1,
              user-scalable=no,
-             viewport-fit=cover">
-  <title>sprooto</title>
-  <link rel="stylesheet" href="./css/style.css">
+             viewport-fit=cover"
+  >
+
+  <meta
+    name="theme-color"
+    content="#090909"
+  >
+
+  <title>mono82</title>
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+   href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+   rel="stylesheet"
+  >
+  <link
+    rel="stylesheet"
+    href="./css/style.css"
+  >
 </head>
-<body class="theme-sprooto">
+
+<body>
   <main class="app">
+
     <header class="app-header">
-      <h1>sprooto</h1>
-      <button
-  id="theme-button"
-  class="theme-button"
-  type="button"
-  aria-label="テーマを切り替え"
-  title="theme"
->
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="1.8"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M12 3
-             C7 3 3 6.8 3 11.5
-             C3 16 6.7 20 11.5 20
-             H13
-             C14.2 20 15 19.2 15 18
-             C15 17.2 14.5 16.6 14.5 16
-             C14.5 15.2 15.2 14.5 16 14.5
-             H17
-             C20.3 14.5 21 12.5 21 10.5
-             C21 6.3 17.2 3 12 3Z">
-    </path>
+      <div class="brand-row">
+        <div
+          id="current-project-name"
+          class="current-project-name"
+          aria-label="current project"
+        >mono82</div>
 
-    <circle cx="8" cy="10" r="1"></circle>
-    <circle cx="11" cy="7" r="1"></circle>
-    <circle cx="15" cy="8" r="1"></circle>
-    <circle cx="16" cy="12" r="1"></circle>
-  </svg>
-</button>
+        <div class="header-actions">
+          <button
+            id="help-button"
+            class="text-button mono82-help-button"
+            type="button"
+            aria-label="help"
+            title="help"
+            aria-pressed="false"
+          >?</button>
 
-<select
-  id="theme-selector"
-  class="theme-selector-hidden"
-  aria-label="theme"
-  tabindex="-1"
->
-  <option value="theme-sprooto">sprooto</option>
-  <option value="theme-kasai">kasai</option>
-  <option value="theme-ryuichi">ryuichi</option>
-  <option value="theme-aya">aya</option>
-</select>
+          <button
+            id="theme-button"
+            class="text-button"
+            type="button"
+            aria-label="theme"
+            title="theme"
+          ><svg class="mono82-icon mono82-theme-paint-icon" viewBox="0 0 14 15" aria-hidden="true">
+              <rect class="mono82-theme-paint-fill" x="2" y="1" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="3" y="1" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="4" y="1" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="5" y="1" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="6" y="1" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="7" y="1" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="8" y="1" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="9" y="1" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="10" y="1" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="1" y="2" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="2" y="2" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="10" y="2" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="11" y="2" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="1" y="3" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="2" y="3" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="10" y="3" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="11" y="3" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="1" y="4" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="2" y="4" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="10" y="4" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="11" y="4" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="12" y="4" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="2" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="3" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="4" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="5" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="6" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="7" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="8" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="9" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="10" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="11" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="12" y="5" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="12" y="6" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="6" y="7" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="7" y="7" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="8" y="7" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="9" y="7" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="10" y="7" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="11" y="7" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="12" y="7" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="6" y="8" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="7" y="8" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="5" y="9" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="6" y="9" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="7" y="9" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="5" y="10" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="6" y="10" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="7" y="10" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="5" y="11" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="7" y="11" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="5" y="12" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="6" y="12" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="7" y="12" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="5" y="13" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="6" y="13" width="1" height="1" />
+              <rect class="mono82-theme-paint-fill" x="7" y="13" width="1" height="1" />
+            </svg></button>
 
-<button
-  id="undo-button"
-  class="icon-button history-button"
-  type="button"
-  aria-label="元に戻す"
-  title="Undo"
->
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="1.8"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M9 8H4V3"></path>
-<path d="M4 8c2-3 5-5 9-5 5 0 8 3 8 8s-3 8-8 8h-2"></path>
-  </svg>
-</button>
+          <select
+            id="theme-selector"
+            class="theme-selector-hidden"
+            aria-label="theme"
+            tabindex="-1"
+          >
+            <option value="theme-mono82">mono82</option>
+            <option value="theme-sprooto">sprooto</option>
+            <option value="theme-kasai">kasai</option>
+            <option value="theme-mei">mei</option>
+            <option value="theme-ryuichi">ryuichi</option>
+            <option value="theme-aya">aya</option>
+            <option value="theme-tobokegao">tobokegao</option>
+            <option value="theme-hachi">hachi</option>
+            <option value="theme-electro">electro</option>
+            <option value="theme-game">game</option>
+          </select>
 
-<button
-  id="redo-button"
-  class="icon-button history-button"
-  type="button"
-  aria-label="やり直す"
-  title="Redo"
->
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="1.8"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M15 8h5V3"></path>
-<path d="M20 8c-2-3-5-5-9-5-5 0-8 3-8 8s3 8 8 8h2"></path>
-  </svg>
-</button>
+          <button
+            id="global-menu-button"
+            class="text-button global-menu-button"
+            type="button"
+            aria-label="menu"
+            title="menu"
+          >≡</button>
+        </div>
+      </div>
 
-      <button
-    id="play-button"
-    class="icon-button play-button"
-    aria-label="再生・停止"
->
-    <svg
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden="true"
-    >
-        <path d="M8 5L19 12L8 19Z"/>
-    </svg>
-</button>
-      <label class="master-control" aria-label="master volume">
-  <span class="master-volume-icon" aria-hidden="true">
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.8"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    >
-      <path d="M11 5 6 9H2v6h4l5 4V5Z"></path>
-      <path d="M15 9a5 5 0 0 1 0 6"></path>
-      <path d="M18 6a9 9 0 0 1 0 12"></path>
-    </svg>
-  </span>
+      <div class="transport-row">
+        <div class="transport-left">
+          <button
+            id="undo-button"
+            class="text-button history-button"
+            type="button"
+            aria-label="undo"
+            title="undo"
+          ><svg class="mono82-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M19 5v3h-2v2H8M11 6 7 10l4 4" />
+            </svg></button>
 
-  <input
-    id="master-volume"
-    type="range"
-    min="0"
-    max="100"
-    value="70"
-  >
+          <button
+            id="redo-button"
+            class="text-button history-button"
+            type="button"
+            aria-label="redo"
+            title="redo"
+          ><svg class="mono82-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 5v3h2v2h9M13 6l4 4-4 4" />
+            </svg></button>
+        </div>
 
-  <output id="master-volume-value">70</output>
-</label>
-      <input id="bpm-input" class="bpm-input" type="number" min="40" max="300" value="120" aria-label="BPM">
+        <div class="transport-mixer" aria-hidden="true">
+          <span id="mini-eq-meter" class="mini-eq-meter">
+            <span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+            <span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+          </span>
+        </div>
+
+        <div class="transport-center">
+          <button
+            id="play-button"
+            class="play-button"
+            type="button"
+            aria-label="play / stop"
+          ><svg class="mono82-icon mono82-icon-play" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon points="7,4 11,4 11,6 14,6 14,8 17,8 17,10 20,10 20,14 17,14 17,16 14,16 14,18 11,18 11,20 7,20" />
+            </svg></button>
+        </div>
+
+        <div class="transport-right">
+          <label
+            class="master-control"
+            aria-label="master volume"
+          >
+            <span class="control-label">vol</span>
+
+            <input
+              id="master-volume"
+              type="range"
+              min="0"
+              max="100"
+              value="70"
+            >
+
+            <output
+              id="master-volume-value"
+            >70</output>
+          </label>
+
+          <label
+            class="bpm-control"
+            aria-label="bpm"
+          >
+            <span class="control-label">bpm</span>
+
+            <input
+              id="bpm-input"
+              type="number"
+              min="40"
+              max="300"
+              value="120"
+            >
+          </label>
+        </div>
+      </div>
     </header>
 
-    <section class="sequence-section" aria-label="sequence">
-      <div class="sequence-toolbar">
-  <div
-    id="current-source-display"
-    class="current-source-display"
-    aria-label="Pattern 01"
-  ></div>
 
-  <div class="sequence-toolbar-controls">
-    <button
-      id="sequence-page-button"
-      class="sequence-page-button"
-      type="button"
-      aria-label="ステップ1～32を表示中。33～64へ切り替え"
-    >◧</button>
-
-    <input
-      id="pattern-length-input"
-      class="pattern-length-input"
-      type="number"
-      min="1"
-      max="64"
-      step="1"
-      value="32"
-      aria-label="パターンのステップ数"
+    <section
+      class="sequence-section mokton-view mokton-sequence-view"
+      aria-label="sequence"
     >
-  </div>
-</div>
-      <div id="sequence-grid" class="sequence-grid"></div>
+      <div class="section-toolbar">
+        <button
+          id="current-source-display"
+          class="current-source-display mokton-view-button"
+          type="button"
+          aria-label="back to song"
+          title="song"
+        >01</button>
+
+        <button
+          id="pattern-length-control"
+          class="pattern-length-control"
+          type="button"
+          aria-label="pattern length"
+          title="pattern length"
+        ><span>len</span><span id="pattern-length-value">32</span></button>
+      </div>
+
+      <div
+        id="sequence-grid"
+        class="sequence-grid"
+      ></div>
     </section>
 
-    <section class="editor-section" aria-label="editor">
+
+    <section
+      class="pattern-section mokton-view mokton-pattern-view"
+      aria-label="pattern manager"
+    >
+      <div class="section-toolbar">
+        <button
+          id="pattern-edit-button"
+          class="pattern-edit-button"
+          type="button"
+          aria-label="edit selected pattern"
+          title="pattern edit"
+        >
+          <span class="mono82-pattern-edit-icon" aria-hidden="true">
+            <i></i><i></i><i></i><i></i>
+            <i></i><i></i><i></i><i></i>
+          </span>
+        </button>
+
+        <button
+          id="master-reverb-control"
+          class="master-reverb-control"
+          type="button"
+          aria-label="master reverb"
+        ><span>rev</span><span id="master-reverb-value">0</span></button>
+
+        <button
+          id="swing-control"
+          class="swing-control"
+          type="button"
+          aria-label="swing"
+          data-parameter-id="swing"
+        ><span>sw</span><span id="swing-value">0</span></button>
+
+        <button
+          id="pattern-loop-button"
+          class="pattern-loop-button"
+          type="button"
+          aria-pressed="false"
+        >
+          <svg class="mono82-icon mono82-icon-loop" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 11V9h2V7h11" />
+            <polygon points="21,7 17,3 17,11" />
+            <path d="M20 13v2h-2v2H7" />
+            <polygon points="3,17 7,13 7,21" />
+          </svg>
+        </button>
+      </div>
+
+      <div
+        id="pattern-grid"
+        class="pattern-grid"
+      ></div>
+    </section>
+
+
+
+    <section
+      class="editor-section mokton-view mokton-shared-view"
+      aria-label="sound editor"
+    >
       <div id="editor"></div>
     </section>
 
-    <section class="pattern-section" aria-label="pattern manager">
-      <div class="pattern-section-header">
-        <span class="pattern-section-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="4" width="6" height="6" rx="1"></rect>
-            <rect x="14" y="4" width="6" height="6" rx="1"></rect>
-            <rect x="4" y="14" width="6" height="6" rx="1"></rect>
-            <rect x="14" y="14" width="6" height="6" rx="1"></rect>
-          </svg>
-          <button
-    id="pattern-page-button"
-    class="pattern-page-button"
-    type="button"
-    aria-label="パターン1～12、フィル1～4、セクションA～Hを表示中"
-  >
-    ◧
-  </button>
-        </span>
-        <span class="pattern-section-label">pattern</span>
-        <span class="fill-column-label" aria-label="fill">F</span>
-      </div>
 
-      <div id="pattern-grid" class="pattern-grid"></div>
+    <!--
+      Stage compatibility.
+      ui.jsが次の整理段階まで参照する旧IDだけ残す。
+      画面には出さない。
+    -->
+    <div
+      class="legacy-stage-hooks"
+      hidden
+      aria-hidden="true"
+    >
+      <button
+        id="sequence-page-button"
+        type="button"
+      ></button>
 
-      <div class="section-manager">
-        <div class="section-manager-header">
-          <span>section</span>
-          <button id="add-section-button" class="section-add-button" type="button" aria-label="セクションを追加">＋</button>
-        </div>
-        <div id="section-list" class="section-list"></div>
-      </div>
-    </section>
+      <input
+        id="pattern-length-input"
+        type="number"
+        value="32"
+      >
+
+      <button
+        id="pattern-page-button"
+        type="button"
+      ></button>
+
+      <div id="section-list"></div>
+      <div id="song-parts"></div>
+      <div id="song-grid"></div>
+      <div id="song-master-mix"></div>
+
+      <button
+        id="song-page-button"
+        type="button"
+      ></button>
+
+      <button
+        id="sequence-view-toggle"
+        type="button"
+      ></button>
+
+      <button
+        id="song-editor-view-toggle"
+        type="button"
+      ></button>
+    </div>
+
   </main>
-  <script type="module" src="./js/main.js"></script>
+
+  <script
+    type="module"
+    src="./js/main.js"
+  ></script>
 </body>
 </html>

@@ -1,17 +1,1713 @@
-import { clamp } from "./sequencer.js";
+import { clamp, resolveChordNoteOffsets, CHORD_NAMES } from "./sequencer.js";
+
 
 let context;
 let master;
+let mixInput;
+let mixGain;
+let limiter;
+let reverbConvolver;
+let reverbDryGain;
+let reverbWetGain;
+let reverbPathConnected = false;
+let reverbDisconnectTimer = null;
+let spectrumAnalyser;
+let outputAnalyser;
+let eqNodes = [];
+let spectrumData;
+let outputTimeData;
+let fmVoiceWorkletReady = null;
+
+/*
+ * mono82 Sound peak guard.
+ * Each of the 8 Sounds gets one shared dynamics stage before mixInput.
+ * Voices belonging to the same Sound sum here first, so local overlap is
+ * controlled before the final Master limiter sees the whole mix.
+ */
+const soundPeakGuards = new Map();
+
+const SOUND_PEAK_GUARD = Object.freeze({
+  threshold: -4.5,
+  knee: 1,
+  ratio: 8,
+  attack: 0.0015,
+  release: 0.045
+});
+
+let audioClockReady = false;
+let audioClockReadyPromise = null;
+let offlineRenderMode = false;
+
+let sprootoDebugStarted = false;
+let sprootoDebugInterval = null;
+let sprootoDebugPlayCallsTotal = 0;
+let sprootoDebugPlayCallsWindow = 0;
+let sprootoDebugNodesCreated = 0;
+let sprootoDebugNodesReleased = 0;
+let sprootoDebugNodesCreatedWindow = 0;
+let sprootoDebugNodesReleasedWindow = 0;
+let sprootoDebugCleanups = 0;
+let sprootoDebugTimersScheduled = 0;
+let sprootoDebugTimersFired = 0;
+let sprootoDebugTimerMaxLateMsWindow = 0;
+let sprootoDebugOscEndedWindow = 0;
+
+let sprootoDebugWallStart = 0;
+let sprootoDebugAudioStart = 0;
+
+let sprootoDebugRafStarted = false;
+let sprootoDebugRafLast = 0;
+let sprootoDebugMainLagMaxWindow = 0;
+let sprootoDebugRafFramesWindow = 0;
+
+let sprootoDebugHeartbeatNode = null;
+let sprootoDebugHeartbeatReady = null;
+let sprootoDebugHeartbeatLastWall = 0;
+let sprootoDebugHeartbeatMaxGapWindow = 0;
+let sprootoDebugHeartbeatCount = 0;
+let sprootoDebugHeartbeatFrame = 0;
+let sprootoDebugHeartbeatAudioTime = 0;
+let sprootoDebugHeartbeatFrameGapMaxWindow = 0;
+
+let sprootoDebugStateChanges = 0;
+let sprootoDebugLastState = "none";
+
+let sprootoDebugFmWorkletCreatedTotal = 0;
+
+/* =========================
+ * Playback start auto capture
+ * 再生開始ズレ調査用。
+ * 再生動作そのものには影響しない。
+ * ========================= */
+
+let playbackStartCapture = null;
+let playbackStartSerial = 0;
+let playbackStartWorst = null;
+
+let playbackStartProbeRaf = null;
+let playbackStartProbeData = null;
+
+function updatePlaybackStartCapture() {
+  if (!playbackStartCapture) {
+    return;
+  }
+
+  if (
+    Number.isFinite(
+      playbackStartCapture.firstExpectedAt
+    ) &&
+    Number.isFinite(
+      playbackStartCapture.firstAnalyserAt
+    )
+  ) {
+    playbackStartCapture.analyserDelayMs =
+      playbackStartCapture.firstAnalyserAt -
+      playbackStartCapture.firstExpectedAt;
+
+    if (
+      !playbackStartWorst ||
+      playbackStartCapture.analyserDelayMs >
+        (
+          playbackStartWorst
+            .analyserDelayMs ??
+          -Infinity
+        )
+    ) {
+      playbackStartWorst = {
+        ...playbackStartCapture
+      };
+    }
+  }
+}
+
+export function beginPlaybackStartCapture() {
+  stopPlaybackStartProbe();
+
+  playbackStartSerial += 1;
+
+  playbackStartCapture = {
+    id:
+      playbackStartSerial,
+
+    tapAt:
+      performance.now(),
+
+    stateAtTap:
+      context?.state ??
+      "none",
+
+    initEnteredAt:
+      null,
+
+    audioReadyAt:
+      null,
+
+    schedulerAt:
+      null,
+
+    firstExpectedAt:
+      null,
+
+    firstExpectedTick:
+      null,
+
+    firstTrackCallAt:
+      null,
+
+    firstAnalyserAt:
+      null,
+
+    stateAtAnalyser:
+      null,
+
+    analyserDelayMs:
+      null
+  };
+}
+
+export function markPlaybackStartScheduler() {
+  if (!playbackStartCapture) {
+    return;
+  }
+
+  if (
+    playbackStartCapture.schedulerAt ===
+    null
+  ) {
+    playbackStartCapture.schedulerAt =
+      performance.now();
+  }
+}
+
+export function markPlaybackExpectedAudio(
+  playbackTickIndex,
+  delaySeconds
+) {
+  if (!playbackStartCapture) {
+    return;
+  }
+
+  const expectedAt =
+    performance.now() +
+    Math.max(
+      0,
+      Number(delaySeconds) || 0
+    ) *
+      1000;
+
+  /*
+   * 複数Trackが同時予約された場合は
+   * 最も早い実音予定時刻を採用する。
+   */
+  if (
+  playbackStartCapture.firstExpectedAt ===
+    null ||
+  expectedAt <
+    playbackStartCapture.firstExpectedAt
+) {
+  playbackStartCapture.firstExpectedAt =
+    expectedAt;
+
+  playbackStartCapture.firstExpectedTick =
+    playbackTickIndex;
+}
+
+startPlaybackStartProbe();
+}
+
+function playbackStartSummary(
+  record
+) {
+  if (!record) {
+    return "start -";
+  }
+
+  const fromTap =
+    value =>
+      Number.isFinite(value)
+        ? Math.round(
+            value -
+            record.tapAt
+          )
+        : "-";
+
+  const gap =
+    Number.isFinite(
+      record.analyserDelayMs
+    )
+      ? Math.round(
+          record.analyserDelayMs
+        )
+      : "-";
+
+  return (
+    `#${record.id} ` +
+    `ctx ${record.stateAtTap}` +
+    `>${record.stateAtAnalyser ?? "-"} ` +
+    `ready ${fromTap(
+      record.audioReadyAt
+    )} ` +
+    `sched ${fromTap(
+      record.schedulerAt
+    )} ` +
+    `exp ${fromTap(
+      record.firstExpectedAt
+    )} ` +
+    `meter ${fromTap(
+      record.firstAnalyserAt
+    )} ` +
+    `gap ${gap}ms`
+  );
+}
+
+function stopPlaybackStartProbe() {
+  if (
+    playbackStartProbeRaf !== null &&
+    typeof window !== "undefined"
+  ) {
+    window.cancelAnimationFrame(
+      playbackStartProbeRaf
+    );
+  }
+
+  playbackStartProbeRaf = null;
+}
+
+function startPlaybackStartProbe() {
+  if (
+    offlineRenderMode ||
+    !outputAnalyser ||
+    !playbackStartCapture ||
+    playbackStartCapture
+      .firstAnalyserAt !== null ||
+    typeof window === "undefined" ||
+    typeof window.requestAnimationFrame !==
+      "function"
+  ) {
+    return;
+  }
+
+  /*
+   * 同じ再生開始に対して
+   * Probeを複数起動しない。
+   */
+  if (
+    playbackStartProbeRaf !== null
+  ) {
+    return;
+  }
+
+  if (
+    !playbackStartProbeData ||
+    playbackStartProbeData.length !==
+      outputAnalyser.fftSize
+  ) {
+    playbackStartProbeData =
+      new Uint8Array(
+        outputAnalyser.fftSize
+      );
+  }
+
+  const captureId =
+    playbackStartCapture.id;
+
+  const probe = () => {
+    /*
+     * 別の再生開始へ切り替わったら
+     * 古いProbeは終了。
+     */
+    if (
+      !playbackStartCapture ||
+      playbackStartCapture.id !==
+        captureId
+    ) {
+      playbackStartProbeRaf = null;
+      return;
+    }
+
+    const expectedAt =
+      playbackStartCapture
+        .firstExpectedAt;
+
+    if (
+      Number.isFinite(expectedAt) &&
+      performance.now() >=
+        expectedAt
+    ) {
+      outputAnalyser
+        .getByteTimeDomainData(
+          playbackStartProbeData
+        );
+
+      let peak = 0;
+
+      for (
+        let index = 0;
+        index <
+          playbackStartProbeData.length;
+        index++
+      ) {
+        const value =
+          Math.abs(
+            playbackStartProbeData[index] -
+              128
+          ) /
+          128;
+
+        if (value > peak) {
+          peak = value;
+        }
+      }
+
+      /*
+       * 最初の実質的なAudio信号を検出。
+       */
+      if (peak > 0.001) {
+        playbackStartCapture
+          .firstAnalyserAt =
+          performance.now();
+
+        playbackStartCapture
+          .stateAtAnalyser =
+          context?.state ??
+          "none";
+
+        updatePlaybackStartCapture();
+
+        playbackStartProbeRaf = null;
+        return;
+      }
+    }
+
+    /*
+     * 異常時も無限監視しない。
+     * PLAYから3秒でProbe終了。
+     *
+     * meterが "-" のままなら、
+     * 3秒以内にAudioグラフへ
+     * 信号が来なかったことになる。
+     */
+    if (
+      performance.now() -
+        playbackStartCapture.tapAt >
+      3000
+    ) {
+      playbackStartProbeRaf = null;
+      return;
+    }
+
+    playbackStartProbeRaf =
+      window.requestAnimationFrame(
+        probe
+      );
+  };
+
+  playbackStartProbeRaf =
+    window.requestAnimationFrame(
+      probe
+    );
+}
+
+const sprootoDebugReleasedNodes = new WeakSet();
+const sprootoDebugNodeTypes = new WeakMap();
+const sprootoDebugNodeRoles = new WeakMap();
+const sprootoDebugLiveByType = Object.create(null);
+const sprootoDebugLiveByRole = Object.create(null);
+
+function sprootoDebugType(node) {
+  const name = node?.constructor?.name ?? "other";
+
+  if (/AudioWorkletNode/i.test(name)) return "worklet";
+  if (/GainNode/i.test(name)) return "gain";
+  if (/StereoPannerNode/i.test(name)) return "pan";
+  if (/BiquadFilterNode/i.test(name)) return "filter";
+  if (/OscillatorNode|AudioBufferSourceNode|ConstantSourceNode/i.test(name)) return "source";
+  if (/ConvolverNode/i.test(name)) return "conv";
+  return "other";
+}
+
+function sprootoDebugNode(node, role = null) {
+  if (node) {
+    const type = sprootoDebugType(node);
+    sprootoDebugNodesCreated += 1;
+    sprootoDebugNodesCreatedWindow += 1;
+    sprootoDebugNodeTypes.set(node, type);
+    sprootoDebugLiveByType[type] = (sprootoDebugLiveByType[type] || 0) + 1;
+
+    if (role) {
+      sprootoDebugNodeRoles.set(node, role);
+      sprootoDebugLiveByRole[role] =
+        (sprootoDebugLiveByRole[role] || 0) + 1;
+    }
+  }
+  return node;
+}
+
+function sprootoDebugReleaseNode(node) {
+  if (!node || sprootoDebugReleasedNodes.has(node)) {
+    return;
+  }
+
+  sprootoDebugReleasedNodes.add(node);
+  sprootoDebugNodesReleased += 1;
+  sprootoDebugNodesReleasedWindow += 1;
+
+  const type = sprootoDebugNodeTypes.get(node);
+  if (type) {
+    sprootoDebugLiveByType[type] = Math.max(0, (sprootoDebugLiveByType[type] || 0) - 1);
+  }
+
+  const role = sprootoDebugNodeRoles.get(node);
+  if (role) {
+    sprootoDebugLiveByRole[role] =
+      Math.max(0, (sprootoDebugLiveByRole[role] || 0) - 1);
+  }
+
+  try {
+    node.disconnect();
+  } catch {}
+}
+
+
+function sprootoDebugStartRafMonitor() {
+  if (
+    sprootoDebugRafStarted ||
+    typeof window === "undefined" ||
+    typeof window.requestAnimationFrame !== "function"
+  ) {
+    return;
+  }
+
+  sprootoDebugRafStarted = true;
+
+  const tick = timestamp => {
+    if (sprootoDebugRafLast > 0) {
+      const gap =
+        timestamp -
+        sprootoDebugRafLast;
+
+      sprootoDebugMainLagMaxWindow =
+        Math.max(
+          sprootoDebugMainLagMaxWindow,
+          Math.max(
+            0,
+            gap - 16.7
+          )
+        );
+    }
+
+    sprootoDebugRafLast =
+      timestamp;
+
+    sprootoDebugRafFramesWindow +=
+      1;
+
+    window.requestAnimationFrame(
+      tick
+    );
+  };
+
+  window.requestAnimationFrame(
+    tick
+  );
+}
+
+async function sprootoDebugStartHeartbeat() {
+  if (
+    offlineRenderMode ||
+    !context?.audioWorklet ||
+    sprootoDebugHeartbeatNode
+  ) {
+    return;
+  }
+
+  try {
+    if (!sprootoDebugHeartbeatReady) {
+      const processorSource = `
+        class SprootoDebugHeartbeatProcessor extends AudioWorkletProcessor {
+          constructor() {
+            super();
+            this.frames = 0;
+          }
+
+          process(inputs, outputs) {
+            const channel =
+              outputs[0]?.[0];
+
+            if (channel) {
+              channel.fill(0);
+            }
+
+            this.frames += 128;
+
+            if (
+              this.frames >=
+              sampleRate * 0.25
+            ) {
+              this.frames = 0;
+
+              this.port.postMessage({
+                frame: currentFrame,
+                time: currentTime
+              });
+            }
+
+            return true;
+          }
+        }
+
+        registerProcessor(
+          "sprooto-debug-heartbeat-v12",
+          SprootoDebugHeartbeatProcessor
+        );
+      `;
+
+      const blob =
+        new Blob(
+          [processorSource],
+          {
+            type: "application/javascript"
+          }
+        );
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+      sprootoDebugHeartbeatReady =
+        context.audioWorklet
+          .addModule(url)
+          .finally(
+            () => {
+              URL.revokeObjectURL(
+                url
+              );
+            }
+          );
+    }
+
+    await sprootoDebugHeartbeatReady;
+
+    if (sprootoDebugHeartbeatNode) {
+      return;
+    }
+
+    const node =
+      new AudioWorkletNode(
+        context,
+        "sprooto-debug-heartbeat-v12",
+        {
+          numberOfInputs: 0,
+          numberOfOutputs: 1,
+          outputChannelCount: [1]
+        }
+      );
+
+    const silent =
+      context.createGain();
+
+    silent.gain.value =
+      0;
+
+    node
+      .connect(silent)
+      .connect(context.destination);
+
+    node.port.onmessage =
+      event => {
+        const wallNow =
+          performance.now();
+
+        const frame =
+          Number(
+            event?.data?.frame
+          ) || 0;
+
+        const audioTime =
+          Number(
+            event?.data?.time
+          ) || 0;
+
+        if (
+          sprootoDebugHeartbeatLastWall >
+          0
+        ) {
+          sprootoDebugHeartbeatMaxGapWindow =
+            Math.max(
+              sprootoDebugHeartbeatMaxGapWindow,
+              wallNow -
+                sprootoDebugHeartbeatLastWall
+            );
+        }
+
+        if (
+          sprootoDebugHeartbeatFrame >
+          0 &&
+          frame >
+            sprootoDebugHeartbeatFrame
+        ) {
+          const expectedFrameGap =
+            context.sampleRate * 0.25;
+
+          const actualFrameGap =
+            frame -
+            sprootoDebugHeartbeatFrame;
+
+          sprootoDebugHeartbeatFrameGapMaxWindow =
+            Math.max(
+              sprootoDebugHeartbeatFrameGapMaxWindow,
+              Math.abs(
+                actualFrameGap -
+                  expectedFrameGap
+              )
+            );
+        }
+
+        sprootoDebugHeartbeatLastWall =
+          wallNow;
+
+        sprootoDebugHeartbeatFrame =
+          frame;
+
+        sprootoDebugHeartbeatAudioTime =
+          audioTime;
+
+        sprootoDebugHeartbeatCount +=
+          1;
+      };
+
+    sprootoDebugHeartbeatNode =
+      node;
+  } catch (error) {
+    console.warn(
+      "Debug heartbeat unavailable:",
+      error
+    );
+  }
+}
+
+function sprootoDebugTimeout(callback, delay) {
+  sprootoDebugTimersScheduled += 1;
+
+  const safeDelay =
+    Math.max(0, Number(delay) || 0);
+
+  const expectedAt =
+    performance.now() + safeDelay;
+
+  return window.setTimeout(
+    () => {
+      sprootoDebugTimersFired += 1;
+
+      const lateMs =
+        Math.max(
+          0,
+          performance.now() - expectedAt
+        );
+
+      sprootoDebugTimerMaxLateMsWindow =
+        Math.max(
+          sprootoDebugTimerMaxLateMsWindow,
+          lateMs
+        );
+
+      callback();
+    },
+    safeDelay
+  );
+}
+
+function startSprootoDebugOverlay() {
+  /*
+   * Stage 35:
+   * Keep diagnostics code available in source,
+   * but disable the visible audio/load monitor.
+   */
+  return;
+
+  if (
+    sprootoDebugStarted ||
+    typeof window === "undefined"
+  ) {
+    return;
+  }
+
+  sprootoDebugStarted = true;
+
+  sprootoDebugWallStart =
+    performance.now();
+
+  sprootoDebugAudioStart =
+    context?.currentTime || 0;
+
+  sprootoDebugLastState =
+    context?.state ?? "none";
+
+  sprootoDebugStartRafMonitor();
+
+  let panel =
+    document.getElementById(
+      "sprooto-audio-debug-panel"
+    );
+
+  if (!panel) {
+    panel =
+      document.createElement(
+        "div"
+      );
+
+    panel.id =
+      "sprooto-audio-debug-panel";
+
+    Object.assign(
+  panel.style,
+  {
+    position: "fixed",
+
+    top: "8px",
+    left: "8px",
+    right: "8px",
+
+    zIndex: "999999",
+
+    boxSizing: "border-box",
+
+    padding: "6px 8px",
+
+    fontFamily:
+      '"DM Mono", monospace',
+
+    fontSize: "10px",
+    lineHeight: "1.25",
+
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+
+    pointerEvents: "none",
+
+    background:
+      "rgba(21, 21, 21, 0.78)",
+
+    color: "#fff",
+
+    borderRadius: "6px"
+  }
+);
+
+    const debugHost =
+      document.body ||
+      document.documentElement;
+
+    debugHost?.appendChild(
+      panel
+    );
+  }
+
+  sprootoDebugInterval =
+    window.setInterval(
+      () => {
+        if (!panel) {
+          return;
+        }
+
+        const wall =
+          (
+            performance.now() -
+            sprootoDebugWallStart
+          ) / 1000;
+
+        const audio =
+          context
+            ? context.currentTime -
+              sprootoDebugAudioStart
+            : 0;
+
+        const drift =
+          wall -
+          audio;
+
+        const hbAge =
+          sprootoDebugHeartbeatLastWall > 0
+            ? performance.now() -
+              sprootoDebugHeartbeatLastWall
+            : -1;
+
+        const hbAudioDrift =
+          sprootoDebugHeartbeatAudioTime > 0
+            ? wall -
+              (
+                sprootoDebugHeartbeatAudioTime -
+                sprootoDebugAudioStart
+              )
+            : 0;
+
+        let outputWallDrift = NaN;
+
+        try {
+          if (
+            typeof context?.getOutputTimestamp ===
+            "function"
+          ) {
+            const stamp =
+              context.getOutputTimestamp();
+
+            const outputContextTime =
+              Number(
+                stamp?.contextTime
+              );
+
+            const outputPerformanceTime =
+              Number(
+                stamp?.performanceTime
+              );
+
+            if (
+              Number.isFinite(outputContextTime) &&
+              Number.isFinite(outputPerformanceTime)
+            ) {
+              const stampWall =
+                (
+                  outputPerformanceTime -
+                  sprootoDebugWallStart
+                ) / 1000;
+
+              const stampAudio =
+                outputContextTime -
+                sprootoDebugAudioStart;
+
+              outputWallDrift =
+                stampWall -
+                stampAudio;
+            }
+          }
+        } catch {}
+
+        const baseLatency =
+          Number(
+            context?.baseLatency
+          );
+
+        const outputLatency =
+          Number(
+            context?.outputLatency
+          );
+
+        panel.textContent =
+  [
+    `t ${audio.toFixed(0)} drift ${drift >= 0 ? "+" : ""}${drift.toFixed(2)} ${context?.state ?? "none"}`,
+    `main ${Math.round(sprootoDebugMainLagMaxWindow)}ms timer ${Math.round(sprootoDebugTimerMaxLateMsWindow)}ms`,
+    `hb ${hbAge < 0 ? "-" : Math.round(hbAge)}ms gap ${Math.round(sprootoDebugHeartbeatMaxGapWindow)}ms`,
+    `nodes ${sprootoDebugNodesCreated} live ${Math.max(0, sprootoDebugNodesCreated - sprootoDebugNodesReleased)} src ${sprootoDebugLiveByType.source || 0} wrk ${sprootoDebugLiveByType.worklet || 0}`,
+`calls ${sprootoDebugPlayCallsWindow}/s new ${sprootoDebugNodesCreatedWindow}/s free ${sprootoDebugNodesReleasedWindow}/s pan ${sprootoDebugLiveByType.pan || 0}`,
+
+`start ${playbackStartSummary(
+  playbackStartCapture
+)}`,
+
+`worst ${playbackStartSummary(
+  playbackStartWorst
+)}`
+  ].join("\n");
+
+        sprootoDebugPlayCallsWindow = 0;
+        sprootoDebugNodesCreatedWindow = 0;
+        sprootoDebugNodesReleasedWindow = 0;
+        sprootoDebugMainLagMaxWindow = 0;
+        sprootoDebugRafFramesWindow = 0;
+        sprootoDebugTimerMaxLateMsWindow = 0;
+        sprootoDebugHeartbeatMaxGapWindow = 0;
+        sprootoDebugHeartbeatFrameGapMaxWindow = 0;
+        sprootoDebugOscEndedWindow = 0;
+      },
+      1000
+    );
+}
+
+const EQ_FREQUENCIES = [
+  60, 120, 250, 500,
+  1000, 2000, 4000, 8000
+];
+
+const EQ_BAND_EDGES = [
+  35, 85, 175, 350, 700,
+  1400, 2800, 5600, 12000
+];
+
+/*
+ * Master Mix meter用の値は
+ * 毎回新規生成せず、同じ領域を再利用する。
+ */
+const masterMixMeterData = {
+  bands: new Float32Array(8),
+  level: 0,
+  limiterReduction: 0
+};
+
+const masterMixSettings = {
+  eq: Array(8).fill(0),
+  volume: 100,
+  limiter: -1,
+  reverb: 0
+};
+
+/*
+ * Soundごとに最後に予約した発音のGainNodeを保持する。
+ *
+ * Decay側は設定した減衰カーブを最後まで生かし、後続トリガーと
+ * 重なっても切らない（overlapあり）。
+ * Hold側はmonophonic retriggerとし、次トリガー直前に極短フェードで
+ * 前音を閉じる（overlapなし）。
+ */
+const activeTrackVoices =
+  new Map();
+
+function soundPeakGuardNode(
+  soundKey,
+  reverbSend = 0
+) {
+  if (!context || !mixInput) {
+    return mixInput;
+  }
+
+  const key =
+    String(soundKey || "");
+
+  const sendAmount =
+    clamp(
+      Number(reverbSend) || 0,
+      0,
+      100
+    ) / 100;
+
+  const existing =
+    soundPeakGuards.get(key);
+
+  if (existing) {
+    existing.sendGain?.gain
+      .setTargetAtTime(
+        sendAmount,
+        context.currentTime,
+        0.01
+      );
+
+    return existing.guard;
+  }
+
+  const guard =
+    context.createDynamicsCompressor();
+
+  guard.threshold.value =
+    SOUND_PEAK_GUARD.threshold;
+  guard.knee.value =
+    SOUND_PEAK_GUARD.knee;
+  guard.ratio.value =
+    SOUND_PEAK_GUARD.ratio;
+  guard.attack.value =
+    SOUND_PEAK_GUARD.attack;
+  guard.release.value =
+    SOUND_PEAK_GUARD.release;
+
+  const sendGain =
+    sprootoDebugNode(
+      context.createGain(),
+      "soundReverbSend"
+    );
+
+  sendGain.gain.value =
+    sendAmount;
+
+  /* Dry path always reaches the normal Master/EQ chain. */
+  guard.connect(
+    mixInput
+  );
+
+  /* Wet path is Sound-specific, but all Sounds share one Master reverb. */
+  if (reverbConvolver) {
+    guard.connect(
+      sendGain
+    );
+    sendGain.connect(
+      reverbConvolver
+    );
+  }
+
+  soundPeakGuards.set(
+    key,
+    {
+      guard,
+      sendGain
+    }
+  );
+
+  return guard;
+}
+
+async function ensureAudioClockReady() {
+  if (!context) {
+    return;
+  }
+
+  if (audioClockReady) {
+    return;
+  }
+
+  if (!audioClockReadyPromise) {
+    audioClockReadyPromise =
+      new Promise(resolve => {
+        const startAudioTime =
+          context.currentTime;
+
+        const checkClock = () => {
+          if (!context) {
+            audioClockReadyPromise = null;
+            resolve();
+            return;
+          }
+
+          if (
+            context.state === "running" &&
+            context.currentTime -
+              startAudioTime >= 0.03
+          ) {
+            audioClockReady = true;
+            audioClockReadyPromise = null;
+            resolve();
+            return;
+          }
+
+          sprootoDebugTimeout(
+            checkClock,
+            4
+          );
+        };
+
+        checkClock();
+      });
+  }
+
+  await audioClockReadyPromise;
+}
+
+function resumeAudioContext() {
+  if (
+    context &&
+    context.state === "suspended"
+  ) {
+    audioClockReady = false;
+    audioClockReadyPromise = null;
+
+    context
+      .resume()
+      .then(() =>
+        ensureAudioClockReady()
+      )
+      .catch(() => {});
+  }
+}
+
+async function initializeFmVoiceWorklet() {
+  if (!context?.audioWorklet) {
+    return false;
+  }
+
+  if (!fmVoiceWorkletReady) {
+    const processorSource = `
+      class MoktonFmVoiceProcessor extends AudioWorkletProcessor {
+        constructor(options) {
+          super();
+
+          const p =
+            options.processorOptions || {};
+
+          this.startTime =
+            Number(p.startTime) || 0;
+
+          this.stopTime =
+            Number(p.stopTime) ||
+            this.startTime;
+
+          this.note =
+            Number(p.note) || 60;
+
+          this.fmDepth =
+            Math.max(
+              0,
+              Number(p.fmDepth) || 0
+            );
+
+          this.fmRatio =
+            Math.max(
+              0.25,
+              Number(p.fmRatio) || 1
+            );
+
+          this.pitchLfos =
+            Array.isArray(p.pitchLfos)
+              ? p.pitchLfos
+              : [];
+
+          this.fmLfos =
+            Array.isArray(p.fmLfos)
+              ? p.fmLfos
+              : [];
+
+          this.carrierPhase = 0;
+          this.modulatorPhase = 0;
+
+          this.pitchRandomStates =
+            this.pitchLfos.map(
+              config =>
+                this.makeRandomState(
+                  config
+                )
+            );
+
+          this.fmRandomStates =
+            this.fmLfos.map(
+              config =>
+                this.makeRandomState(
+                  config
+                )
+            );
+        }
+
+        frequency(note) {
+          return (
+            440 *
+            Math.pow(
+              2,
+              (note - 69) / 12
+            )
+          );
+        }
+
+        clamp(value, min, max) {
+          return Math.min(
+            max,
+            Math.max(
+              min,
+              value
+            )
+          );
+        }
+
+        makeRandomState(config) {
+          if (
+            config.wave !== "random"
+          ) {
+            return null;
+          }
+
+          return {
+            interval:
+              1 /
+              Math.max(
+                0.001,
+                Number(
+                  config.rateHz
+                ) || 1
+              ),
+
+            nextTime: 0,
+
+            value:
+              Math.random() * 2 - 1
+          };
+        }
+
+        lfoWaveValue(
+          config,
+          elapsedSeconds,
+          randomState
+        ) {
+          const wave =
+            config.wave;
+
+          const rateHz =
+            Math.max(
+              0.001,
+              Number(
+                config.rateHz
+              ) || 1
+            );
+
+          if (wave === "random") {
+            while (
+              elapsedSeconds >=
+              randomState.nextTime
+            ) {
+              randomState.value =
+                Math.random() * 2 - 1;
+
+              randomState.nextTime +=
+                randomState.interval;
+            }
+
+            return randomState.value;
+          }
+
+          if (
+            wave === "rise" ||
+            wave === "fall"
+          ) {
+            const progress =
+              this.clamp(
+                elapsedSeconds *
+                  rateHz,
+                0,
+                1
+              );
+
+            return (
+              wave === "fall"
+                ? 1
+                : -1
+            ) *
+              (1 - progress);
+          }
+
+          const phase =
+            2 *
+            Math.PI *
+            rateHz *
+            elapsedSeconds;
+
+          switch (wave) {
+            case "triangle":
+              return (
+                2 /
+                Math.PI
+              ) *
+                Math.asin(
+                  Math.sin(
+                    phase
+                  )
+                );
+
+            case "square":
+              return (
+                Math.sin(
+                  phase
+                ) >= 0
+                  ? 1
+                  : -1
+              );
+
+            case "sawUp":
+              return (
+                (
+                  elapsedSeconds *
+                  rateHz
+                ) % 1
+              ) *
+                2 -
+                1;
+
+            case "sawDown":
+              return (
+                1 -
+                (
+                  (
+                    elapsedSeconds *
+                    rateHz
+                  ) % 1
+                ) *
+                  2
+              );
+
+            default:
+              return Math.sin(
+                phase
+              );
+          }
+        }
+
+        pitchDepthToCents(config) {
+          const depth =
+            this.clamp(
+              Number(
+                config.depth
+              ) || 0,
+              0,
+              100
+            );
+
+          const normalized =
+            depth / 100;
+
+          /*
+           * Keep the old maximum range but make the bottom of DEP far finer.
+           * DEP 1 is now subtle enough for electric-piano drift, while
+           * DEP 100 still reaches the previous extreme range.
+           */
+          const shaped =
+            normalized * normalized;
+
+          return (
+            config.wave === "rise" ||
+            config.wave === "fall"
+          )
+            ? shaped * 3600
+            : shaped * 1200;
+        }
+
+        process(inputs, outputs) {
+          const channel =
+            outputs[0]?.[0];
+
+          if (!channel) {
+            return true;
+          }
+
+          const blockStart =
+            currentTime;
+
+          if (
+            blockStart >=
+            this.stopTime
+          ) {
+            return false;
+          }
+
+          const baseFrequency =
+            this.frequency(
+              this.note
+            );
+
+          for (
+            let i = 0;
+            i < channel.length;
+            i++
+          ) {
+            const sampleTime =
+              blockStart +
+              i / sampleRate;
+
+            if (
+              sampleTime <
+                this.startTime ||
+              sampleTime >=
+                this.stopTime
+            ) {
+              channel[i] = 0;
+              continue;
+            }
+
+            const elapsed =
+              sampleTime -
+              this.startTime;
+
+            let pitchCents = 0;
+
+            for (
+              let n = 0;
+              n <
+                this.pitchLfos.length;
+              n++
+            ) {
+              const config =
+                this.pitchLfos[n];
+
+              pitchCents +=
+                this.lfoWaveValue(
+                  config,
+                  elapsed,
+                  this.pitchRandomStates[n]
+                ) *
+                this.pitchDepthToCents(
+                  config
+                );
+            }
+
+            const carrierFrequency =
+              baseFrequency *
+              Math.pow(
+                2,
+                pitchCents / 1200
+              );
+
+            let fmLfoAmount = 0;
+
+            for (
+              let n = 0;
+              n < this.fmLfos.length;
+              n++
+            ) {
+              const config =
+                this.fmLfos[n];
+
+              fmLfoAmount +=
+                this.lfoWaveValue(
+                  config,
+                  elapsed,
+                  this.fmRandomStates[n]
+                ) *
+                (
+                  this.clamp(
+                    Number(config.depth) || 0,
+                    0,
+                    100
+                  ) /
+                  100
+                ) *
+                20;
+            }
+
+            const effectiveFmDepth =
+              this.clamp(
+                this.fmDepth +
+                  fmLfoAmount,
+                0,
+                40
+              );
+
+            const fmAmount =
+              carrierFrequency *
+              effectiveFmDepth *
+              0.1;
+
+            const modulatorValue =
+              Math.sin(
+                this.modulatorPhase
+              );
+
+            const instantaneousFrequency =
+              carrierFrequency +
+              modulatorValue *
+                fmAmount;
+
+            channel[i] =
+              Math.sin(
+                this.carrierPhase
+              );
+
+            this.carrierPhase +=
+              2 *
+              Math.PI *
+              instantaneousFrequency /
+              sampleRate;
+
+            this.modulatorPhase +=
+              2 *
+              Math.PI *
+              (
+                baseFrequency *
+                this.fmRatio
+              ) /
+              sampleRate;
+
+            if (
+              this.carrierPhase >
+              Math.PI * 2
+            ) {
+              this.carrierPhase %=
+                Math.PI * 2;
+            }
+
+            if (
+              this.modulatorPhase >
+              Math.PI * 2
+            ) {
+              this.modulatorPhase %=
+                Math.PI * 2;
+            }
+          }
+
+          return true;
+        }
+      }
+
+      registerProcessor(
+        "mokton-fm-voice",
+        MoktonFmVoiceProcessor
+      );
+    `;
+
+    const blob =
+      new Blob(
+        [processorSource],
+        {
+          type:
+            "application/javascript"
+        }
+      );
+
+    const url =
+      URL.createObjectURL(
+        blob
+      );
+
+    fmVoiceWorkletReady =
+      context.audioWorklet
+        .addModule(url)
+        .then(() => true)
+        .catch(error => {
+          console.warn(
+            "FM AudioWorklet unavailable:",
+            error
+          );
+
+          return false;
+        })
+        .finally(
+          () =>
+            URL.revokeObjectURL(
+              url
+            )
+        );
+  }
+
+  return fmVoiceWorkletReady;
+}
+
 
 export async function initializeAudio() {
+  if (
+    playbackStartCapture &&
+    playbackStartCapture
+      .initEnteredAt === null
+  ) {
+    playbackStartCapture.initEnteredAt =
+      performance.now();
+  }
+
   if (!context) {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     context = new AudioContextClass();
-    master = context.createGain();
+
+    startSprootoDebugOverlay();
+    audioClockReady = false;
+    audioClockReadyPromise = null;
+    master = sprootoDebugNode(context.createGain());
     master.gain.value = 0.7;
+
+    mixInput = sprootoDebugNode(context.createGain());
+
+    eqNodes = EQ_FREQUENCIES.map((frequency, index) => {
+      const filter = sprootoDebugNode(context.createBiquadFilter());
+      filter.type = index === 0
+        ? "lowshelf"
+        : index === EQ_FREQUENCIES.length - 1
+          ? "highshelf"
+          : "peaking";
+      filter.frequency.value = frequency;
+      filter.Q.value = 1;
+      filter.gain.value = masterMixSettings.eq[index];
+      return filter;
+    });
+
+    reverbConvolver = context.createConvolver();
+    reverbConvolver.buffer = createMasterReverbImpulse();
+
+    reverbDryGain = sprootoDebugNode(context.createGain());
+    reverbWetGain = sprootoDebugNode(context.createGain());
+
+    mixGain = sprootoDebugNode(context.createGain());
+    limiter = context.createDynamicsCompressor();
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.1;
+
+    let previousNode = mixInput;
+    eqNodes.forEach(filter => {
+      previousNode.connect(filter);
+      previousNode = filter;
+    });
+
+    spectrumAnalyser = context.createAnalyser();
+    spectrumAnalyser.fftSize = 2048;
+    spectrumAnalyser.smoothingTimeConstant = 0.72;
+    previousNode.connect(spectrumAnalyser);
+
+    previousNode.connect(reverbDryGain);
+    reverbDryGain.connect(mixGain);
+
+    /*
+     * iOS screen recording compatibility:
+     * Keep the shared reverb return permanently connected to the live
+     * destination graph. Per-Sound sends may feed this Convolver at any time,
+     * so leaving its output disconnected can create a dead-end branch in the
+     * Web Audio graph. The wet amount is controlled only by reverbWetGain.
+     */
+    reverbConvolver.connect(reverbWetGain);
+    reverbWetGain.connect(mixGain);
+
+    reverbPathConnected = true;
+
+    mixGain.connect(limiter);
+
+    outputAnalyser = context.createAnalyser();
+    outputAnalyser.fftSize = 1024;
+    outputAnalyser.smoothingTimeConstant = 0.6;
+
+    limiter.connect(outputAnalyser);
+    outputAnalyser.connect(master);
     master.connect(context.destination);
+
+    applyMasterMixSettings();
+    document.addEventListener(
+  "visibilitychange",
+  resumeAudioContext
+);
+
+window.addEventListener(
+  "pageshow",
+  resumeAudioContext
+);
+
+window.addEventListener(
+  "focus",
+  resumeAudioContext
+);
+
+context.addEventListener(
+  "statechange",
+  () => {
+    const nextState =
+      context?.state ?? "none";
+
+    if (
+      nextState !==
+      sprootoDebugLastState
+    ) {
+      sprootoDebugStateChanges += 1;
+      sprootoDebugLastState =
+        nextState;
+    }
   }
-  if (context.state === "suspended") await context.resume();
+);
+  }
+
+  await initializeFmVoiceWorklet();
+
+  if (!offlineRenderMode) {
+    sprootoDebugStartHeartbeat();
+  }
+
+  if (offlineRenderMode) {
+    return;
+  }
+
+  if (context.state === "suspended") {
+    audioClockReady = false;
+    audioClockReadyPromise = null;
+    await context.resume();
+  }
+
+  await ensureAudioClockReady();
+
+if (
+  playbackStartCapture &&
+  playbackStartCapture
+    .audioReadyAt === null
+) {
+  playbackStartCapture.audioReadyAt =
+    performance.now();
+
+  updatePlaybackStartCapture();
+}
 }
 
 export function setMasterVolume(value) {
@@ -19,77 +1715,3005 @@ export function setMasterVolume(value) {
   master.gain.setTargetAtTime(clamp(Number(value), 0, 1), context.currentTime, 0.01);
 }
 
+function createMasterReverbImpulse() {
+  const duration = 2.2;
+  const sampleRate = context.sampleRate;
+  const length = Math.max(1, Math.floor(sampleRate * duration));
+  const buffer = context.createBuffer(2, length, sampleRate);
+
+  for (let channel = 0; channel < 2; channel++) {
+    const data = buffer.getChannelData(channel);
+    let seed = (0x5f3759df + channel * 104729) >>> 0;
+
+    const nextRandom = () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return (seed / 0xffffffff) * 2 - 1;
+    };
+
+    for (let index = 0; index < length; index++) {
+      const progress = index / length;
+      const envelope = Math.pow(1 - progress, 2.6);
+      data[index] = nextRandom() * envelope;
+    }
+  }
+
+  return buffer;
+}
+
+function updateMasterReverbPath(reverbAmount) {
+  if (
+    !reverbConvolver ||
+    !reverbWetGain ||
+    offlineRenderMode
+  ) {
+    return;
+  }
+
+  /*
+   * Keep the Convolver return connected at all times.
+   * reverbWetGain controls audible wet level, including 0, so dynamic
+   * connect/disconnect is unnecessary and can break iOS screen capture when
+   * a per-Sound send is feeding the Convolver.
+   */
+  if (reverbDisconnectTimer !== null) {
+    clearTimeout(reverbDisconnectTimer);
+    reverbDisconnectTimer = null;
+  }
+
+  if (!reverbPathConnected) {
+    reverbConvolver.connect(reverbWetGain);
+    reverbPathConnected = true;
+  }
+}
+
+function applyMasterMixSettings() {
+  if (!context) return;
+
+  const now = context.currentTime;
+
+  eqNodes.forEach((filter, index) => {
+    filter.gain.setTargetAtTime(
+      masterMixSettings.eq[index] ?? 0,
+      now,
+      0.01
+    );
+  });
+
+  mixGain?.gain.setTargetAtTime(
+    clamp(masterMixSettings.volume, 0, 100) / 100,
+    now,
+    0.01
+  );
+
+  if (limiter) {
+    limiter.threshold.setTargetAtTime(
+      clamp(masterMixSettings.limiter, -24, 0),
+      now,
+      0.01
+    );
+  }
+
+  const reverbAmount =
+    clamp(masterMixSettings.reverb, 0, 100) / 100;
+
+  reverbDryGain?.gain.setTargetAtTime(
+    1,
+    now,
+    0.01
+  );
+
+  reverbWetGain?.gain.setTargetAtTime(
+    reverbAmount,
+    now,
+    0.01
+  );
+
+  updateMasterReverbPath(reverbAmount);
+
+}
+
+export function setMasterMixEqBand(index, value) {
+  if (index < 0 || index >= 8) return;
+  masterMixSettings.eq[index] = clamp(Number(value) || 0, -12, 12);
+  applyMasterMixSettings();
+}
+
+export function setMasterMixVolume(value) {
+  masterMixSettings.volume = clamp(Number(value) || 0, 0, 100);
+  applyMasterMixSettings();
+}
+
+export function setMasterLimiterThreshold(value) {
+  masterMixSettings.limiter = clamp(Number(value) || 0, -24, 0);
+  applyMasterMixSettings();
+}
+
+export function setMasterReverb(value) {
+  masterMixSettings.reverb = clamp(Number(value) || 0, 0, 100);
+  applyMasterMixSettings();
+}
+
+export function setSoundReverbSend(
+  layer,
+  soundId,
+  value
+) {
+  if (!context) return;
+
+  const key =
+    `${layer}:${soundId}`;
+  const bus =
+    soundPeakGuards.get(key);
+
+  if (!bus?.sendGain) return;
+
+  bus.sendGain.gain.setTargetAtTime(
+    clamp(Number(value) || 0, 0, 100) / 100,
+    context.currentTime,
+    0.01
+  );
+}
+
+export function getMasterMixMeterData() {
+  /*
+   * Audio初期化前も新しいObjectを作らず、
+   * 同じmeterデータを0にして返す。
+   */
+  if (
+    !context ||
+    !spectrumAnalyser ||
+    !outputAnalyser
+  ) {
+    masterMixMeterData.bands.fill(0);
+    masterMixMeterData.level = 0;
+    masterMixMeterData.limiterReduction = 0;
+
+    return masterMixMeterData;
+  }
+
+  /*
+   * Analyserサイズが変わった時だけ確保。
+   * 通常再生中は同じ配列を使い続ける。
+   */
+  if (
+    !spectrumData ||
+    spectrumData.length !==
+      spectrumAnalyser.frequencyBinCount
+  ) {
+    spectrumData =
+      new Uint8Array(
+        spectrumAnalyser.frequencyBinCount
+      );
+  }
+
+  if (
+    !outputTimeData ||
+    outputTimeData.length !==
+      outputAnalyser.fftSize
+  ) {
+    outputTimeData =
+      new Uint8Array(
+        outputAnalyser.fftSize
+      );
+  }
+
+  spectrumAnalyser.getByteFrequencyData(
+    spectrumData
+  );
+
+  outputAnalyser.getByteTimeDomainData(
+    outputTimeData
+  );
+
+  const nyquist =
+    context.sampleRate / 2;
+
+  const binHz =
+    nyquist /
+    spectrumAnalyser.frequencyBinCount;
+
+  /*
+   * 8バンドを既存のFloat32Arrayへ直接書く。
+   * map()による新規Array生成を行わない。
+   */
+  for (
+    let bandIndex = 0;
+    bandIndex < 8;
+    bandIndex++
+  ) {
+    const startBin =
+      Math.max(
+        0,
+        Math.floor(
+          EQ_BAND_EDGES[bandIndex] /
+            binHz
+        )
+      );
+
+    const endBin =
+      Math.min(
+        spectrumData.length - 1,
+        Math.ceil(
+          EQ_BAND_EDGES[
+            bandIndex + 1
+          ] /
+            binHz
+        )
+      );
+
+    let bandPeak = 0;
+    let sum = 0;
+    let count = 0;
+
+    for (
+      let binIndex = startBin;
+      binIndex <= endBin;
+      binIndex++
+    ) {
+      const normalized =
+        spectrumData[binIndex] / 255;
+
+      if (normalized > bandPeak) {
+        bandPeak = normalized;
+      }
+
+      sum += normalized;
+      count++;
+    }
+
+    const average =
+      count > 0
+        ? sum / count
+        : 0;
+
+    masterMixMeterData.bands[
+  bandIndex
+] =
+  clamp(
+    (
+      bandPeak * 0.55 +
+      average * 0.75
+    ) /
+    1.3,
+    0,
+    1
+  );
+  }
+
+  /*
+   * Master output level
+   */
+  let sumSquares = 0;
+  let outputPeak = 0;
+
+  for (
+    let index = 0;
+    index < outputTimeData.length;
+    index++
+  ) {
+    const value =
+      (
+        outputTimeData[index] -
+        128
+      ) /
+      128;
+
+    const absolute =
+      Math.abs(value);
+
+    if (absolute > outputPeak) {
+      outputPeak = absolute;
+    }
+
+    sumSquares +=
+      value * value;
+  }
+
+  const rms =
+    Math.sqrt(
+      sumSquares /
+        Math.max(
+          1,
+          outputTimeData.length
+        )
+    );
+
+  masterMixMeterData.level =
+    clamp(
+      outputPeak * 0.7 +
+        rms * 1.1,
+      0,
+      1
+    );
+
+  masterMixMeterData.limiterReduction =
+  limiter
+    ? Math.max(
+        0,
+        -(
+          Number(
+            limiter.reduction
+          ) || 0
+        )
+      )
+    : 0;
+
+return masterMixMeterData;
+}
+
 function frequency(note) {
   return 440 * Math.pow(2, (note - 69) / 12);
 }
 
-function makeNoiseBuffer(duration) {
-  const size = Math.max(1, Math.ceil(context.sampleRate * duration));
-  const buffer = context.createBuffer(1, size, context.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
+/*
+ * LFO Rate:
+ * Free keeps the existing tenths-of-a-Hz storage unit for compatibility.
+ * 1 = 0.1Hz, 100 = 10Hz, 1000 = 100Hz.
+ */
+function lfoRateToHz(
+  value,
+  syncMode = "free",
+  bpm = 120
+) {
+  if (syncMode !== "bpm") {
+    return (
+      clamp(
+        Number(value) || 1,
+        1,
+        1000
+      ) / 10
+    );
+  }
+
+  const beatRatios = [
+    1 / 16,
+    1 / 12,
+    1 / 8,
+    1 / 6,
+    1 / 4,
+    1 / 3,
+    1 / 2,
+    2 / 3,
+    1,
+    4 / 3,
+    2,
+    4,
+    8,
+    16
+  ];
+
+  const index =
+    clamp(
+      Math.round(
+        Number(value) || 0
+      ),
+      0,
+      beatRatios.length - 1
+    );
+
+  const durationSeconds =
+    (
+      60 /
+      Math.max(
+        1,
+        Number(bpm) || 120
+      )
+    ) *
+    beatRatios[index];
+
+  return (
+    1 /
+    Math.max(
+      0.001,
+      durationSeconds
+    )
+  );
+}
+
+const filterLfoCurveCache =
+  new Map();
+
+const FILTER_LFO_CURVE_CACHE_LIMIT =
+  128;
+
+function getFilterLfoCurve({
+  wave,
+  rateHz,
+  modulationDuration,
+  amountCents,
+  sampleCount
+}) {
+  const key =
+    `${wave}|` +
+    `${rateHz}|` +
+    `${modulationDuration}|` +
+    `${amountCents}|` +
+    `${sampleCount}`;
+
+  const cached =
+    filterLfoCurveCache.get(key);
+
+  if (cached) {
+    return cached;
+  }
+
+  const curve =
+    new Float32Array(
+      sampleCount
+    );
+
+  for (
+    let sampleIndex = 0;
+    sampleIndex < sampleCount;
+    sampleIndex++
+  ) {
+    const progress =
+      sampleCount <= 1
+        ? 0
+        : sampleIndex /
+          (sampleCount - 1);
+
+    const elapsedSeconds =
+      progress *
+      modulationDuration;
+
+    const phase =
+      2 *
+      Math.PI *
+      rateHz *
+      elapsedSeconds;
+
+    let waveValue = 0;
+
+    switch (wave) {
+      case "triangle":
+        waveValue =
+          (
+            2 /
+            Math.PI
+          ) *
+          Math.asin(
+            Math.sin(phase)
+          );
+        break;
+
+      case "square":
+        waveValue =
+          Math.sin(phase) >= 0
+            ? 1
+            : -1;
+        break;
+
+      case "sawUp": {
+        const cyclePosition =
+          (
+            phase /
+            (
+              2 *
+              Math.PI
+            )
+          ) % 1;
+
+        waveValue =
+          cyclePosition *
+            2 -
+          1;
+        break;
+      }
+
+      case "sawDown": {
+        const cyclePosition =
+          (
+            phase /
+            (
+              2 *
+              Math.PI
+            )
+          ) % 1;
+
+        waveValue =
+          1 -
+          cyclePosition *
+            2;
+        break;
+      }
+
+      case "sine":
+      default:
+        waveValue =
+          Math.sin(phase);
+        break;
+    }
+
+    curve[sampleIndex] =
+      waveValue *
+      amountCents;
+  }
+
+  /*
+   * 曲中で大量の異なる設定を使っても
+   * キャッシュが無制限に増えないよう制限。
+   */
+  if (
+    filterLfoCurveCache.size >=
+    FILTER_LFO_CURVE_CACHE_LIMIT
+  ) {
+    const oldestKey =
+      filterLfoCurveCache
+        .keys()
+        .next()
+        .value;
+
+    filterLfoCurveCache.delete(
+      oldestKey
+    );
+  }
+
+  filterLfoCurveCache.set(
+    key,
+    curve
+  );
+
+  return curve;
+}
+
+/*
+ * Random LFO
+ *
+ * 一定間隔ごとにランダム値を作り、
+ * 次の更新時刻までその値を保持する。
+ */
+function createSampleAndHoldLfo({
+  audioParam,
+  depth,
+  rateHz,
+  startTime,
+  stopTime
+}) {
+  const source =
+    sprootoDebugNode(context.createConstantSource(), "lfo");
+
+  const safeRate =
+    Math.max(
+      0.001,
+      Number(rateHz) || 1
+    );
+
+  const interval =
+    1 / safeRate;
+
+  const safeDepth =
+    Number.isFinite(
+      Number(depth)
+    )
+      ? Number(depth)
+      : 0;
+
+  /*
+   * ConstantSourceの出力を
+   * AudioParamへ加算する。
+   */
+  source.connect(
+    audioParam
+  );
+
+  /*
+   * 発音開始時点から、
+   * Rate間隔で新しいランダム値を設定する。
+   */
+  let time =
+    startTime;
+
+  let eventCount = 0;
+
+  while (
+    time <= stopTime &&
+    eventCount < 4096
+  ) {
+    const randomValue =
+      (
+        Math.random() * 2 -
+        1
+      ) *
+      safeDepth;
+
+    source.offset.setValueAtTime(
+      randomValue,
+      time
+    );
+
+    time +=
+      interval;
+
+    eventCount += 1;
+  }
+
+  source.start(
+    startTime
+  );
+
+  return source;
+}
+
+/*
+ * rise / fall are one-shot modulation shapes, not repeating oscillators.
+ * rise starts at -depth and returns to center; fall starts at +depth and
+ * returns to center. Rate controls how quickly the movement completes.
+ */
+function createOneShotLfo({
+  audioParam,
+  depth,
+  rateHz,
+  startTime,
+  stopTime,
+  wave
+}) {
+  const source =
+    sprootoDebugNode(
+      context.createConstantSource(),
+      "lfo"
+    );
+
+  const safeRate =
+    Math.max(
+      0.001,
+      Number(rateHz) || 1
+    );
+
+  const safeDepth =
+    Number.isFinite(Number(depth))
+      ? Number(depth)
+      : 0;
+
+  const initial =
+    wave === "rise"
+      ? -safeDepth
+      : safeDepth;
+
+  const endTime =
+    Math.min(
+      stopTime,
+      startTime + 1 / safeRate
+    );
+
+  source.connect(audioParam);
+  source.offset.setValueAtTime(
+    initial,
+    startTime
+  );
+  source.offset.linearRampToValueAtTime(
+    0,
+    Math.max(
+      startTime + 0.0001,
+      endTime
+    )
+  );
+  source.start(startTime);
+
+  return source;
+}
+
+
+let sharedNoiseBuffer = null;
+let sharedNoiseBufferContext = null;
+
+function ensureSharedNoiseBuffer() {
+  if (
+    !context ||
+    (
+      sharedNoiseBuffer &&
+      sharedNoiseBufferContext ===
+        context
+    )
+  ) {
+    return sharedNoiseBuffer;
+  }
+
+  const durationSeconds = 12;
+
+  const length =
+    Math.max(
+      1,
+      Math.ceil(
+        context.sampleRate *
+        durationSeconds
+      )
+    );
+
+  const buffer =
+    context.createBuffer(
+      1,
+      length,
+      context.sampleRate
+    );
+
+  const data =
+    buffer.getChannelData(0);
+
+  /*
+   * 毎発音Bufferを生成しない。
+   * 1 AudioContextにつき1本だけ作り、
+   * Rhythm Voiceから使い回す。
+   */
+  let seed = 0x6d6f6b74;
+
+  for (
+    let index = 0;
+    index < length;
+    index++
+  ) {
+    seed =
+      (
+        Math.imul(
+          seed,
+          1664525
+        ) +
+        1013904223
+      ) >>> 0;
+
+    data[index] =
+      (
+        seed /
+        0xffffffff
+      ) *
+        2 -
+      1;
+  }
+
+  sharedNoiseBuffer =
+    buffer;
+
+  sharedNoiseBufferContext =
+    context;
+
   return buffer;
 }
 
-export async function playTrackStep(track, stepIndex) {
-  await initializeAudio();
-  const now = context.currentTime;
-  const offset = id => track.offsets[id]?.[stepIndex] ?? 0;
-  const note = 60 + track.base.note + offset("note");
-  const velocity = clamp(track.base.velocity + offset("velocity"), 0, 100) / 100;
-  const decay = Math.max(0.03, clamp(track.base.decay + offset("decay"), 1, 50) / 10);
-  const depth = clamp(track.base.fmDepth + offset("fmDepth"), 0, 20);
-  const tone = clamp(track.base.tone + offset("tone"), 0, 100);
-  const panValue = (clamp(track.base.pan + offset("pan"), 0, 100) - 50) / 50;
+function soundLfoList(
+  sound,
+  bpm
+) {
+  return [sound?.lfo1, sound?.lfo2]
+    .filter(
+      lfo =>
+        lfo &&
+        typeof lfo === "object" &&
+        clamp(
+          Number(lfo.depth) || 0,
+          0,
+          100
+        ) > 0
+    )
+    .map(lfo => ({
+      target: (() => {
+        const raw =
+          String(
+            lfo.target ??
+            "pitch"
+          ).toLowerCase();
 
-  const output = context.createGain();
-  const panner = context.createStereoPanner();
-  const filter = context.createBiquadFilter();
-  panner.pan.setValueAtTime(panValue, now);
+        if (raw === "gain" || raw === "lvl") {
+          return "level";
+        }
 
-  if (tone < 50) {
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(120 + Math.pow(tone / 50, 2) * 18000, now);
-  } else if (tone > 50) {
-    filter.type = "highpass";
-    filter.frequency.setValueAtTime(Math.pow((tone - 50) / 50, 2) * 6000 + 20, now);
+        if (raw === "fmdepth" || raw === "fmd") {
+          return "fm";
+        }
+
+        if (raw === "cutoff") {
+          return "filter";
+        }
+
+        return raw;
+      })(),
+
+      wave:
+        String(
+          lfo.wave ??
+          "sine"
+        ),
+
+      depth:
+        clamp(
+          Number(lfo.depth) || 0,
+          0,
+          100
+        ),
+
+      rateHz:
+        lfoRateToHz(
+          lfo.rate,
+          lfo.syncMode === "bpm"
+            ? "bpm"
+            : "free",
+          bpm
+        )
+    }));
+}
+
+function stepChordOffsets(chord) {
+  /*
+   * Chordの保存形式はまだ最終確定していない。
+   * audio側は以下だけ受け入れ、勝手に新形式を決めない。
+   *
+   * null      -> 単音
+   * number    -> 現行Chord index互換
+   * number[]  -> 構成音の半音offset
+   */
+  if (
+    Array.isArray(chord)
+  ) {
+    const offsets =
+      chord
+        .map(Number)
+        .filter(
+          Number.isFinite
+        );
+
+    return offsets.length
+      ? offsets
+      : [0];
+  }
+
+  if (
+    typeof chord === "string" &&
+    CHORD_NAMES.includes(chord)
+  ) {
+    return resolveChordNoteOffsets(chord);
+  }
+
+  if (
+    Number.isFinite(
+      Number(chord)
+    )
+  ) {
+    return resolveChordNoteOffsets(
+      Number(chord)
+    );
+  }
+
+  return [0];
+}
+
+function envelopeSeconds(sound) {
+  const attackValue =
+    clamp(
+      Number(
+        sound?.attack
+      ) || 1,
+      1,
+      100
+    );
+
+  const attackNormalized =
+    (
+      attackValue -
+      1
+    ) / 99;
+
+  const attack =
+    0.001 +
+    0.999 *
+      Math.pow(
+        attackNormalized,
+        2.4
+      );
+
+  const holdDecayValue =
+    clamp(
+      Number(
+        sound?.holdDecay
+      ) || 0,
+      -50,
+      50
+    );
+
+  const amount =
+    Math.abs(
+      holdDecayValue
+    );
+
+  const normalized =
+    amount / 50;
+
+  const duration =
+    amount === 0
+      ? 0.005
+      : 0.005 +
+        9.995 *
+          Math.pow(
+            normalized,
+            3
+          );
+
+  return {
+    attack,
+    holdDecayValue,
+    duration
+  };
+}
+
+function layerPanValue(
+  performanceData
+) {
+  return (
+    clamp(
+      Number(
+        performanceData?.pan
+      ) || 0,
+      -25,
+      25
+    ) / 25
+  );
+}
+
+function soundGainValue(
+  sound,
+  performanceData,
+  velocityScale
+) {
+  const soundGain =
+    clamp(
+      Number(
+        sound?.gain
+      ) || 0,
+      0,
+      150
+    ) / 100;
+
+  const stepGain =
+    clamp(
+      Number(
+        performanceData?.gain
+      ) || 0,
+      0,
+      150
+    ) / 100;
+
+  return (
+    soundGain *
+    stepGain *
+    clamp(
+      Number(
+        velocityScale
+      ) || 1,
+      0,
+      1
+    )
+  );
+}
+
+function layerProbabilityPass(
+  performanceData,
+  options
+) {
+  if (
+    options.ignoreProbability
+  ) {
+    return true;
+  }
+
+  const probability =
+    clamp(
+      Number(
+        performanceData?.probability
+      ) || 0,
+      0,
+      100
+    );
+
+  return (
+    probability >= 100 ||
+    Math.random() * 100 <
+      probability
+  );
+}
+
+function filterFrequencyFromValue(
+  value
+) {
+  const normalized =
+    clamp(
+      Number(value) || 0,
+      -50,
+      50
+    );
+
+  if (normalized === 0) {
+    return null;
+  }
+
+  if (normalized > 0) {
+    /*
+     * FIL upper side = High-pass / LOW CUT.
+     * +1 is almost open; +50 removes the low range strongly.
+     */
+    const t =
+      normalized / 50;
+
+    return {
+      type: "highpass",
+      frequency:
+        20 *
+        Math.pow(
+          7000 / 20,
+          t
+        )
+    };
+  }
+
+  /*
+   * FIL lower side = Low-pass / HIGH CUT.
+   * -1 is almost open; -50 removes the high range strongly.
+   */
+  const t =
+    Math.abs(
+      normalized
+    ) / 50;
+
+  return {
+    type: "lowpass",
+    frequency:
+      18000 *
+      Math.pow(
+        90 / 18000,
+        t
+      )
+  };
+}
+
+function connectPanLfoForVoice({
+  panner,
+  lfos,
+  startTime,
+  stopTime,
+  cleanupSources,
+  cleanupGains
+}) {
+  if (!panner) {
+    return;
+  }
+
+  lfos
+    .filter(
+      lfo =>
+        lfo.target === "pan"
+    )
+    .forEach(lfo => {
+      const depth =
+        (
+          lfo.depth /
+          100
+        );
+
+      if (
+        lfo.wave ===
+        "random"
+      ) {
+        const source =
+          createSampleAndHoldLfo({
+            audioParam:
+              panner.pan,
+            depth,
+            rateHz:
+              lfo.rateHz,
+            startTime,
+            stopTime
+          });
+
+        source.stop(
+          stopTime
+        );
+
+        cleanupSources.push(
+          source
+        );
+
+        return;
+      }
+
+      if (
+        lfo.wave === "rise" ||
+        lfo.wave === "fall"
+      ) {
+        const source =
+          createOneShotLfo({
+            audioParam:
+              panner.pan,
+            depth:
+              depth,
+            rateHz:
+              lfo.rateHz,
+            startTime,
+            stopTime,
+            wave:
+              lfo.wave
+          });
+
+        source.stop(stopTime);
+        cleanupSources.push(source);
+        return;
+      }
+
+      const oscillator =
+        sprootoDebugNode(
+          context.createOscillator(),
+          "lfo"
+        );
+
+      const gain =
+        sprootoDebugNode(
+          context.createGain(),
+          "lfoGain"
+        );
+
+      const waveMap = {
+        sine: "sine",
+        triangle:
+          "triangle",
+        square:
+          "square",
+        sawUp:
+          "sawtooth",
+        sawDown:
+          "sawtooth"
+      };
+
+      oscillator.type =
+        waveMap[lfo.wave] ??
+        "sine";
+
+      oscillator.frequency
+        .setValueAtTime(
+          lfo.rateHz,
+          startTime
+        );
+
+      gain.gain
+        .setValueAtTime(
+          lfo.wave ===
+            "sawDown"
+            ? -depth
+            : depth,
+          startTime
+        );
+
+      oscillator
+        .connect(gain)
+        .connect(
+          panner.pan
+        );
+
+      oscillator.start(
+        startTime
+      );
+
+      oscillator.stop(
+        stopTime
+      );
+
+      cleanupSources.push(
+        oscillator
+      );
+
+      cleanupGains.push(
+        gain
+      );
+    });
+}
+
+function createLevelLfoChain({
+  inputNode,
+  lfos,
+  startTime,
+  stopTime,
+  cleanupSources,
+  cleanupGains
+}) {
+  let outputNode = inputNode;
+
+  lfos
+    .filter(
+      lfo =>
+        lfo.target === "level" &&
+        lfo.depth > 0
+    )
+    .forEach(lfo => {
+      const depthAmount =
+        clamp(
+          Number(lfo.depth) || 0,
+          0,
+          100
+        ) /
+        100;
+
+      if (depthAmount <= 0) {
+        return;
+      }
+
+      /*
+       * LEVEL LFO is multiplicative, not additive.
+       *
+       * DEP 0   => 1.00 .. 1.00
+       * DEP 50  => 0.50 .. 1.00
+       * DEP 100 => 0.00 .. 1.00
+       *
+       * The envelope remains on voiceGain; this node only multiplies the
+       * finished envelope. Therefore square DEP100 becomes a true dry gate
+       * and can never drive Gain below zero / invert phase.
+       */
+      const center =
+        1 - depthAmount / 2;
+
+      const excursion =
+        depthAmount / 2;
+
+      const modulationGain =
+        sprootoDebugNode(
+          context.createGain(),
+          "levelLfoGain"
+        );
+
+      modulationGain.gain
+        .setValueAtTime(
+          center,
+          startTime
+        );
+
+      outputNode.connect(
+        modulationGain
+      );
+
+      outputNode =
+        modulationGain;
+
+      cleanupGains.push(
+        modulationGain
+      );
+
+      if (
+        lfo.wave ===
+        "random"
+      ) {
+        const source =
+          createSampleAndHoldLfo({
+            audioParam:
+              modulationGain.gain,
+            depth:
+              excursion,
+            rateHz:
+              lfo.rateHz,
+            startTime,
+            stopTime
+          });
+
+        source.stop(
+          stopTime
+        );
+
+        cleanupSources.push(
+          source
+        );
+
+        return;
+      }
+
+      if (
+        lfo.wave === "rise" ||
+        lfo.wave === "fall"
+      ) {
+        /*
+         * One-shot shapes move inside the same safe 0..1 multiplier range.
+         * rise: low -> center, fall: high -> center.
+         */
+        const source =
+          createOneShotLfo({
+            audioParam:
+              modulationGain.gain,
+            depth:
+              excursion,
+            rateHz:
+              lfo.rateHz,
+            startTime,
+            stopTime,
+            wave:
+              lfo.wave
+          });
+
+        source.stop(
+          stopTime
+        );
+
+        cleanupSources.push(
+          source
+        );
+
+        return;
+      }
+
+      const oscillator =
+        sprootoDebugNode(
+          context.createOscillator(),
+          "lfo"
+        );
+
+      const gain =
+        sprootoDebugNode(
+          context.createGain(),
+          "lfoGain"
+        );
+
+      const waveMap = {
+        sine: "sine",
+        triangle:
+          "triangle",
+        square:
+          "square",
+        sawUp:
+          "sawtooth",
+        sawDown:
+          "sawtooth"
+      };
+
+      oscillator.type =
+        waveMap[lfo.wave] ??
+        "sine";
+
+      oscillator.frequency
+        .setValueAtTime(
+          lfo.rateHz,
+          startTime
+        );
+
+      gain.gain
+        .setValueAtTime(
+          lfo.wave ===
+            "sawDown"
+            ? -excursion
+            : excursion,
+          startTime
+        );
+
+      /*
+       * LEVEL modulation gets a very small fixed smoothing stage.
+       * It removes the sharp digital edge from square/saw gain changes
+       * without adding another user parameter. About 1 ms: still chopped,
+       * just without an ideally instantaneous gain edge.
+       */
+      const smoothingFilter =
+        sprootoDebugNode(
+          context.createBiquadFilter(),
+          "levelLfoSmoothing"
+        );
+
+      smoothingFilter.type =
+        "lowpass";
+
+      smoothingFilter.frequency
+        .setValueAtTime(
+          160,
+          startTime
+        );
+
+      smoothingFilter.Q
+        .setValueAtTime(
+          0.0001,
+          startTime
+        );
+
+      oscillator
+        .connect(gain)
+        .connect(
+          smoothingFilter
+        )
+        .connect(
+          modulationGain.gain
+        );
+
+      oscillator.start(
+        startTime
+      );
+
+      oscillator.stop(
+        stopTime
+      );
+
+      cleanupSources.push(
+        oscillator
+      );
+
+      cleanupGains.push(
+        gain
+      );
+    });
+
+  return outputNode;
+}
+
+function connectFilterLfoForVoice({
+  filter,
+  lfos,
+  startTime,
+  stopTime,
+  cleanupSources,
+  cleanupGains
+}) {
+  if (!filter) {
+    return;
+  }
+
+  lfos
+    .filter(
+      lfo =>
+        lfo.target ===
+        "filter"
+    )
+    .forEach(lfo => {
+      const depthCents =
+        lfo.depth *
+        24;
+
+      if (
+        lfo.wave ===
+        "random"
+      ) {
+        const source =
+          createSampleAndHoldLfo({
+            audioParam:
+              filter.detune,
+            depth:
+              depthCents,
+            rateHz:
+              lfo.rateHz,
+            startTime,
+            stopTime
+          });
+
+        source.stop(
+          stopTime
+        );
+
+        cleanupSources.push(
+          source
+        );
+
+        return;
+      }
+
+      if (
+        lfo.wave === "rise" ||
+        lfo.wave === "fall"
+      ) {
+        const source =
+          createOneShotLfo({
+            audioParam:
+              filter.detune,
+            depth:
+              depthCents,
+            rateHz:
+              lfo.rateHz,
+            startTime,
+            stopTime,
+            wave:
+              lfo.wave
+          });
+
+        source.stop(stopTime);
+        cleanupSources.push(source);
+        return;
+      }
+
+      const oscillator =
+        sprootoDebugNode(
+          context.createOscillator(),
+          "lfo"
+        );
+
+      const gain =
+        sprootoDebugNode(
+          context.createGain(),
+          "lfoGain"
+        );
+
+      const waveMap = {
+        sine: "sine",
+        triangle:
+          "triangle",
+        square:
+          "square",
+        sawUp:
+          "sawtooth",
+        sawDown:
+          "sawtooth"
+      };
+
+      oscillator.type =
+        waveMap[lfo.wave] ??
+        "sine";
+
+      oscillator.frequency
+        .setValueAtTime(
+          lfo.rateHz,
+          startTime
+        );
+
+      gain.gain
+        .setValueAtTime(
+          lfo.wave ===
+            "sawDown"
+            ? -depthCents
+            : depthCents,
+          startTime
+        );
+
+      oscillator
+        .connect(gain)
+        .connect(
+          filter.detune
+        );
+
+      oscillator.start(
+        startTime
+      );
+
+      oscillator.stop(
+        stopTime
+      );
+
+      cleanupSources.push(
+        oscillator
+      );
+
+      cleanupGains.push(
+        gain
+      );
+    });
+}
+
+async function playLayerVoice({
+  layer,
+  sound,
+  performanceData,
+  startTime,
+  bpm,
+  options
+}) {
+  if (
+    !sound ||
+    !performanceData ||
+    !performanceData.soundId
+  ) {
+    return false;
+  }
+
+  if (
+    !layerProbabilityPass(
+      performanceData,
+      options
+    )
+  ) {
+    return false;
+  }
+
+  const {
+    attack,
+    holdDecayValue,
+    duration
+  } =
+    envelopeSeconds(
+      sound
+    );
+
+  const strumValue =
+    layer === "melodic"
+      ? clamp(
+          Math.round(
+            Number(
+              performanceData.strum
+            ) || 0
+          ),
+          -8,
+          8
+        )
+      : 0;
+
+  const soundNote =
+    layer === "rhythm"
+      ? (
+          Number(
+            sound.note
+          ) || 0
+        )
+      : 0;
+
+  const note =
+    clamp(
+      60 +
+        soundNote +
+        (
+          Number(
+            performanceData.note
+          ) || 0
+        ),
+      0,
+      127
+    );
+
+  const chordNotes =
+    layer === "melodic"
+      ? stepChordOffsets(
+          performanceData.chord
+        ).map(
+          offset =>
+            clamp(
+              note + offset,
+              0,
+              127
+            )
+        )
+      : [note];
+
+  const strumGapSeconds =
+    Math.abs(
+      strumValue
+    ) *
+    (
+      (
+        60 /
+        Math.max(
+          1,
+          bpm
+        )
+      ) /
+      64
+    );
+
+  const maximumStrumDelay =
+    chordNotes.length > 1
+      ? (
+          chordNotes.length -
+          1
+        ) *
+        strumGapSeconds
+      : 0;
+
+  const gateEnd =
+    startTime +
+    duration +
+    maximumStrumDelay;
+
+  // Holdは聴感上ほぼ即時停止のままクリックだけ避ける。
+  // Decayは既存の自然なtailを維持する。
+  const releaseTime =
+    holdDecayValue <= 0
+      ? 0.005
+      : 0.05;
+
+  const releaseEnd =
+    gateEnd +
+    releaseTime;
+
+  // Holdはrelease完了とsource.stop()を同時刻にしない。
+  // gainが十分に落ち切った後に無音の猶予を置いてsourceを止めることで、
+  // stop境界由来のクリックを防ぐ。
+  const sourceStopTime =
+    releaseEnd +
+    (holdDecayValue <= 0 ? 0.003 : 0);
+
+  const peakLevel =
+    Math.max(
+      0.0001,
+      soundGainValue(
+        sound,
+        performanceData,
+        options.velocityScale
+      )
+    );
+
+  const voiceGain =
+    sprootoDebugNode(
+      context.createGain(),
+      "voiceGain"
+    );
+
+  const attackEnd =
+    startTime +
+    attack;
+
+  voiceGain.gain
+    .setValueAtTime(
+      0.0001,
+      startTime
+    );
+
+  voiceGain.gain
+    .exponentialRampToValueAtTime(
+      peakLevel,
+      attackEnd
+    );
+
+  if (
+    holdDecayValue > 0
+  ) {
+    voiceGain.gain
+      .linearRampToValueAtTime(
+        0.0001,
+        Math.max(
+          attackEnd +
+            0.001,
+          gateEnd
+        )
+      );
   } else {
-    filter.type = "allpass";
+    voiceGain.gain
+      .setValueAtTime(
+        peakLevel,
+        gateEnd
+      );
   }
 
-  output.gain.setValueAtTime(0.0001, now);
-  output.gain.exponentialRampToValueAtTime(Math.max(0.0001, velocity), now + 0.008);
-  output.gain.exponentialRampToValueAtTime(0.0001, now + decay);
-  output.connect(filter).connect(panner).connect(master);
+  voiceGain.gain
+    .exponentialRampToValueAtTime(
+      0.0001,
+      releaseEnd
+    );
 
-  const stopAt = now + decay + 0.03;
-  const sineLevel = clamp(track.base.sine, 0, 100) / 100;
-  if (sineLevel > 0) {
-    const carrier = context.createOscillator();
-    const sineGain = context.createGain();
-    const modulator = context.createOscillator();
-    const modulationGain = context.createGain();
-    const carrierFrequency = frequency(note);
-    carrier.type = "sine";
-    carrier.frequency.setValueAtTime(carrierFrequency, now);
-    modulator.type = "sine";
-    modulator.frequency.setValueAtTime(carrierFrequency * Math.max(0.01, track.base.fmRatio), now);
-    modulationGain.gain.setValueAtTime(carrierFrequency * depth * 0.1, now);
-    sineGain.gain.value = sineLevel;
-    modulator.connect(modulationGain).connect(carrier.frequency);
-    carrier.connect(sineGain).connect(output);
-    carrier.start(now); modulator.start(now);
-    carrier.stop(stopAt); modulator.stop(stopAt);
+  const lfos =
+    soundLfoList(
+      sound,
+      bpm
+    );
+
+  const panValue =
+    layerPanValue(
+      performanceData
+    );
+
+  const panLfoActive =
+    lfos.some(
+      lfo =>
+        lfo.target === "pan"
+    );
+
+  const panner =
+    (
+      panValue !== 0 ||
+      panLfoActive
+    )
+      ? sprootoDebugNode(
+          context.createStereoPanner(),
+          "pan"
+        )
+      : null;
+
+  if (panner) {
+    panner.pan
+      .setValueAtTime(
+        panValue,
+        startTime
+      );
   }
 
-  const noiseLevel = clamp(track.base.noise, 0, 100) / 100;
-  if (noiseLevel > 0) {
-    const noise = context.createBufferSource();
-    const noiseGain = context.createGain();
-    noise.buffer = makeNoiseBuffer(decay + 0.05);
-    noiseGain.gain.value = noiseLevel;
-    noise.connect(noiseGain).connect(output);
-    noise.start(now);
-    noise.stop(stopAt);
+  const filterDefinition =
+    filterFrequencyFromValue(
+      sound.filterCutoff
+    );
+
+  const filterLfoActive =
+    lfos.some(
+      lfo =>
+        lfo.target === "filter"
+    );
+
+  const filter =
+    (
+      filterDefinition ||
+      filterLfoActive
+    )
+      ? sprootoDebugNode(
+          context.createBiquadFilter(),
+          "filter"
+        )
+      : null;
+
+  if (filter) {
+    /*
+     * At FIL=0 the normal signal path is open. If FILTER LFO is active,
+     * create a near-open low-pass so modulation still has something to move.
+     */
+    filter.type =
+      filterDefinition?.type ??
+      "lowpass";
+
+    filter.frequency
+      .setValueAtTime(
+        filterDefinition?.frequency ??
+        18000,
+        startTime
+      );
+
+    filter.Q
+      .setValueAtTime(
+        clamp(
+          Number(
+            sound.filterResonance
+          ) || 0,
+          0,
+          50
+        ) /
+          2,
+        startTime
+      );
+  }
+
+  const cleanupSources = [];
+  const cleanupGains = [];
+
+  let outputNode =
+    createLevelLfoChain({
+      inputNode:
+        voiceGain,
+      lfos,
+      startTime,
+      stopTime:
+        sourceStopTime,
+      cleanupSources,
+      cleanupGains
+    });
+
+  if (filter) {
+    outputNode.connect(
+      filter
+    );
+
+    outputNode =
+      filter;
+  }
+
+  if (panner) {
+    outputNode.connect(
+      panner
+    );
+
+    outputNode =
+      panner;
+  }
+
+  /*
+   * Holdの最終クリックガード。
+   * ENV GainはFILTER/PANより前段にあるため、入力を0へ落としても
+   * 後段フィルターの内部状態や共振がわずかに残ることがある。
+   * Holdだけはチェーン最終段でも5msで閉じ、実際の出力波形を
+   * 必ずゼロへ着地させる。Decayには一切かけない。
+   */
+  const holdClickGuard =
+    holdDecayValue <= 0
+      ? sprootoDebugNode(
+          context.createGain(),
+          "holdClickGuard"
+        )
+      : null;
+
+  if (holdClickGuard) {
+    holdClickGuard.gain
+      .setValueAtTime(
+        1,
+        startTime
+      );
+
+    holdClickGuard.gain
+      .setValueAtTime(
+        1,
+        gateEnd
+      );
+
+    holdClickGuard.gain
+      .linearRampToValueAtTime(
+        0,
+        releaseEnd
+      );
+
+    outputNode.connect(
+      holdClickGuard
+    );
+
+    outputNode =
+      holdClickGuard;
+  }
+
+  const soundKey =
+    `${layer}:${
+      performanceData.soundId
+    }`;
+
+  const soundOutput =
+    soundPeakGuardNode(
+      soundKey,
+      sound.rsend
+    );
+
+  let exportFadeGain = null;
+
+  const fadeEnvelope =
+    options.fadeEnvelope;
+
+  if (
+    offlineRenderMode ||
+    fadeEnvelope
+  ) {
+    exportFadeGain =
+      sprootoDebugNode(
+        context.createGain(),
+        "exportFade"
+      );
+
+    exportFadeGain.gain
+      .setValueAtTime(
+        1,
+        0
+      );
+
+    if (fadeEnvelope) {
+      const fadeInStart =
+        Number(
+          fadeEnvelope.fadeInStart
+        );
+
+      const fadeInEnd =
+        Number(
+          fadeEnvelope.fadeInEnd
+        );
+
+      const fadeOutStart =
+        Number(
+          fadeEnvelope.fadeOutStart
+        );
+
+      const fadeOutEnd =
+        Number(
+          fadeEnvelope.fadeOutEnd
+        );
+
+      if (
+        Number.isFinite(
+          fadeInStart
+        ) &&
+        Number.isFinite(
+          fadeInEnd
+        ) &&
+        fadeInEnd >
+          fadeInStart
+      ) {
+        exportFadeGain.gain
+          .setValueAtTime(
+            0,
+            fadeInStart
+          );
+
+        exportFadeGain.gain
+          .linearRampToValueAtTime(
+            1,
+            fadeInEnd
+          );
+      }
+
+      if (
+        Number.isFinite(
+          fadeOutStart
+        ) &&
+        Number.isFinite(
+          fadeOutEnd
+        ) &&
+        fadeOutEnd >
+          fadeOutStart
+      ) {
+        exportFadeGain.gain
+          .setValueAtTime(
+            1,
+            fadeOutStart
+          );
+
+        exportFadeGain.gain
+          .linearRampToValueAtTime(
+            0,
+            fadeOutEnd
+          );
+      }
+    }
+
+    outputNode.connect(
+      exportFadeGain
+    );
+
+    exportFadeGain.connect(
+      soundOutput
+    );
+  } else {
+    outputNode.connect(
+      soundOutput
+    );
+  }
+
+  connectPanLfoForVoice({
+    panner,
+    lfos,
+    startTime,
+    stopTime:
+      sourceStopTime,
+    cleanupSources,
+    cleanupGains
+  });
+
+  connectFilterLfoForVoice({
+    filter,
+    lfos,
+    startTime,
+    stopTime:
+      sourceStopTime,
+    cleanupSources,
+    cleanupGains
+  });
+
+  const previousVoice =
+    activeTrackVoices.get(
+      soundKey
+    );
+
+  if (
+    previousVoice?.gainNode &&
+    previousVoice.endTime >
+      startTime &&
+    previousVoice.allowRetriggerCut !== false
+  ) {
+    const retriggerFade = 0.008;
+    const closeStart =
+      Math.max(
+        context.currentTime,
+        startTime -
+          retriggerFade
+      );
+
+    try {
+      const previousGain =
+        previousVoice.gainNode.gain;
+
+      /*
+       * Holdのゲート途中で次の同soundが来た場合、最終Gainは
+       * closeStart時点で必ず1。値推定やcancelAndHoldAtTimeに頼らず、
+       * その既知値から新発音直前まで8msで完全に0へ落とす。
+       * これによりHoldのretrigger cutだけをクリックレス化する。
+       */
+      if (
+        Number.isFinite(previousVoice.gateEnd) &&
+        startTime < previousVoice.gateEnd
+      ) {
+        previousGain
+          .cancelScheduledValues(
+            closeStart
+          );
+
+        previousGain
+          .setValueAtTime(
+            1,
+            closeStart
+          );
+
+        previousGain
+          .linearRampToValueAtTime(
+            0,
+            startTime
+          );
+      } else if (
+        typeof previousGain
+          .cancelAndHoldAtTime ===
+          "function"
+      ) {
+        previousGain
+          .cancelAndHoldAtTime(
+            closeStart
+          );
+
+        previousGain
+          .linearRampToValueAtTime(
+            0,
+            startTime
+          );
+      }
+    } catch {}
+  }
+
+  activeTrackVoices.set(
+    soundKey,
+    {
+      gainNode:
+        holdClickGuard ??
+        voiceGain,
+      startTime,
+      endTime:
+        releaseEnd,
+      gateEnd,
+      /*
+       * Decay side (> 0): overlap allowed, so a later trigger never cuts it.
+       * Hold side (<= 0): overlap prohibited; a later trigger closes the
+       * previous voice with the 5 ms click-safe fade above.
+       */
+      allowRetriggerCut:
+        holdDecayValue <= 0
+    }
+  );
+
+  const voiceGainScale =
+    1 /
+    Math.sqrt(
+      Math.max(
+        1,
+        chordNotes.length
+      )
+    );
+
+  const pitchLfos =
+    lfos
+      .filter(
+        lfo =>
+          lfo.target ===
+          "pitch"
+      )
+      .map(lfo => ({
+        depth:
+          lfo.depth,
+        rateHz:
+          lfo.rateHz,
+        wave:
+          lfo.wave
+      }));
+
+  const fmLfos =
+    layer === "melodic"
+      ? lfos
+          .filter(
+            lfo =>
+              lfo.target === "fm"
+          )
+          .map(lfo => ({
+            depth:
+              lfo.depth,
+            rateHz:
+              lfo.rateHz,
+            wave:
+              lfo.wave
+          }))
+      : [];
+
+  const fmDepth =
+    layer === "melodic"
+      ? clamp(
+          Number(
+            sound.fmDepth
+          ) || 0,
+          0,
+          20
+        )
+      : 0;
+
+  const fmRatio =
+    layer === "melodic"
+      ? clamp(
+          Number(
+            sound.fmRatio
+          ) || 1,
+          0.25,
+          8
+        )
+      : 1;
+
+  const sineMix =
+    layer === "rhythm"
+      ? (
+          1 -
+          clamp(
+            Number(
+              sound.noiseMix
+            ) || 0,
+            0,
+            100
+          ) /
+            100
+        )
+      : 1;
+
+  const noiseMix =
+    layer === "rhythm"
+      ? clamp(
+          Number(
+            sound.noiseMix
+          ) || 0,
+          0,
+          100
+        ) /
+          100
+      : 0;
+
+  for (
+    let voiceIndex = 0;
+    voiceIndex <
+      chordNotes.length;
+    voiceIndex++
+  ) {
+    const voiceNote =
+      chordNotes[
+        voiceIndex
+      ];
+
+    const strumVoiceIndex =
+      strumValue < 0
+        ? chordNotes.length -
+          1 -
+          voiceIndex
+        : voiceIndex;
+
+    const voiceStartDelay =
+      chordNotes.length > 1
+        ? strumVoiceIndex *
+          strumGapSeconds
+        : 0;
+
+    const voiceStartTime =
+      startTime +
+      voiceStartDelay;
+
+    const voiceStopAt =
+      releaseEnd +
+      0.01 +
+      voiceStartDelay;
+
+    if (
+      sineMix > 0
+    ) {
+      const sineGain =
+        sprootoDebugNode(
+          context.createGain(),
+          "sineGain"
+        );
+
+      sineGain.gain
+        .setValueAtTime(
+          Math.max(
+            0.0001,
+            sineMix *
+              voiceGainScale
+          ),
+          voiceStartTime
+        );
+
+      const canUseNativeSine =
+        (
+          layer === "rhythm" ||
+          fmDepth <= 0
+        ) &&
+        pitchLfos.length === 0 &&
+        fmLfos.length === 0;
+
+      if (
+        canUseNativeSine
+      ) {
+        const oscillator =
+          sprootoDebugNode(
+            context.createOscillator(),
+            "osc"
+          );
+
+        oscillator.type =
+          "sine";
+
+        oscillator.frequency
+          .setValueAtTime(
+            frequency(
+              voiceNote
+            ),
+            voiceStartTime
+          );
+
+        oscillator
+          .connect(
+            sineGain
+          )
+          .connect(
+            voiceGain
+          );
+
+        oscillator.start(
+          voiceStartTime
+        );
+
+        oscillator.stop(
+          voiceStopAt
+        );
+
+        if (
+          !offlineRenderMode
+        ) {
+          sprootoDebugTimeout(
+            () => {
+              sprootoDebugOscEndedWindow +=
+                1;
+
+              sprootoDebugReleaseNode(
+                oscillator
+              );
+
+              sprootoDebugReleaseNode(
+                sineGain
+              );
+            },
+            Math.max(
+              20,
+              (
+                voiceStopAt -
+                context.currentTime +
+                0.05
+              ) *
+                1000
+            )
+          );
+        }
+      } else if (
+        fmVoiceWorkletReady
+      ) {
+        sprootoDebugFmWorkletCreatedTotal +=
+          1;
+
+        const fmVoice =
+          sprootoDebugNode(
+            new AudioWorkletNode(
+              context,
+              "mokton-fm-voice",
+              {
+                numberOfInputs:
+                  0,
+
+                numberOfOutputs:
+                  1,
+
+                outputChannelCount:
+                  [1],
+
+                processorOptions: {
+                  startTime:
+                    voiceStartTime,
+
+                  stopTime:
+                    voiceStopAt,
+
+                  note:
+                    voiceNote,
+
+                  fmDepth,
+
+                  fmRatio,
+
+                  pitchLfos,
+
+                  fmLfos
+                }
+              }
+            ),
+            "fmVoice"
+          );
+
+        fmVoice
+          .connect(
+            sineGain
+          )
+          .connect(
+            voiceGain
+          );
+
+        if (
+          !offlineRenderMode
+        ) {
+          sprootoDebugTimeout(
+            () => {
+              sprootoDebugReleaseNode(
+                fmVoice
+              );
+
+              sprootoDebugReleaseNode(
+                sineGain
+              );
+            },
+            Math.max(
+              50,
+              (
+                voiceStopAt -
+                context.currentTime +
+                0.05
+              ) *
+                1000
+            )
+          );
+        }
+      }
+    }
+
+    /*
+     * RhythmだけNoiseを持つ。
+     * noiseMix=0ならBufferSource自体を作らない。
+     */
+    if (
+      layer === "rhythm" &&
+      noiseMix > 0
+    ) {
+      const noiseSource =
+        sprootoDebugNode(
+          context.createBufferSource(),
+          "noise"
+        );
+
+      const noiseGain =
+        sprootoDebugNode(
+          context.createGain(),
+          "noiseGain"
+        );
+
+      noiseSource.buffer =
+        ensureSharedNoiseBuffer();
+
+      noiseSource.loop = true;
+
+      noiseGain.gain
+        .setValueAtTime(
+          Math.max(
+            0.0001,
+            noiseMix
+          ),
+          voiceStartTime
+        );
+
+      noiseSource
+        .connect(
+          noiseGain
+        )
+        .connect(
+          voiceGain
+        );
+
+      noiseSource.start(
+        voiceStartTime
+      );
+
+      noiseSource.stop(
+        voiceStopAt
+      );
+
+      if (
+        !offlineRenderMode
+      ) {
+        sprootoDebugTimeout(
+          () => {
+            sprootoDebugReleaseNode(
+              noiseSource
+            );
+
+            sprootoDebugReleaseNode(
+              noiseGain
+            );
+          },
+          Math.max(
+            20,
+            (
+              voiceStopAt -
+              context.currentTime +
+              0.05
+            ) *
+              1000
+          )
+        );
+      }
+    }
+  }
+
+  if (
+    !offlineRenderMode
+  ) {
+    sprootoDebugTimeout(
+      () => {
+        if (
+          activeTrackVoices.get(
+            soundKey
+          )?.gainNode ===
+          voiceGain
+        ) {
+          activeTrackVoices.delete(
+            soundKey
+          );
+        }
+      },
+      Math.max(
+        20,
+        (
+          releaseEnd -
+          context.currentTime +
+          0.05
+        ) *
+          1000
+      )
+    );
+
+    sprootoDebugTimeout(
+      () => {
+        sprootoDebugCleanups +=
+          1;
+
+        cleanupSources.forEach(
+          sprootoDebugReleaseNode
+        );
+
+        cleanupGains.forEach(
+          sprootoDebugReleaseNode
+        );
+
+        [
+          voiceGain,
+          filter,
+          panner,
+          exportFadeGain
+        ].forEach(
+          sprootoDebugReleaseNode
+        );
+      },
+      Math.max(
+        100,
+        (
+          releaseEnd +
+          0.15 -
+          context.currentTime
+        ) *
+          1000
+      )
+    );
+  }
+
+  return true;
+}
+
+/*
+ * New mokton playback entry.
+ *
+ * STEPにはMELODIC / RHYTHMの2層があるが、
+ * Schedulerから見れば1つの時刻を予約する。
+ */
+export async function playSequenceStep(
+  step,
+  soundBank,
+  delaySeconds = 0,
+  options = {}
+) {
+  sprootoDebugPlayCallsTotal +=
+    1;
+
+  sprootoDebugPlayCallsWindow +=
+    1;
+
+  if (
+    playbackStartCapture &&
+    playbackStartCapture
+      .firstTrackCallAt === null
+  ) {
+    playbackStartCapture
+      .firstTrackCallAt =
+      performance.now();
+  }
+
+  await initializeAudio();
+
+  if (
+    !step ||
+    !soundBank
+  ) {
+    return false;
+  }
+
+  const requestedStartTime =
+    context.currentTime +
+    Math.max(
+      0,
+      Number(
+        delaySeconds
+      ) || 0
+    );
+
+  const minimumStartTime =
+    context.currentTime +
+    (
+      offlineRenderMode
+        ? 0
+        : 0.03
+    );
+
+  const baseStartTime =
+    Math.max(
+      requestedStartTime,
+      minimumStartTime
+    );
+
+  const bpm =
+    Number(
+      options.bpm
+    ) ||
+    Number(
+      document.getElementById(
+        "bpm-input"
+      )?.value
+    ) ||
+    120;
+
+  const jobs = [];
+
+  const melodic =
+    step.melodic;
+
+  if (
+    melodic?.soundId
+  ) {
+    const sound =
+      soundBank.melodic?.[
+        melodic.soundId
+      ];
+
+    if (sound) {
+      const nudgeSeconds =
+        (
+          Number(
+            melodic.nudge
+          ) || 0
+        ) *
+        (
+          (
+            60 /
+            Math.max(
+              1,
+              bpm
+            )
+          ) /
+          64
+        );
+
+      jobs.push(
+        playLayerVoice({
+          layer:
+            "melodic",
+
+          sound,
+
+          performanceData:
+            melodic,
+
+          startTime:
+            Math.max(
+              context.currentTime,
+              baseStartTime +
+                nudgeSeconds
+            ),
+
+          bpm,
+
+          options
+        })
+      );
+    }
+  }
+
+  const rhythm =
+    step.rhythm;
+
+  if (
+    rhythm?.soundId
+  ) {
+    const sound =
+      soundBank.rhythm?.[
+        rhythm.soundId
+      ];
+
+    if (sound) {
+      const nudgeSeconds =
+        (
+          Number(
+            rhythm.nudge
+          ) || 0
+        ) *
+        (
+          (
+            60 /
+            Math.max(
+              1,
+              bpm
+            )
+          ) /
+          64
+        );
+
+      jobs.push(
+        playLayerVoice({
+          layer:
+            "rhythm",
+
+          sound,
+
+          performanceData:
+            rhythm,
+
+          startTime:
+            Math.max(
+              context.currentTime,
+              baseStartTime +
+                nudgeSeconds
+            ),
+
+          bpm,
+
+          options
+        })
+      );
+    }
+  }
+
+  if (
+    jobs.length === 0
+  ) {
+    return false;
+  }
+
+  await Promise.all(
+    jobs
+  );
+
+  return true;
+}
+
+/*
+ * Transitional compatibility only.
+ *
+ * main.js / export.js are migrated next.
+ * Old Track data is deliberately not synthesized anymore.
+ */
+export async function playTrackStep(
+  track,
+  stepIndex,
+  delaySeconds = 0,
+  options = {}
+) {
+  if (
+    track?.sequenceStep &&
+    track?.soundBank
+  ) {
+    return playSequenceStep(
+      track.sequenceStep,
+      track.soundBank,
+      delaySeconds,
+      options
+    );
+  }
+
+  return false;
+}
+
+export function resetTrackPitchHistory() {
+  /*
+   * Glideは廃止。
+   * 旧main.jsのimportを切り替えるまでexport名だけ残す。
+   */
+}
+
+export function resumeAudio() {
+  resumeAudioContext();
+}
+
+/*
+ * iOS can return from a long background period with an AudioContext
+ * that reports a usable state while its real output path is still stale.
+ *
+ * When the app was backgrounded while playback was stopped, main.js
+ * uses this before the next PLAY so the first playback starts from a
+ * fresh AudioContext / output clock instead of inheriting that stale state.
+ */
+export async function resetAudioForForegroundPlayback() {
+  if (offlineRenderMode) {
+    return;
+  }
+
+  if (reverbDisconnectTimer !== null) {
+    clearTimeout(
+      reverbDisconnectTimer
+    );
+    reverbDisconnectTimer = null;
+  }
+
+  stopPlaybackStartProbe();
+
+  activeTrackVoices.clear();
+  soundPeakGuards.clear();
+
+  const oldContext =
+    context;
+
+  context = null;
+  master = null;
+  mixInput = null;
+  mixGain = null;
+  limiter = null;
+  reverbConvolver = null;
+  reverbDryGain = null;
+  reverbWetGain = null;
+  reverbPathConnected = false;
+  spectrumAnalyser = null;
+  outputAnalyser = null;
+  eqNodes = [];
+  spectrumData = null;
+  outputTimeData = null;
+  fmVoiceWorkletReady = null;
+
+  audioClockReady = false;
+  audioClockReadyPromise = null;
+
+  sharedNoiseBuffer = null;
+  sharedNoiseBufferContext = null;
+
+  if (
+    oldContext &&
+    oldContext.state !== "closed"
+  ) {
+    try {
+      await oldContext.close();
+    } catch {}
   }
 }
+
+/* =========================
+ * Offline export support
+ * ========================= */
+export async function beginOfflineAudioRender(
+  offlineContext,
+  {
+    masterMix = {},
+    masterVolume = 70
+  } = {}
+) {
+  if (!offlineContext) {
+    throw new Error("offline audio context is required");
+  }
+
+  const backup = {
+    context,
+    master,
+    mixInput,
+    mixGain,
+    limiter,
+    reverbConvolver,
+    reverbDryGain,
+    reverbWetGain,
+    spectrumAnalyser,
+    outputAnalyser,
+    eqNodes,
+    spectrumData,
+    outputTimeData,
+    fmVoiceWorkletReady,
+    audioClockReady,
+    audioClockReadyPromise,
+    offlineRenderMode,
+    activeTrackVoices: [...activeTrackVoices.entries()],
+    soundPeakGuards: [...soundPeakGuards.entries()]
+  };
+
+  context = offlineContext;
+  sharedNoiseBuffer = null;
+  sharedNoiseBufferContext = null;
+
+  offlineRenderMode = true;
+  audioClockReady = true;
+  audioClockReadyPromise = null;
+  fmVoiceWorkletReady = null;
+  spectrumData = null;
+  outputTimeData = null;
+  spectrumAnalyser = null;
+  outputAnalyser = null;
+
+  activeTrackVoices.clear();
+  soundPeakGuards.clear();
+
+  master = sprootoDebugNode(context.createGain());
+  master.gain.value = clamp(Number(masterVolume) || 0, 0, 100) / 100;
+
+  mixInput = sprootoDebugNode(context.createGain());
+
+  const eqValues = Array.isArray(masterMix.eq)
+    ? masterMix.eq
+    : Array(8).fill(0);
+
+  eqNodes = EQ_FREQUENCIES.map((frequency, index) => {
+    const filter = sprootoDebugNode(context.createBiquadFilter());
+    filter.type = index === 0
+      ? "lowshelf"
+      : index === EQ_FREQUENCIES.length - 1
+        ? "highshelf"
+        : "peaking";
+    filter.frequency.value = frequency;
+    filter.Q.value = 1;
+    filter.gain.value = clamp(Number(eqValues[index]) || 0, -12, 12);
+    return filter;
+  });
+
+  reverbConvolver = context.createConvolver();
+  reverbConvolver.buffer = createMasterReverbImpulse();
+
+  reverbDryGain = sprootoDebugNode(context.createGain());
+  reverbWetGain = sprootoDebugNode(context.createGain());
+
+  mixGain = sprootoDebugNode(context.createGain());
+  mixGain.gain.value = clamp(Number(masterMix.volume ?? 100) || 0, 0, 100) / 100;
+
+  limiter = context.createDynamicsCompressor();
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.003;
+  limiter.release.value = 0.1;
+  limiter.threshold.value = clamp(Number(masterMix.limiter ?? -1) || 0, -24, 0);
+
+  let previousNode = mixInput;
+  eqNodes.forEach(filter => {
+    previousNode.connect(filter);
+    previousNode = filter;
+  });
+
+  previousNode.connect(reverbDryGain);
+  reverbDryGain.connect(mixGain);
+
+  reverbConvolver.connect(reverbWetGain);
+  reverbWetGain.connect(mixGain);
+
+  reverbDryGain.gain.value = 1;
+  reverbWetGain.gain.value = clamp(Number(masterMix.reverb ?? 0) || 0, 0, 100) / 100;
+
+  mixGain.connect(limiter);
+  limiter.connect(master);
+  master.connect(context.destination);
+
+
+  await initializeFmVoiceWorklet();
+
+  let restored = false;
+
+  return function restoreOfflineAudioRender() {
+    if (restored) return;
+    restored = true;
+
+    activeTrackVoices.clear();
+    backup.activeTrackVoices.forEach(([key, value]) => {
+      activeTrackVoices.set(key, value);
+    });
+
+    soundPeakGuards.clear();
+    backup.soundPeakGuards.forEach(([key, value]) => {
+      soundPeakGuards.set(key, value);
+    });
+
+context = backup.context;
+
+    master = backup.master;
+    mixInput = backup.mixInput;
+    mixGain = backup.mixGain;
+    limiter = backup.limiter;
+    reverbConvolver = backup.reverbConvolver;
+    reverbDryGain = backup.reverbDryGain;
+    reverbWetGain = backup.reverbWetGain;
+    spectrumAnalyser = backup.spectrumAnalyser;
+    outputAnalyser = backup.outputAnalyser;
+    eqNodes = backup.eqNodes;
+    spectrumData = backup.spectrumData;
+    outputTimeData = backup.outputTimeData;
+    fmVoiceWorkletReady = backup.fmVoiceWorkletReady;
+    audioClockReady = backup.audioClockReady;
+    audioClockReadyPromise = backup.audioClockReadyPromise;
+    offlineRenderMode = backup.offlineRenderMode;
+  };
+}
+

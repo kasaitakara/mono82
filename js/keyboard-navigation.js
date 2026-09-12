@@ -24,9 +24,21 @@ const ARROW_DIRECTIONS = {
 let lastFocusedElement = null;
 
 function visibleElements(selector = NAVIGATION_SELECTOR, root = document) {
-  return Array.from(root.querySelectorAll(selector)).filter(element => {
-    const rect = element.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
+  return Array.from(
+    root.querySelectorAll(selector)
+  ).filter(element => {
+    const rect =
+      element.getBoundingClientRect();
+
+    const style =
+      window.getComputedStyle(element);
+
+    return (
+      rect.width > 0 &&
+      rect.height > 0 &&
+      style.display !== "none" &&
+      style.visibility !== "hidden"
+    );
   });
 }
 
@@ -63,12 +75,12 @@ function areaOf(element) {
   }
 
   if (
-    element.closest(
-      ".parameter-menu, .offset-grid"
-    )
-  ) {
-    return "editor-content";
-  }
+  element.closest(
+    ".parameter-menu, .offset-grid, .lfo-settings"
+  )
+) {
+  return "editor-content";
+}
 
   if (element.closest(".pattern-section")) {
     return "pattern-manager";
@@ -91,7 +103,7 @@ function areaRoot(area) {
       ".editor-header, .edit-toolbar",
 
     "editor-content":
-      ".parameter-menu, .offset-grid",
+  ".parameter-menu, .offset-grid, .lfo-settings",
 
     "pattern-manager":
       ".pattern-section"
@@ -438,6 +450,47 @@ function moveFocus(
   }
 
   /*
+ * Section編集記号 → Section内容
+ */
+if (
+  area === "pattern-manager" &&
+  direction === "right" &&
+  activeElement.classList.contains(
+    "section-editor-button"
+  )
+) {
+  const firstSectionCell =
+    document.querySelector(
+      ".section-pattern-cell"
+    );
+
+  if (firstSectionCell) {
+    firstSectionCell.focus();
+    return true;
+  }
+}
+
+/*
+ * Section内容 ← Section編集記号
+ */
+if (
+  area === "pattern-manager" &&
+  direction === "left" &&
+  activeElement.classList.contains(
+    "section-pattern-cell"
+  )
+) {
+  const editorButton =
+    document.querySelector(
+      ".section-editor-button"
+    );
+
+  if (editorButton) {
+    editorButton.focus();
+    return true;
+  }
+}
+  /*
    * 通常のエリア内移動
    */
   const sameAreaTargets =
@@ -513,7 +566,51 @@ document.addEventListener("focusin", event => {
 });
 
 document.addEventListener("keydown", event => {
+  const eventTarget = event.target;
   const activeElement = document.activeElement;
+
+  /*
+   * 実際にキーイベントが発生した要素を最優先する。
+   * プリセット保存ダイアログを含む通常フォームでは、
+   * アプリ共通のショートカット／カーソル移動を行わない。
+   */
+  const editingTarget =
+    eventTarget instanceof HTMLElement
+      ? eventTarget
+      : activeElement;
+
+  if (
+    editingTarget?.closest?.(
+      ".export-overlay, .global-overlay, .global-confirm-layer"
+    )
+  ) {
+    return;
+  }
+
+  const isNativeTextEditing =
+    editingTarget instanceof HTMLTextAreaElement ||
+    editingTarget instanceof HTMLSelectElement ||
+    editingTarget?.isContentEditable ||
+    (
+      editingTarget instanceof HTMLInputElement &&
+      [
+        "text",
+        "search",
+        "email",
+        "password",
+        "url",
+        "tel"
+      ].includes(editingTarget.type)
+    ) ||
+    Boolean(
+      editingTarget?.closest?.(
+        ".sound-preset-save-dialog input, .sound-preset-save-dialog select, .sound-preset-save-dialog textarea"
+      )
+    );
+
+  if (isNativeTextEditing) {
+    return;
+  }
 
   if (!(activeElement instanceof HTMLElement)) return;
 
