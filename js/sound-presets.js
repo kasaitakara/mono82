@@ -139,9 +139,9 @@ export const FACTORY_SOUND_PRESETS = [
       },
       lfo2: {
         target: "pitch",
-        wave: "sine",
-        depth: 0,
-        rate: 25,
+        wave: "fall",
+        depth: 94,
+        rate: 1200,
         syncMode: "free"
       }
     }
