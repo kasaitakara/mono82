@@ -2998,6 +2998,81 @@ function createLevelLfoChain({
         return;
       }
 
+      if (lfo.wave === "square") {
+        const high = center + excursion;
+        const low = center - excursion;
+        const halfPeriod =
+          0.5 /
+          Math.max(
+            0.0001,
+            Number(lfo.rateHz) || 0.0001
+          );
+
+        /*
+         * LEVEL square is scheduled directly on the Gain AudioParam so every
+         * retrigger starts from the same phase: HIGH -> LOW -> HIGH ...
+         * This keeps BPM/free timing deterministic and makes DEP100 a reliable
+         * 1.00 -> 0.00 gate for the pseudo-delay technique.
+         *
+         * Keep the transition extremely short to avoid a hard digital click
+         * while leaving the square timing effectively unchanged.
+         */
+        const rampTime =
+          Math.min(
+            0.0005,
+            halfPeriod * 0.05
+          );
+
+        const param =
+          modulationGain.gain;
+
+        param.cancelScheduledValues(
+          startTime
+        );
+        param.setValueAtTime(
+          high,
+          startTime
+        );
+
+        let current = high;
+        for (
+          let edgeTime =
+            startTime + halfPeriod;
+          edgeTime < stopTime;
+          edgeTime += halfPeriod
+        ) {
+          const next =
+            current === high
+              ? low
+              : high;
+          const rampStart =
+            Math.max(
+              startTime,
+              edgeTime -
+                rampTime / 2
+            );
+          const rampEnd =
+            Math.min(
+              stopTime,
+              edgeTime +
+                rampTime / 2
+            );
+
+          param.setValueAtTime(
+            current,
+            rampStart
+          );
+          param.linearRampToValueAtTime(
+            next,
+            rampEnd
+          );
+
+          current = next;
+        }
+
+        return;
+      }
+
       if (
         lfo.wave === "rise" ||
         lfo.wave === "fall"
