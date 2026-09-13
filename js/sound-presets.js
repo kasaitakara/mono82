@@ -8,7 +8,7 @@
 
 export const FACTORY_SOUND_PRESETS = [
   {
-    id: "factory-melodic-init",
+    id: "factory-melodic-soft sine",
     category: "melodic",
     name: "soft sine",
     sound: {
@@ -35,7 +35,7 @@ export const FACTORY_SOUND_PRESETS = [
       }
     }
   },{
-    id: "factory-melodic-init",
+    id: "factory-melodic-keyboard",
     category: "melodic",
     name: "keyboard",
     sound: {
@@ -63,7 +63,7 @@ export const FACTORY_SOUND_PRESETS = [
     }
   },
   {
-    id: "factory-melodic-init",
+    id: "factory-melodic-pad",
     category: "melodic",
     name: "pad",
     sound: {
@@ -119,7 +119,7 @@ export const FACTORY_SOUND_PRESETS = [
     }
   },
   {
-    id: "factory-rhythm-init",
+    id: "factory-rhythm-kick",
     category: "rhythm",
     name: "kick",
     sound: {
@@ -147,7 +147,7 @@ export const FACTORY_SOUND_PRESETS = [
     }
   },
   {
-    id: "factory-rhythm-init",
+    id: "factory-rhythm-hat",
     category: "rhythm",
     name: "hat",
     sound: {
@@ -175,7 +175,7 @@ export const FACTORY_SOUND_PRESETS = [
     }
   },
   {
-    id: "factory-rhythm-init",
+    id: "factory-rhythm-snare",
     category: "rhythm",
     name: "snare",
     sound: {
