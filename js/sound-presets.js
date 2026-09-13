@@ -132,16 +132,16 @@ export const FACTORY_SOUND_PRESETS = [
       filterResonance: 0,
       lfo1: {
         target: "pitch",
-        wave: "sine",
-        depth: 0,
-        rate: 25,
+        wave: "fall",
+        depth: 94,
+        rate: 120,
         syncMode: "free"
       },
       lfo2: {
         target: "pitch",
-        wave: "fall",
-        depth: 94,
-        rate: 1200,
+        wave: "sine",
+        depth: 0,
+        rate: 25,
         syncMode: "free"
       }
     }
